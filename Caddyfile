@@ -2,6 +2,10 @@
 	# Xray owns :443 and passes browsers here; nothing listens on :80 since certificates come via DNS.
 	auto_https disable_redirects
 	default_bind 127.0.0.1
+	# No HTTP/3: it would advertise Alt-Svc h3=":8443", a port that is not reachable from outside.
+	servers {
+		protocols h1 h2
+	}
 }
 
 {$DOMAIN}:8443 {
