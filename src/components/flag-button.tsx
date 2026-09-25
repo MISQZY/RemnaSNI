@@ -7,11 +7,32 @@ import { cn } from "@/lib/utils";
 
 type Pop = { id: number; x: number; y: number; value: number; crit: boolean; drift: number };
 
-/** Most pops that can be on screen at once, so frantic tapping stays cheap. */
+type Burst = { id: number; x: number; y: number; flags: { dx: number; dy: number; rot: number; size: number }[] };
+
+/** Most pops and flag bursts that can be on screen at once, so frantic tapping stays cheap. */
 const MAX_POPS = 40;
+const MAX_BURSTS = 12;
+
+/** A few tiny flags thrown far from the tapped spot, evenly around it; crits throw one more and further. */
+function burst(id: number, x: number, y: number, crit: boolean): Burst {
+  const count = crit ? 4 : 3;
+  const start = Math.random() * Math.PI * 2;
+  const flags = Array.from({ length: count }, (_, i) => {
+    const angle = start + ((i + (Math.random() - 0.5) * 0.3) / count) * Math.PI * 2;
+    const dist = (crit ? 150 : 110) + Math.random() * 40;
+    return {
+      dx: Math.cos(angle) * dist,
+      dy: Math.sin(angle) * dist - 20,
+      rot: (Math.random() - 0.5) * 540,
+      size: 14 + Math.random() * 8,
+    };
+  });
+  return { id, x, y, flags };
+}
 
 export function FlagButton({ code, name }: { code: string; name: string }) {
   const [pops, setPops] = useState<Pop[]>([]);
+  const [bursts, setBursts] = useState<Burst[]>([]);
   const [tilt, setTilt] = useState<{ x: number; y: number } | null>(null);
   const nextId = useRef(0);
 
@@ -19,6 +40,7 @@ export function FlagButton({ code, name }: { code: string; name: string }) {
     const { gain, crit } = game.tap();
     const pop = { id: nextId.current++, x, y, value: gain, crit, drift: (Math.random() - 0.5) * 60 };
     setPops((p) => [...p.slice(-(MAX_POPS - 1)), pop]);
+    setBursts((b) => [...b.slice(-(MAX_BURSTS - 1)), burst(pop.id, x, y, crit)]);
     // Lean the flag towards the tapped spot.
     setTilt({ x: (0.5 - y / rect.height) * 14, y: (x / rect.width - 0.5) * 14 });
   }
@@ -60,6 +82,31 @@ export function FlagButton({ code, name }: { code: string; name: string }) {
       </button>
 
       <div aria-hidden className="pointer-events-none absolute inset-0">
+        {bursts.map((b) => (
+          <div
+            key={b.id}
+            className="absolute motion-reduce:hidden"
+            style={{ left: b.x, top: b.y }}
+            // All flags of a burst share one duration, so the first to finish ends it.
+            onAnimationEnd={() => setBursts((all) => all.filter((x) => x.id !== b.id))}
+          >
+            {b.flags.map((f, i) => (
+              <span
+                key={i}
+                className={cn("fib absolute rounded-[2px] shadow-sm animate-flag-burst", `fi-${code}`)}
+                style={
+                  {
+                    width: f.size,
+                    height: f.size * 0.75,
+                    "--dx": `${f.dx}px`,
+                    "--dy": `${f.dy}px`,
+                    "--rot": `${f.rot}deg`,
+                  } as React.CSSProperties
+                }
+              />
+            ))}
+          </div>
+        ))}
         {pops.map((p) => (
           <span
             key={p.id}

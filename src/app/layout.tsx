@@ -41,7 +41,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en" className={inter.variable}>
-      <body className="flex min-h-dvh flex-col antialiased">
+      <body className="flex min-h-dvh flex-col overflow-x-clip antialiased">
         <SiteHeader code={code} name={name} account={!!remnaweb} />
         <main className="flex-1">{children}</main>
         <footer className="px-4 pb-6 text-center text-xs text-muted-foreground">© {new Date().getFullYear()} MISQZY.net</footer>

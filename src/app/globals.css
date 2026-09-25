@@ -88,6 +88,7 @@
 
   --animate-float-up: float-up 0.9s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
   --animate-glow: glow 3s ease-in-out infinite;
+  --animate-flag-burst: flag-burst 0.85s cubic-bezier(0.15, 0.6, 0.35, 1) forwards;
 
   @keyframes float-up {
     0% {
@@ -101,6 +102,22 @@
     100% {
       opacity: 0;
       transform: translate(calc(-50% + var(--drift, 0px)), -260%) scale(0.9);
+    }
+  }
+
+  @keyframes flag-burst {
+    0% {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(0.3) rotate(0);
+    }
+    60% {
+      opacity: 1;
+      transform: translate(calc(-50% + var(--dx) * 0.85), calc(-50% + var(--dy))) scale(1)
+        rotate(calc(var(--rot) * 0.7));
+    }
+    100% {
+      opacity: 0;
+      transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy) + 30px)) scale(0.8) rotate(var(--rot));
     }
   }
 
