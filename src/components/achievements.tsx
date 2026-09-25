@@ -1,18 +1,22 @@
 "use client";
 
 import { CircleHelp, Lock } from "lucide-react";
+import { DynamicIcon, type IconName } from "lucide-react/dynamic";
+import { useConfig } from "@/components/config-provider";
 import { useGame } from "@/components/game-runtime";
 import { useI18n } from "@/components/i18n-provider";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ACHIEVEMENTS, type Achievement } from "@/lib/achievements";
+import type { AchievementDef as Achievement } from "@/lib/config";
 import type { GameState } from "@/lib/game";
+import { achievementProgress } from "@/lib/rules";
 import { cn } from "@/lib/utils";
 
 export function Achievements() {
   const state = useGame();
+  const { achievements: ACHIEVEMENTS } = useConfig();
   const unlocked = ACHIEVEMENTS.filter((a) => state.achievements[a.id]);
   const locked = ACHIEVEMENTS.filter((a) => !state.achievements[a.id]);
   const percent = Math.round((unlocked.length / ACHIEVEMENTS.length) * 100);
@@ -75,10 +79,9 @@ export function Achievements() {
 function AchievementCard({ state, achievement: a }: { state: GameState; achievement: Achievement }) {
   const unlockedAt = state.achievements[a.id];
   const hidden = a.secret && !unlockedAt;
-  const Icon = hidden ? CircleHelp : a.icon;
-  const progress = !unlockedAt && a.progress?.(state);
-  const { t, num, date } = useI18n();
-  const text = t.achievements.items[a.id] ?? { name: a.id, description: "" };
+  const config = useConfig();
+  const progress = !unlockedAt && achievementProgress(config, a, state);
+  const { t, num, date, locale } = useI18n();
 
   return (
     <Card size="sm" className={cn(!unlockedAt && "bg-card/60")}>
@@ -89,7 +92,7 @@ function AchievementCard({ state, achievement: a }: { state: GameState; achievem
             unlockedAt ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
           )}
         >
-          <Icon className="size-5" />
+          {hidden ? <CircleHelp className="size-5" /> : <DynamicIcon name={a.icon as IconName} className="size-5" />}
           {!unlockedAt && (
             <span className="absolute -right-1 -bottom-1 grid size-5 place-items-center rounded-full bg-card ring-1 ring-foreground/10">
               <Lock className="size-3" />
@@ -97,8 +100,8 @@ function AchievementCard({ state, achievement: a }: { state: GameState; achievem
           )}
         </div>
         <div className="min-w-0 flex-1 space-y-1">
-          <p className={cn("font-medium", !unlockedAt && "text-muted-foreground")}>{hidden ? "???" : text.name}</p>
-          <p className="text-xs text-muted-foreground">{hidden ? t.achievements.secret : text.description}</p>
+          <p className={cn("font-medium", !unlockedAt && "text-muted-foreground")}>{hidden ? "???" : a.name[locale]}</p>
+          <p className="text-xs text-muted-foreground">{hidden ? t.achievements.secret : a.description[locale]}</p>
           {unlockedAt ? (
             <p className="text-xs text-primary">{t.achievements.unlockedAt(date(unlockedAt))}</p>
           ) : (

@@ -4,9 +4,9 @@ import { Gamepad2, PawPrint, Trophy } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AccountButton } from "@/components/account-button";
+import { useConfig } from "@/components/config-provider";
 import { useGame, useSync } from "@/components/game-runtime";
 import { LanguageSwitch, useI18n } from "@/components/i18n-provider";
-import { ACHIEVEMENTS } from "@/lib/achievements";
 import { unlockedCount } from "@/lib/game";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,7 @@ export function SiteHeader({ code, name, account }: { code: string; name: string
   const pathname = usePathname();
   const state = useGame();
   const pets = useSync().pets;
+  const { achievements } = useConfig();
   const { t } = useI18n();
 
   const items = [
@@ -22,7 +23,7 @@ export function SiteHeader({ code, name, account }: { code: string; name: string
       href: "/achievements",
       label: t.header.achievements,
       icon: Trophy,
-      extra: `${unlockedCount(state)}/${ACHIEVEMENTS.length}`,
+      extra: `${unlockedCount(state)}/${achievements.length}`,
     },
   ];
   // Pets are bought through RemnaWeb, so the shop only exists where sign-in does.

@@ -1,17 +1,10 @@
-import { ACHIEVEMENTS, type TapInfo } from "@/lib/achievements";
-import { UPGRADES, upgradeCost, type UpgradeKind } from "@/lib/upgrades";
+import { config } from "@/lib/config";
+import * as rules from "@/lib/rules";
 
-const BASE_CRIT_MULTIPLIER = 5;
 const STORAGE_KEY = "remnasni:v2";
 /** Last traffic boost received from RemnaWeb, so income while away can be credited before the next sync. */
 const BOOST_KEY = "remnasni:boost";
 const SAVE_EVERY_MS = 2_000;
-/** Passive income is capped so a forgotten tab does not break the economy. */
-const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
-/** Share of the auto-tap rate credited while no tab is open. */
-const OFFLINE_RATE = 0.5;
-/** Window for the "taps per burst" stat used by achievements. */
-const FRENZY_WINDOW_MS = 2_000;
 
 export type GameState = {
   points: number;
@@ -39,23 +32,20 @@ const INITIAL: GameState = {
   resetAt: 0,
 };
 
-export const level = (s: GameState, id: string) => s.levels[id] ?? 0;
+export const level = rules.level;
 
-const sum = (s: GameState, kind: UpgradeKind) =>
-  UPGRADES.filter((u) => u.kind === kind).reduce((acc, u) => acc + u.amount * level(s, u.id), 0);
-
-export const unlockedCount = (s: GameState) => ACHIEVEMENTS.filter((a) => s.achievements[a.id]).length;
-export const incomeMultiplier = (s: GameState) => 1 + sum(s, "boost");
-export const perTap = (s: GameState) => (1 + sum(s, "tap")) * incomeMultiplier(s);
-export const critChance = (s: GameState) => sum(s, "crit");
-export const critMultiplier = (s: GameState) => BASE_CRIT_MULTIPLIER + sum(s, "critPower");
+export const unlockedCount = (s: GameState) => config().achievements.filter((a) => s.achievements[a.id]).length;
+export const incomeMultiplier = (s: GameState) => rules.incomeMultiplier(config(), s);
+export const perTap = (s: GameState) => rules.perTap(config(), s);
+export const critChance = (s: GameState) => rules.critChance(config(), s);
+export const critMultiplier = (s: GameState) => rules.critMultiplier(config(), s);
 /** Passive income: the traffic boost auto-taps `boost` times per second (without crits). */
 export const perSecond = (s: GameState, boost: number) => perTap(s) * boost;
 
 /**
  * Whether `a` is further along than `b`: a later reset wins, then more points earned,
  * then more points spent (buying an upgrade does not change totalEarned).
- * Mirrors isNewer in RemnaWeb/src/lib/sni.ts.
+ * Mirrors isNewer in RemnaWeb/src/lib/clicker/state.ts.
  */
 export function isNewer(a: GameState, b: GameState): boolean {
   if (a.resetAt !== b.resetAt) return a.resetAt > b.resetAt;
@@ -75,8 +65,8 @@ let boost = 0;
 const listeners = new Set<() => void>();
 let unlockListener: ((ids: string[]) => void) | null = null;
 
-function set(next: GameState, tap?: TapInfo) {
-  const unlocked = ACHIEVEMENTS.filter((a) => !next.achievements[a.id] && a.check(next, tap)).map((a) => a.id);
+function set(next: GameState, tap?: rules.TapInfo) {
+  const unlocked = rules.newlyUnlocked(config(), next, tap);
   if (unlocked.length) {
     const now = Date.now();
     next = { ...next, achievements: { ...next.achievements, ...Object.fromEntries(unlocked.map((id) => [id, now])) } };
@@ -122,7 +112,7 @@ function loadBoost(): number {
 /** Passive income accrued since `s.lastSeen` (capped) at `rate` of the full speed, and the state with it credited. */
 function accrue(s: GameState, now: number, rate = 1): { next: GameState; gain: number; seconds: number } {
   if (boost <= 0 || !s.lastSeen) return { next: { ...s, lastSeen: now }, gain: 0, seconds: 0 };
-  const seconds = Math.min(Math.max(0, now - s.lastSeen), OFFLINE_CAP_MS) / 1000;
+  const seconds = Math.min(Math.max(0, now - s.lastSeen), config().offlineCapMs) / 1000;
   const gain = perSecond(s, boost) * seconds * rate;
   return { next: { ...s, points: s.points + gain, totalEarned: s.totalEarned + gain, lastSeen: now }, gain, seconds };
 }
@@ -147,7 +137,7 @@ export const game = {
     if (hydrated) return { gain: 0, seconds: 0 };
     hydrated = true;
     boost = loadBoost();
-    const { next, gain, seconds } = accrue(load() ?? INITIAL, Date.now(), OFFLINE_RATE);
+    const { next, gain, seconds } = accrue(load() ?? INITIAL, Date.now(), config().offlineRate);
     set(next);
     save();
     return { gain, seconds };
@@ -177,7 +167,7 @@ export const game = {
 
   tap(): { gain: number; crit: boolean } {
     const now = Date.now();
-    recentTaps = [...recentTaps.filter((t) => now - t < FRENZY_WINDOW_MS), now];
+    recentTaps = [...recentTaps.filter((t) => now - t < config().frenzyWindowMs), now];
     const crit = Math.random() < critChance(state);
     const gain = perTap(state) * (crit ? critMultiplier(state) : 1);
     set(
@@ -196,10 +186,10 @@ export const game = {
   },
 
   buy(id: string): boolean {
-    const u = UPGRADES.find((x) => x.id === id);
+    const u = config().upgrades.find((x) => x.id === id);
     if (!u) return false;
     const lvl = level(state, id);
-    const cost = upgradeCost(u, lvl);
+    const cost = rules.upgradeCost(u, lvl);
     if (state.points < cost || (u.maxLevel && lvl >= u.maxLevel)) return false;
     set({ ...state, points: state.points - cost, levels: { ...state.levels, [id]: lvl + 1 } });
     save();
@@ -216,7 +206,7 @@ export const game = {
 
   /** Adopts progress synced from another device; its passive income continues from its lastSeen. */
   replace(next: GameState) {
-    set(accrue({ ...INITIAL, ...next }, Date.now(), OFFLINE_RATE).next);
+    set(accrue({ ...INITIAL, ...next }, Date.now(), config().offlineRate).next);
     save();
   },
 

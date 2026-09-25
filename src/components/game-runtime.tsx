@@ -2,7 +2,7 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import { toast } from "sonner";
-import { ACHIEVEMENTS } from "@/lib/achievements";
+import { config } from "@/lib/config";
 import { formatDuration, formatNumber } from "@/lib/format";
 import { game } from "@/lib/game";
 import { currentLocale, t } from "@/lib/i18n";
@@ -35,8 +35,8 @@ export function GameRuntime({ syncUrl, country }: { syncUrl: string | null; coun
     const ticker = setInterval(game.tick, TICK_MS);
     game.onUnlock((ids) => {
       for (const id of ids) {
-        const text = ACHIEVEMENTS.some((x) => x.id === id) && t().achievements.items[id];
-        if (text) toast.success(t().achievements.toast, { description: text.name });
+        const a = config().achievements.find((x) => x.id === id);
+        if (a) toast.success(t().achievements.toast, { description: a.name[currentLocale()] });
       }
     });
     const stopSync = syncUrl ? sync.start(syncUrl, country) : null;

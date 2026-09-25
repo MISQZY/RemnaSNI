@@ -3,6 +3,7 @@
 import { Coins, PawPrint, Pin, PinOff, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useConfig } from "@/components/config-provider";
 import { useGame, useSync } from "@/components/game-runtime";
 import { useI18n } from "@/components/i18n-provider";
 import { PetSprite } from "@/components/pet-sprite";
@@ -11,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MAX_PINNED, RARITY_COLOR, petText, soldOut, type OwnedPet, type PetKind } from "@/lib/pets";
+import { RARITY_COLOR, petText, soldOut, type OwnedPet, type PetKind } from "@/lib/pets";
 import { sync as syncApi } from "@/lib/sync";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +20,7 @@ export function PetShop() {
   const s = useSync();
   const state = useGame();
   const { t, num, locale } = useI18n();
+  const { maxPinnedPets } = useConfig();
   const [pinning, setPinning] = useState<string | null>(null);
 
   // Fresh series counters: somebody may have just taken the last one.
@@ -100,7 +102,7 @@ export function PetShop() {
         <TabsContent value="mine" className="mt-2 space-y-3">
           {mine.length ? (
             <>
-              <p className="text-xs text-muted-foreground tabular-nums">{t.pets.pinnedHint(pinnedCount, MAX_PINNED)}</p>
+              <p className="text-xs text-muted-foreground tabular-nums">{t.pets.pinnedHint(pinnedCount, maxPinnedPets)}</p>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {mine.map((k) => {
                   const pet = ownedBy.get(k.id)!;
@@ -110,7 +112,7 @@ export function PetShop() {
                       kind={k}
                       pet={pet}
                       busy={pinning !== null}
-                      full={pinnedCount >= MAX_PINNED}
+                      full={pinnedCount >= maxPinnedPets}
                       onPin={async () => {
                         setPinning(k.id);
                         const { error } = await syncApi.pinPet(k.id, !pet.pinned);

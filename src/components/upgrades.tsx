@@ -1,14 +1,17 @@
 "use client";
 
 import { Lock } from "lucide-react";
+import { DynamicIcon, type IconName } from "lucide-react/dynamic";
+import { useConfig } from "@/components/config-provider";
 import { useI18n } from "@/components/i18n-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { UpgradeDef as Upgrade, UpgradeKind } from "@/lib/config";
 import { game, level, type GameState } from "@/lib/game";
-import { UPGRADES, upgradeCost, type Upgrade, type UpgradeKind } from "@/lib/upgrades";
+import { upgradeCost } from "@/lib/rules";
 import { cn } from "@/lib/utils";
 
 const TABS: { value: "tap" | "luck" | "boost"; kinds: UpgradeKind[] }[] = [
@@ -25,6 +28,7 @@ const affordable = (s: GameState, u: Upgrade) =>
 
 export function Upgrades({ state }: { state: GameState }) {
   const { t } = useI18n();
+  const { upgrades } = useConfig();
   return (
     <Card size="sm">
       <CardHeader>
@@ -35,7 +39,7 @@ export function Upgrades({ state }: { state: GameState }) {
         <Tabs defaultValue="tap">
           <TabsList className="w-full">
             {TABS.map((tab) => {
-              const ready = UPGRADES.some((u) => tab.kinds.includes(u.kind) && revealed(state, u) && affordable(state, u));
+              const ready = upgrades.some((u) => tab.kinds.includes(u.kind) && revealed(state, u) && affordable(state, u));
               return (
                 <TabsTrigger key={tab.value} value={tab.value}>
                   {t.upgrades.tabs[tab.value]}
@@ -46,7 +50,7 @@ export function Upgrades({ state }: { state: GameState }) {
           </TabsList>
           {TABS.map((tab) => (
             <TabsContent key={tab.value} value={tab.value} className="mt-2 space-y-2">
-              <UpgradeList state={state} upgrades={UPGRADES.filter((u) => tab.kinds.includes(u.kind))} />
+              <UpgradeList state={state} upgrades={upgrades.filter((u) => tab.kinds.includes(u.kind))} />
             </TabsContent>
           ))}
         </Tabs>
@@ -85,9 +89,7 @@ function UpgradeRow({ state, upgrade: u }: { state: GameState; upgrade: Upgrade 
   const maxed = !!u.maxLevel && lvl >= u.maxLevel;
   const cost = upgradeCost(u, lvl);
   const canBuy = affordable(state, u);
-  const Icon = u.icon;
-  const { t, num } = useI18n();
-  const text = t.upgrades.items[u.id] ?? { name: u.id, description: "" };
+  const { t, num, locale } = useI18n();
 
   return (
     <div className={cn("flex items-center gap-3 rounded-lg p-3 ring-1 ring-foreground/10 transition-colors", canBuy && "bg-accent/50")}>
@@ -97,18 +99,18 @@ function UpgradeRow({ state, upgrade: u }: { state: GameState; upgrade: Upgrade 
           canBuy ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground",
         )}
       >
-        <Icon className="size-5" />
+        <DynamicIcon name={u.icon as IconName} className="size-5" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="truncate font-medium">{text.name}</p>
+          <p className="truncate font-medium">{u.name[locale]}</p>
           {lvl > 0 && (
             <Badge variant="secondary" className="tabular-nums">
               {maxed ? t.upgrades.maxBadge : t.upgrades.level(lvl)}
             </Badge>
           )}
         </div>
-        <p className="text-xs text-muted-foreground">{text.description}</p>
+        <p className="text-xs text-muted-foreground">{u.description[locale]}</p>
         {!canBuy && !maxed && <Progress value={Math.min(100, (state.points / cost) * 100)} className="mt-2 h-1" />}
       </div>
       <Button size="sm" className="min-w-16 tabular-nums" disabled={!canBuy} onClick={() => game.buy(u.id)}>

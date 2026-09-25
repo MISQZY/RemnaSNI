@@ -49,6 +49,3 @@ export const petText = (k: PetKind, locale: Locale) =>
   locale === "ru" ? { name: k.name, description: k.description } : { name: k.nameEn, description: k.descriptionEn };
 
 export const soldOut = (k: PetKind) => k.supply !== null && k.minted >= k.supply;
-
-/** How many pets can fly around the profile in the Mini App at once; mirrors MAX_PINNED in RemnaWeb. */
-export const MAX_PINNED = 5;

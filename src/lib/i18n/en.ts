@@ -9,6 +9,8 @@ export const en = {
     pets: "Pets",
   },
 
+  unavailable: "The game is temporarily unavailable. Please come back a bit later.",
+
   header: {
     subtitle: "Flag Clicker",
     play: "Play",
@@ -65,16 +67,6 @@ export const en = {
     level: (n: number) => `Lv ${n}`,
     maxBadge: "MAX",
     max: "Max",
-    items: {
-      finger: { name: "Firm Tap", description: "+1 per tap" },
-      double: { name: "Double Tap", description: "+4 per tap" },
-      gloves: { name: "Power Gloves", description: "+20 per tap" },
-      golden: { name: "Golden Finger", description: "+120 per tap" },
-      diamond: { name: "Diamond Hand", description: "+800 per tap" },
-      lucky: { name: "Lucky Tap", description: "+1% chance of a critical tap" },
-      mass: { name: "Critical Mass", description: "+1× critical multiplier" },
-      anthem: { name: "National Anthem", description: "+10% to all points" },
-    } as Record<string, { name: string; description: string }>,
   },
 
   achievements: {
@@ -87,29 +79,6 @@ export const en = {
     secret: "Secret achievement",
     unlockedAt: (date: string) => `Unlocked ${date}`,
     toast: "Achievement unlocked",
-    items: {
-      "tap-1": { name: "First Tap", description: "Tap the flag once" },
-      "tap-100": { name: "Warming Up", description: "Tap 100 times" },
-      "tap-1k": { name: "Dedicated", description: "Tap 1K times" },
-      "tap-10k": { name: "Tap Machine", description: "Tap 10K times" },
-      "tap-100k": { name: "Legendary Finger", description: "Tap 100K times" },
-      "earn-1k": { name: "Pocket Change", description: "Earn 1K points in total" },
-      "earn-100k": { name: "Saver", description: "Earn 100K points in total" },
-      "earn-1m": { name: "Millionaire", description: "Earn 1M points in total" },
-      "earn-100m": { name: "Tycoon", description: "Earn 100M points in total" },
-      "earn-1b": { name: "Billionaire", description: "Earn 1B points in total" },
-      "crit-1": { name: "Lucky Strike", description: "Land a critical tap" },
-      "crit-100": { name: "Fortune's Favorite", description: "Land 100 critical taps" },
-      "crit-1k": { name: "Crit Master", description: "Land 1K critical taps" },
-      "best-1k": { name: "Heavy Hand", description: "Earn 1K points with a single tap" },
-      "best-100k": { name: "Earthquake", description: "Earn 100K points with a single tap" },
-      "buy-1": { name: "Investor", description: "Buy your first upgrade" },
-      "buy-50": { name: "Collector", description: "Own 50 upgrade levels" },
-      "buy-all": { name: "Completionist", description: "Own every kind of upgrade" },
-      anthem: { name: "Patriot", description: "Buy the National Anthem" },
-      frenzy: { name: "Frenzy", description: "Tap 15 times within 2 seconds" },
-      "night-owl": { name: "Night Owl", description: "Tap the flag between 2 and 5 AM" },
-    } as Record<string, { name: string; description: string }>,
   },
 
   pets: {

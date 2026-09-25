@@ -2,7 +2,6 @@ import type { Dict } from "./en";
 import { plural } from "./plural";
 
 // Country names do not decline in Russian, so phrases avoid putting them after prepositions.
-// Achievement names match the Russian ones RemnaWeb shows in the Mini App (lib/game.ts there).
 
 /** "очко / очка / очков" after an already formatted number; compact ones like 1,2M take "очков". */
 const points = (n: string) => (/[^\d\s]/.test(n) ? "очков" : plural(Number(n.replace(/\D/g, "")), ["очко", "очка", "очков"]));
@@ -14,6 +13,8 @@ export const ru: Dict = {
     achievements: "Достижения",
     pets: "Питомцы",
   },
+
+  unavailable: "Игра временно недоступна. Загляните чуть позже.",
 
   header: {
     subtitle: "Кликер флага",
@@ -73,16 +74,6 @@ export const ru: Dict = {
     level: (n) => `Ур. ${n}`,
     maxBadge: "МАКС",
     max: "Макс",
-    items: {
-      finger: { name: "Крепкий тап", description: "+1 за тап" },
-      double: { name: "Двойной тап", description: "+4 за тап" },
-      gloves: { name: "Силовые перчатки", description: "+20 за тап" },
-      golden: { name: "Золотой палец", description: "+120 за тап" },
-      diamond: { name: "Алмазная рука", description: "+800 за тап" },
-      lucky: { name: "Удачный тап", description: "+1% к шансу критического тапа" },
-      mass: { name: "Критическая масса", description: "+1× к множителю крита" },
-      anthem: { name: "Национальный гимн", description: "+10% ко всем очкам" },
-    },
   },
 
   achievements: {
@@ -95,29 +86,6 @@ export const ru: Dict = {
     secret: "Секретное достижение",
     unlockedAt: (date) => `Открыто ${date}`,
     toast: "Достижение открыто",
-    items: {
-      "tap-1": { name: "Первый тап", description: "Тапнуть по флагу" },
-      "tap-100": { name: "Разминка", description: "100 тапов" },
-      "tap-1k": { name: "Упорство", description: "1K тапов" },
-      "tap-10k": { name: "Тап-машина", description: "10K тапов" },
-      "tap-100k": { name: "Легендарный палец", description: "100K тапов" },
-      "earn-1k": { name: "Мелочь в кармане", description: "Заработать 1K очков" },
-      "earn-100k": { name: "Копилка", description: "Заработать 100K очков" },
-      "earn-1m": { name: "Миллионер", description: "Заработать 1M очков" },
-      "earn-100m": { name: "Магнат", description: "Заработать 100M очков" },
-      "earn-1b": { name: "Миллиардер", description: "Заработать 1B очков" },
-      "crit-1": { name: "Удачный удар", description: "Первый критический тап" },
-      "crit-100": { name: "Любимец фортуны", description: "100 критических тапов" },
-      "crit-1k": { name: "Мастер критов", description: "1K критических тапов" },
-      "best-1k": { name: "Тяжёлая рука", description: "1K очков за один тап" },
-      "best-100k": { name: "Землетрясение", description: "100K очков за один тап" },
-      "buy-1": { name: "Инвестор", description: "Купить первое улучшение" },
-      "buy-50": { name: "Коллекционер", description: "50 уровней улучшений" },
-      "buy-all": { name: "Перфекционист", description: "Все виды улучшений" },
-      anthem: { name: "Патриот", description: "Купить Национальный гимн" },
-      frenzy: { name: "Безумие", description: "15 тапов за 2 секунды" },
-      "night-owl": { name: "Сова", description: "Тапнуть флаг между 2 и 5 часами ночи" },
-    },
   },
 
   pets: {
