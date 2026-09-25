@@ -1,0 +1,80 @@
+"use client";
+
+import { CloudCheck, CloudOff, LoaderCircle, LogOut, RefreshCw, Send } from "lucide-react";
+import { useSync } from "@/components/game-runtime";
+import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
+import { sync, type SyncState } from "@/lib/sync";
+import { cn } from "@/lib/utils";
+
+const initials = (name: string) =>
+  name
+    .replace(/^@/, "")
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+/** Telegram sign-in button, or the signed-in account with its sync status. */
+export function AccountButton() {
+  const s = useSync();
+
+  if (!s.token) {
+    return (
+      <Button size="sm" onClick={() => location.assign(sync.signInUrl())}>
+        <Send /> Sign in
+      </Button>
+    );
+  }
+
+  const name = s.account?.name ?? "Telegram";
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button type="button" aria-label="Account" className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+          <Avatar size="lg">
+            {s.account?.photoUrl && <AvatarImage src={s.account.photoUrl} alt="" />}
+            <AvatarFallback>{initials(name)}</AvatarFallback>
+            <AvatarBadge className={cn(s.status === "offline" && "bg-warning")} />
+          </Avatar>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-64 p-0">
+        <div className="space-y-1 p-3">
+          <p className="truncate font-medium">{name}</p>
+          <SyncLine state={s} />
+        </div>
+        <Separator />
+        <div className="grid gap-1 p-1">
+          <Button variant="ghost" size="sm" className="justify-start" disabled={s.status === "syncing"} onClick={() => void sync.syncNow()}>
+            <RefreshCw /> Sync now
+          </Button>
+          <Button variant="ghost" size="sm" className="justify-start text-destructive hover:text-destructive" onClick={sync.signOut}>
+            <LogOut /> Sign out
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function SyncLine({ state }: { state: SyncState }) {
+  const line = {
+    idle: { icon: CloudCheck, text: "Progress is synced to your account" },
+    syncing: { icon: LoaderCircle, text: "Syncing…" },
+    synced: {
+      icon: CloudCheck,
+      text: `Synced at ${state.syncedAt ? new Date(state.syncedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}`,
+    },
+    offline: { icon: CloudOff, text: "Offline, will retry" },
+  }[state.status];
+
+  return (
+    <p className={cn("flex items-center gap-1.5 text-xs text-muted-foreground", state.status === "offline" && "text-warning")}>
+      <line.icon className={cn("size-3.5", state.status === "syncing" && "animate-spin")} /> {line.text}
+    </p>
+  );
+}

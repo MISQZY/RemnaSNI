@@ -1,0 +1,13 @@
+services:
+  sni:
+    build: .
+    container_name: remnasni
+    restart: unless-stopped
+    # NODE_COUNTRY picks the flag, REMNAWEB_URL enables Telegram sign-in; see .env.example.
+    environment:
+      - NODE_COUNTRY=${NODE_COUNTRY:-de}
+      - REMNAWEB_URL=${REMNAWEB_URL:-}
+    # Only reachable locally: put nginx/caddy with the node's TLS cert in front
+    # and point Xray REALITY `target` (self-SNI) at it.
+    ports:
+      - "127.0.0.1:${PORT:-8080}:3000"
