@@ -3,7 +3,8 @@ FROM node:24-alpine AS base
 FROM base AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+# The npm cache survives between builds, so a lockfile change only downloads what changed.
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 FROM base AS build
 WORKDIR /app

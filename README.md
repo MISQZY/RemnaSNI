@@ -31,10 +31,17 @@ On the RemnaWeb side set `TELEGRAM_LOGIN_CLIENT_SECRET` and add this site's orig
 
 ## Run on a node
 
+Every push to `main` builds `ghcr.io/misqzy/remnasni` (`latest` and the short commit SHA) via
+`.github/workflows/image.yml`. The same image serves every node, so a node only needs `docker-compose.yml` and `.env`:
+
 ```sh
-cp .env.example .env   # set NODE_COUNTRY
-docker compose up -d --build
+cp .env.example .env   # set NODE_COUNTRY, REMNAWEB_URL
+docker compose pull && docker compose up -d
 ```
+
+The package is private by default: either make it public (GitHub → Packages → remnasni → Package settings) or run
+`docker login ghcr.io` on the node with a token that has `read:packages`. Without registry access
+`docker compose up -d --build` builds the image on the node instead.
 
 The container serves plain HTTP on `127.0.0.1:$PORT`. Terminate TLS for the node's domain in front of it
 (nginx / caddy) and point Xray REALITY `target` + `serverNames` at that domain.

@@ -1,5 +1,8 @@
 services:
   sni:
+    # Built and pushed by CI (.github/workflows/image.yml); one image for every node.
+    # `build` is the fallback when the image cannot be pulled, and for `up --build` locally.
+    image: ghcr.io/misqzy/remnasni:latest
     build: .
     container_name: remnasni
     restart: unless-stopped
