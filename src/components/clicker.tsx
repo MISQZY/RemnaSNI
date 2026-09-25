@@ -25,8 +25,8 @@ export function Clicker({ code, name }: { code: string; name: string }) {
     <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
       <section className="space-y-6">
         <Card size="sm" className="relative z-10">
-          <CardContent className="flex-row flex-wrap items-center justify-between gap-x-6 gap-y-4">
-            <div className="min-w-0">
+          <CardContent className="flex-row flex-wrap items-center justify-between gap-x-6 gap-y-4 sm:flex-nowrap">
+            <div className="min-w-0 flex-1">
               <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 <Coins className="size-4" /> {t.clicker.points}
               </p>
@@ -178,7 +178,7 @@ function TrafficHint({ name, sync: s }: { name: string; sync: SyncState }) {
 function Stats({ taps, total }: { taps: number; total: number }) {
   const { t, num } = useI18n();
   return (
-    <div className="flex items-center gap-4 text-xs sm:border-l sm:pl-6">
+    <div className="flex shrink-0 items-center gap-4 text-xs sm:border-l sm:pl-6">
       <div>
         <p className="text-muted-foreground">{t.clicker.totalTaps}</p>
         <p className="text-sm font-semibold tabular-nums">{num(taps)}</p>
