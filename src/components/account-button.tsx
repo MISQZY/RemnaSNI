@@ -1,11 +1,14 @@
 "use client";
 
-import { CloudCheck, CloudOff, LoaderCircle, LogOut, RefreshCw, Send } from "lucide-react";
+import { CloudCheck, CloudOff, HardDrive, LoaderCircle, LogOut, RefreshCw, RotateCcw, Send, Settings } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { useSync } from "@/components/game-runtime";
 import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
+import { game } from "@/lib/game";
 import { sync, type SyncState } from "@/lib/sync";
 import { cn } from "@/lib/utils";
 
@@ -18,15 +21,35 @@ const initials = (name: string) =>
     .slice(0, 2)
     .toUpperCase();
 
-/** Telegram sign-in button, or the signed-in account with its sync status. */
-export function AccountButton() {
+/** Telegram sign-in button, or the signed-in account with its sync status. Both menus hold the progress reset. */
+export function AccountButton({ signIn }: { signIn: boolean }) {
   const s = useSync();
 
   if (!s.token) {
     return (
-      <Button size="sm" onClick={() => location.assign(sync.signInUrl())}>
-        <Send /> Sign in
-      </Button>
+      <div className="flex items-center gap-2">
+        {signIn && (
+          <Button size="sm" onClick={() => location.assign(sync.signInUrl())}>
+            <Send /> Sign in
+          </Button>
+        )}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon-sm" aria-label="Settings">
+              <Settings />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-64 p-0">
+            <p className="flex items-center gap-1.5 p-3 text-xs text-muted-foreground">
+              <HardDrive className="size-3.5" /> Progress is saved in this browser
+            </p>
+            <Separator />
+            <div className="grid gap-1 p-1">
+              <ResetButton />
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
     );
   }
 
@@ -56,6 +79,10 @@ export function AccountButton() {
             <LogOut /> Sign out
           </Button>
         </div>
+        <Separator />
+        <div className="grid gap-1 p-1">
+          <ResetButton />
+        </div>
       </PopoverContent>
     </Popover>
   );
@@ -76,5 +103,29 @@ function SyncLine({ state }: { state: SyncState }) {
     <p className={cn("flex items-center gap-1.5 text-xs text-muted-foreground", state.status === "offline" && "text-warning")}>
       <line.icon className={cn("size-3.5", state.status === "syncing" && "animate-spin")} /> {line.text}
     </p>
+  );
+}
+
+/** Wipes the game; the first click only arms it so a stray tap does nothing. */
+function ResetButton() {
+  const [armed, setArmed] = useState(false);
+  return (
+    <Button
+      variant={armed ? "destructive" : "ghost"}
+      size="sm"
+      className={cn("justify-start", !armed && "text-destructive hover:text-destructive")}
+      onClick={() => {
+        if (!armed) {
+          setArmed(true);
+          setTimeout(() => setArmed(false), 3000);
+          return;
+        }
+        setArmed(false);
+        game.reset();
+        toast("Progress reset");
+      }}
+    >
+      <RotateCcw /> {armed ? "Click again to reset" : "Reset progress"}
+    </Button>
   );
 }

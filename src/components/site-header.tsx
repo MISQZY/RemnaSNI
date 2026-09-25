@@ -38,11 +38,9 @@ export function SiteHeader({ code, name, account }: { code: string; name: string
         </div>
       </Link>
 
-      {account && (
-        <div className="sm:order-last">
-          <AccountButton />
-        </div>
-      )}
+      <div className="sm:order-last">
+        <AccountButton signIn={account} />
+      </div>
 
       <nav className="grid w-full auto-cols-fr grid-flow-col rounded-lg bg-muted p-[3px] sm:inline-grid sm:w-auto">
         {items.map((item) => {

@@ -25,9 +25,9 @@ const affordable = (s: GameState, u: Upgrade) =>
 
 export function Upgrades({ state }: { state: GameState }) {
   return (
-    <Card>
+    <Card size="sm">
       <CardHeader>
-        <CardTitle className="text-lg font-semibold">Upgrades</CardTitle>
+        <CardTitle className="text-base font-semibold">Upgrades</CardTitle>
         <CardDescription>Spend points to earn them faster.</CardDescription>
       </CardHeader>
       <CardContent>
