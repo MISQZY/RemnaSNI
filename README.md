@@ -32,7 +32,8 @@ every 5 minutes. Signed-out players tap by hand only.
 Signed-in players can adopt pets in the shop (`/pets`) with this country's points. RemnaWeb owns the catalog, prices
 and serial numbers: every pet is numbered within its kind, and rarer kinds are limited series (rare 1000, epic 250,
 legendary 50, mythic 10). The catalog and owned pets come with `/api/sni/progress`; buying calls
-`POST /api/sni/pets?country=xx`. The chosen companion sits on the flag and jumps at every tap. The `.pet` animations in
+`POST /api/sni/pets?country=xx`. Up to 5 pets can be pinned in "My pets" (`PATCH /api/sni/pets`, body `{ kind, pinned }`);
+pinned pets fly around the profile on the RemnaWeb Mini App home page. The `.pet` animations in
 `globals.css` and `components/pet-sprite.tsx` are mirrored in RemnaWeb.
 
 On the RemnaWeb side set `TELEGRAM_LOGIN_CLIENT_SECRET` and add this site's origin to `SNI_ORIGINS`.

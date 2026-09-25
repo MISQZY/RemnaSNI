@@ -225,5 +225,29 @@ export const sync = {
     return { pet: body.pet };
   },
 
+  /** Pins an owned pet to the profile in the RemnaWeb Mini App, where it flies around the avatar, or unpins it. */
+  async pinPet(kind: string, pinned: boolean): Promise<{ error?: string }> {
+    if (!state.token) return { error: "Sign in to pin pets." };
+    let res: Response;
+    try {
+      res = await fetch(`${baseUrl}/api/sni/pets`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${state.token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ kind, pinned }),
+        cache: "no-store",
+      });
+    } catch {
+      return { error: "No connection, try again." };
+    }
+    if (res.status === 401) {
+      signOut();
+      return { error: "Your session has expired, sign in again." };
+    }
+    const body = (await res.json().catch(() => ({}))) as { pets?: Pets; error?: string };
+    if (!res.ok || !body.pets) return { error: body.error ?? "Could not pin the pet, try again." };
+    set({ pets: body.pets });
+    return {};
+  },
+
   signOut,
 };

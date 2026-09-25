@@ -1,7 +1,7 @@
 "use client";
 
-import { Check, Coins, EyeOff, PawPrint, Send } from "lucide-react";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { Coins, PawPrint, Pin, PinOff, Send } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useGame, useSync } from "@/components/game-runtime";
 import { PetSprite } from "@/components/pet-sprite";
@@ -11,18 +11,14 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatNumber } from "@/lib/format";
-import { RARITY, companion, pickCompanion, soldOut, type OwnedPet, type PetKind } from "@/lib/pets";
+import { MAX_PINNED, RARITY, soldOut, type OwnedPet, type PetKind } from "@/lib/pets";
 import { sync as syncApi } from "@/lib/sync";
 import { cn } from "@/lib/utils";
-
-export function useCompanionChoice() {
-  return useSyncExternalStore(companion.subscribe, companion.getSnapshot, companion.getServerSnapshot);
-}
 
 export function PetShop() {
   const s = useSync();
   const state = useGame();
-  const choice = useCompanionChoice();
+  const [pinning, setPinning] = useState<string | null>(null);
 
   // Fresh series counters: somebody may have just taken the last one.
   useEffect(() => {
@@ -57,7 +53,7 @@ export function PetShop() {
 
   const { kinds, owned } = s.pets;
   const ownedBy = new Map(owned.map((p) => [p.kind, p]));
-  const current = pickCompanion(s.pets, choice);
+  const pinnedCount = owned.filter((p) => p.pinned).length;
   const shop = kinds.filter((k) => !ownedBy.has(k.id));
   const mine = owned.flatMap((p) => kinds.find((k) => k.id === p.kind) ?? []);
 
@@ -106,17 +102,32 @@ export function PetShop() {
         <TabsContent value="mine" className="mt-2 space-y-3">
           {mine.length ? (
             <>
-              {current && (
-                <div className="flex justify-end">
-                  <Button size="xs" variant="ghost" onClick={() => companion.set(null)}>
-                    <EyeOff /> Hide companion
-                  </Button>
-                </div>
-              )}
+              <p className="text-xs text-muted-foreground">
+                Pinned pets fly around your profile in the Telegram Mini App:{" "}
+                <span className="tabular-nums">
+                  {pinnedCount} of {MAX_PINNED}
+                </span>
+                .
+              </p>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {mine.map((k) => (
-                  <OwnedCard key={k.id} kind={k} pet={ownedBy.get(k.id)!} active={current?.id === k.id} />
-                ))}
+                {mine.map((k) => {
+                  const pet = ownedBy.get(k.id)!;
+                  return (
+                    <OwnedCard
+                      key={k.id}
+                      kind={k}
+                      pet={pet}
+                      busy={pinning !== null}
+                      full={pinnedCount >= MAX_PINNED}
+                      onPin={async () => {
+                        setPinning(k.id);
+                        const { error } = await syncApi.pinPet(k.id, !pet.pinned);
+                        setPinning(null);
+                        if (error) toast.error(`Could not ${pet.pinned ? "unpin" : "pin"} ${k.nameEn}`, { description: error });
+                      }}
+                    />
+                  );
+                })}
               </div>
             </>
           ) : (
@@ -159,9 +170,10 @@ function ShopCard({ kind: k, points }: { kind: PetKind; points: number }) {
       toast.error(`Could not adopt ${k.nameEn}`, { description: result.error });
       return;
     }
-    companion.set(k.id);
     const serial = `#${result.pet.serial}${k.supply !== null ? ` of ${k.supply}` : ""}`;
-    toast.success(`${k.emoji} ${k.nameEn} is yours!`, { description: `Serial ${serial}. It now keeps you company by the flag.` });
+    toast.success(`${k.emoji} ${k.nameEn} is yours!`, {
+      description: `Serial ${serial}. Pin it in My pets to have it fly around your profile in the Mini App.`,
+    });
   }
 
   let label: React.ReactNode = (
@@ -201,9 +213,22 @@ function ShopCard({ kind: k, points }: { kind: PetKind; points: number }) {
   );
 }
 
-function OwnedCard({ kind: k, pet, active }: { kind: PetKind; pet: OwnedPet; active: boolean }) {
+function OwnedCard({
+  kind: k,
+  pet,
+  busy,
+  full,
+  onPin,
+}: {
+  kind: PetKind;
+  pet: OwnedPet;
+  busy: boolean;
+  /** No room left for one more pinned pet. */
+  full: boolean;
+  onPin: () => void;
+}) {
   return (
-    <Card size="sm" className={cn(active && "ring-primary/50")}>
+    <Card size="sm" className={cn(pet.pinned && "ring-primary/50")}>
       <CardContent className="flex-1 items-center gap-2 text-center">
         <PetSprite pet={k} size={80} />
         <PetTitle kind={k} />
@@ -216,17 +241,19 @@ function OwnedCard({ kind: k, pet, active }: { kind: PetKind; pet: OwnedPet; act
         </p>
         <Button
           size="sm"
-          variant={active ? "secondary" : "outline"}
+          variant={pet.pinned ? "secondary" : "outline"}
           className="mt-auto w-full"
-          disabled={active}
-          onClick={() => companion.set(k.id)}
+          disabled={busy || (!pet.pinned && full)}
+          onClick={onPin}
         >
-          {active ? (
+          {pet.pinned ? (
             <>
-              <Check /> Companion
+              <PinOff /> Unpin
             </>
           ) : (
-            "Take along"
+            <>
+              <Pin /> Pin to profile
+            </>
           )}
         </Button>
       </CardContent>

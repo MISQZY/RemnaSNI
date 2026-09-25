@@ -26,6 +26,8 @@ export type OwnedPet = {
   serial: number;
   /** Country whose points paid for it. */
   country: string;
+  /** Flies around the profile in the RemnaWeb Mini App. */
+  pinned: boolean;
   createdAt: string;
 };
 
@@ -41,40 +43,5 @@ export const RARITY: Record<PetRarity, { label: string; className: string }> = {
 
 export const soldOut = (k: PetKind) => k.supply !== null && k.minted >= k.supply;
 
-// The companion shown next to the flag, remembered per browser.
-
-const COMPANION_KEY = "remnasni:companion";
-const listeners = new Set<() => void>();
-
-export const companion = {
-  subscribe(listener: () => void) {
-    listeners.add(listener);
-    return () => {
-      listeners.delete(listener);
-    };
-  },
-  getSnapshot(): string | null {
-    try {
-      return localStorage.getItem(COMPANION_KEY);
-    } catch {
-      return null;
-    }
-  },
-  getServerSnapshot: () => null,
-  /** Shows an owned pet next to the flag; `null` hides the companion. */
-  set(kind: string | null) {
-    try {
-      localStorage.setItem(COMPANION_KEY, kind ?? "none");
-    } catch {
-      // Not remembered: the latest pet keeps showing.
-    }
-    listeners.forEach((l) => l());
-  },
-};
-
-/** The companion to show: the chosen owned pet, else the latest one, unless hidden. */
-export function pickCompanion(pets: Pets | null, choice: string | null): PetKind | null {
-  if (!pets?.owned.length || choice === "none") return null;
-  const kind = pets.owned.some((p) => p.kind === choice) ? choice : pets.owned.at(-1)!.kind;
-  return pets.kinds.find((k) => k.id === kind) ?? null;
-}
+/** How many pets can fly around the profile in the Mini App at once; mirrors MAX_PINNED in RemnaWeb. */
+export const MAX_PINNED = 5;
