@@ -23,8 +23,8 @@ RemnaWeb runs the Telegram OAuth (OIDC) flow, so nodes hold no secrets:
 ### Traffic boost
 
 RemnaWeb sums the player's traffic through the nodes of this country over the last 30 days and returns a boost of
-`min(10, log2(1 + GB))` auto-taps per second (1 GB → ×1, 7 GB → ×3, 1 TB → ×10). The site credits
-`points per tap × boost` every second, also for the time the tab was closed (up to 8 hours), and refreshes the boost
+`min(3, log10(1 + GB))` auto-taps per second (10 GB → ×1, 100 GB → ×2, 1 TB → ×3). The site credits
+`points per tap × boost` every second, half of that for the time the tab was closed (up to 8 hours), and refreshes the boost
 every 5 minutes. Signed-out players tap by hand only.
 
 On the RemnaWeb side set `TELEGRAM_LOGIN_CLIENT_SECRET` and add this site's origin to `SNI_ORIGINS`.

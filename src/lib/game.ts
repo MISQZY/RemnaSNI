@@ -8,6 +8,8 @@ const BOOST_KEY = "remnasni:boost";
 const SAVE_EVERY_MS = 2_000;
 /** Passive income is capped so a forgotten tab does not break the economy. */
 const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
+/** Share of the auto-tap rate credited while no tab is open. */
+const OFFLINE_RATE = 0.5;
 /** Window for the "taps per burst" stat used by achievements. */
 const FRENZY_WINDOW_MS = 2_000;
 
@@ -117,11 +119,11 @@ function loadBoost(): number {
   }
 }
 
-/** Passive income accrued since `s.lastSeen` (capped), and the state with it credited. */
-function accrue(s: GameState, now: number): { next: GameState; gain: number; seconds: number } {
+/** Passive income accrued since `s.lastSeen` (capped) at `rate` of the full speed, and the state with it credited. */
+function accrue(s: GameState, now: number, rate = 1): { next: GameState; gain: number; seconds: number } {
   if (boost <= 0 || !s.lastSeen) return { next: { ...s, lastSeen: now }, gain: 0, seconds: 0 };
   const seconds = Math.min(Math.max(0, now - s.lastSeen), OFFLINE_CAP_MS) / 1000;
-  const gain = perSecond(s, boost) * seconds;
+  const gain = perSecond(s, boost) * seconds * rate;
   return { next: { ...s, points: s.points + gain, totalEarned: s.totalEarned + gain, lastSeen: now }, gain, seconds };
 }
 
@@ -145,7 +147,7 @@ export const game = {
     if (hydrated) return { gain: 0, seconds: 0 };
     hydrated = true;
     boost = loadBoost();
-    const { next, gain, seconds } = accrue(load() ?? INITIAL, Date.now());
+    const { next, gain, seconds } = accrue(load() ?? INITIAL, Date.now(), OFFLINE_RATE);
     set(next);
     save();
     return { gain, seconds };
@@ -208,7 +210,7 @@ export const game = {
 
   /** Adopts progress synced from another device; its passive income continues from its lastSeen. */
   replace(next: GameState) {
-    set(accrue({ ...INITIAL, ...next }, Date.now()).next);
+    set(accrue({ ...INITIAL, ...next }, Date.now(), OFFLINE_RATE).next);
     save();
   },
 

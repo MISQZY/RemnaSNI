@@ -93,8 +93,8 @@ function TrafficCard({ name, sync: s, perSec }: { name: string; sync: SyncState;
   } else if (!active) {
     body = (
       <p className="text-sm text-muted-foreground">
-        No traffic through {name} in the last {t.windowDays} days yet. Traffic unlocks auto-taps: 1 GB → ×1,
-        7 GB → ×3, 1 TB → ×10 taps per second.
+        No traffic through {name} in the last {t.windowDays} days yet. Traffic unlocks auto-taps: 10 GB → ×1,
+        100 GB → ×2, 1 TB → ×3 taps per second.
       </p>
     );
   } else {
@@ -102,8 +102,8 @@ function TrafficCard({ name, sync: s, perSec }: { name: string; sync: SyncState;
       <>
         <p className="text-sm text-muted-foreground">
           {formatBytes(t.bytes)} through {name} in the last {t.windowDays} days — the flag is tapped{" "}
-          <span className="font-medium text-foreground">{t.boost}×</span> per second for you, even while this page is
-          closed (up to 8 hours).
+          <span className="font-medium text-foreground">{t.boost}×</span> per second for you, and at half speed while this
+          page is closed (up to 8 hours).
         </p>
         <p className="text-sm font-semibold tabular-nums">+{formatNumber(perSec, true)} points / sec</p>
       </>
