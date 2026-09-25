@@ -31,20 +31,43 @@ On the RemnaWeb side set `TELEGRAM_LOGIN_CLIENT_SECRET` and add this site's orig
 
 ## Run on a node
 
-Every push to `main` builds `ghcr.io/misqzy/remnasni` (`latest` and the short commit SHA) via
-`.github/workflows/image.yml`. The same image serves every node, so a node only needs `docker-compose.yml` and `.env`:
-
-```sh
-cp .env.example .env   # set NODE_COUNTRY, REMNAWEB_URL
-docker compose pull && docker compose up -d
+```
+Browser → :443 Xray REALITY → 127.0.0.1:8443 Caddy (TLS) → 127.0.0.1:$PORT site
 ```
 
-The package is private by default: either make it public (GitHub → Packages → remnasni → Package settings) or run
-`docker login ghcr.io` on the node with a token that has `read:packages`. Without registry access
-`docker compose up -d --build` builds the image on the node instead.
+CI builds two images, the same for every node:
 
-The container serves plain HTTP on `127.0.0.1:$PORT`. Terminate TLS for the node's domain in front of it
-(nginx / caddy) and point Xray REALITY `target` + `serverNames` at that domain.
+| Image | Workflow | When |
+| ----- | -------- | ---- |
+| `ghcr.io/misqzy/remnasni` — the site | `image.yml` | every push to `main` |
+| `ghcr.io/misqzy/remnasni-caddy` — Caddy with the Cloudflare DNS module | `caddy.yml` | changes in `caddy/`, monthly, manually |
+
+A node needs only `docker-compose.yml`, `Caddyfile` and `.env`. Caddy gets the certificate through Cloudflare DNS
+(DNS-01), so port 80 stays closed, and listens on `127.0.0.1:8443` only.
+
+1. **Cloudflare**: an `A` record for the node's domain → node IP, **DNS only** (grey cloud). An API token with
+   `Zone:Read` + `DNS:Edit` for the zone (one token can serve every node).
+2. **Files** (the repo is private, so use a GitHub token with `repo` + `read:packages`):
+   ```sh
+   mkdir -p /opt/remnasni && cd /opt/remnasni
+   for f in docker-compose.yml Caddyfile .env.example; do
+     curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github.raw" \
+       -o "$f" "https://api.github.com/repos/MISQZY/RemnaSNI/contents/$f"
+   done
+   cp .env.example .env && chmod 600 .env   # set NODE_COUNTRY, REMNAWEB_URL, DOMAIN, CF_API_TOKEN
+   ```
+3. **Run**:
+   ```sh
+   echo "$GH_TOKEN" | docker login ghcr.io -u MISQZY --password-stdin   # unless the packages are public
+   docker compose pull && docker compose up -d
+   docker logs -f remnasni-caddy    # wait for "certificate obtained successfully"
+   ```
+4. **Remnawave panel**: REALITY `target` = `127.0.0.1:8443`, the node's domain in `serverNames`
+   (all nodes' domains if they share the config profile), and the same domain as the host's SNI.
+5. **RemnaWeb**: the domain must match `SNI_ORIGINS`.
+
+Update: `docker compose pull && docker compose up -d`. Certificates live in the `caddy_data` volume and are renewed by
+Caddy.
 
 ## Development
 

@@ -1,16 +1,38 @@
+# Node deployment: this file, Caddyfile and .env (see .env.example) are all a node needs.
+# Both images are built by CI (.github/workflows/); update with `docker compose pull && docker compose up -d`.
+#
+#   Browser → :443 Xray REALITY → 127.0.0.1:8443 Caddy (TLS) → 127.0.0.1:$PORT site
 services:
   sni:
-    # Built and pushed by CI (.github/workflows/image.yml); one image for every node.
-    # `build` is the fallback when the image cannot be pulled, and for `up --build` locally.
     image: ghcr.io/misqzy/remnasni:latest
-    build: .
     container_name: remnasni
     restart: unless-stopped
-    # NODE_COUNTRY picks the flag, REMNAWEB_URL enables Telegram sign-in; see .env.example.
+    # NODE_COUNTRY picks the flag, REMNAWEB_URL enables Telegram sign-in.
     environment:
-      - NODE_COUNTRY=${NODE_COUNTRY:-de}
+      - NODE_COUNTRY=${NODE_COUNTRY:-}
       - REMNAWEB_URL=${REMNAWEB_URL:-}
-    # Only reachable locally: put nginx/caddy with the node's TLS cert in front
-    # and point Xray REALITY `target` (self-SNI) at it.
     ports:
       - "127.0.0.1:${PORT:-8080}:3000"
+
+  caddy:
+    # Caddy with the Cloudflare DNS module (caddy/Dockerfile).
+    image: ghcr.io/misqzy/remnasni-caddy:latest
+    container_name: remnasni-caddy
+    restart: unless-stopped
+    # Host network: Xray (host network too) reaches 127.0.0.1:8443, Caddy reaches the site on 127.0.0.1.
+    network_mode: host
+    environment:
+      - DOMAIN=${DOMAIN:?set DOMAIN in .env}
+      - CF_API_TOKEN=${CF_API_TOKEN:?set CF_API_TOKEN in .env}
+      - PORT=${PORT:-8080}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates live here, so restarts do not re-issue them.
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - sni
+
+volumes:
+  caddy_data:
+  caddy_config:
