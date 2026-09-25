@@ -1,10 +1,10 @@
 const SUFFIXES = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
 
-/** 1234 -> "1,234", 1234567 -> "1.23M"; `fraction` keeps one decimal below 10. */
+/** 1234 -> "1 234" (narrow no-break space), 1234567 -> "1.23M"; the dot is only ever a decimal point. `fraction` keeps one decimal below 10. */
 export function formatNumber(n: number, fraction = false): string {
   if (!Number.isFinite(n)) return "∞";
   if (n < 10 && fraction && !Number.isInteger(n)) return n.toFixed(1);
-  if (n < 100_000) return Math.floor(n).toLocaleString("en-US");
+  if (n < 100_000) return Math.floor(n).toLocaleString("en-US").replaceAll(",", " ");
   const tier = Math.min(Math.floor(Math.log10(n) / 3), SUFFIXES.length - 1);
   const value = n / 10 ** (tier * 3);
   return `${value.toFixed(value < 10 ? 2 : value < 100 ? 1 : 0)}${SUFFIXES[tier]}`;
