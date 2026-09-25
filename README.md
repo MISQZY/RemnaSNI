@@ -27,6 +27,14 @@ RemnaWeb sums the player's traffic through the nodes of this country over the la
 `points per tap × boost` every second, half of that for the time the tab was closed (up to 8 hours), and refreshes the boost
 every 5 minutes. Signed-out players tap by hand only.
 
+### Pets
+
+Signed-in players can adopt pets in the shop (`/pets`) with this country's points. RemnaWeb owns the catalog, prices
+and serial numbers: every pet is numbered within its kind, and rarer kinds are limited series (rare 1000, epic 250,
+legendary 50, mythic 10). The catalog and owned pets come with `/api/sni/progress`; buying calls
+`POST /api/sni/pets?country=xx`. The chosen companion sits on the flag and jumps at every tap. The `.pet` animations in
+`globals.css` and `components/pet-sprite.tsx` are mirrored in RemnaWeb.
+
 On the RemnaWeb side set `TELEGRAM_LOGIN_CLIENT_SECRET` and add this site's origin to `SNI_ORIGINS`.
 
 ## Run on a node

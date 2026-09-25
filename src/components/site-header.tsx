@@ -1,10 +1,10 @@
 "use client";
 
-import { Gamepad2, Trophy } from "lucide-react";
+import { Gamepad2, PawPrint, Trophy } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AccountButton } from "@/components/account-button";
-import { useGame } from "@/components/game-runtime";
+import { useGame, useSync } from "@/components/game-runtime";
 import { ACHIEVEMENTS } from "@/lib/achievements";
 import { unlockedCount } from "@/lib/game";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 export function SiteHeader({ code, name, account }: { code: string; name: string; account: boolean }) {
   const pathname = usePathname();
   const state = useGame();
+  const pets = useSync().pets;
 
   const items = [
     { href: "/", label: "Play", icon: Gamepad2, extra: null },
@@ -22,6 +23,10 @@ export function SiteHeader({ code, name, account }: { code: string; name: string
       extra: `${unlockedCount(state)}/${ACHIEVEMENTS.length}`,
     },
   ];
+  // Pets are bought through RemnaWeb, so the shop only exists where sign-in does.
+  if (account) {
+    items.push({ href: "/pets", label: "Pets", icon: PawPrint, extra: pets && `${pets.owned.length}/${pets.kinds.length}` });
+  }
 
   return (
     <header className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-3 gap-y-4 px-4 pt-6 lg:pt-10">
@@ -39,7 +44,7 @@ export function SiteHeader({ code, name, account }: { code: string; name: string
         </div>
       )}
 
-      <nav className="grid w-full grid-cols-2 rounded-lg bg-muted p-[3px] sm:inline-grid sm:w-auto">
+      <nav className="grid w-full auto-cols-fr grid-flow-col rounded-lg bg-muted p-[3px] sm:inline-grid sm:w-auto">
         {items.map((item) => {
           const active = pathname === item.href;
           return (
@@ -56,7 +61,7 @@ export function SiteHeader({ code, name, account }: { code: string; name: string
             >
               <item.icon />
               {item.label}
-              {item.extra && <span className="text-xs text-muted-foreground tabular-nums">{item.extra}</span>}
+              {item.extra && <span className="hidden text-xs text-muted-foreground tabular-nums min-[480px]:inline">{item.extra}</span>}
             </Link>
           );
         })}

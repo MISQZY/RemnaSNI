@@ -1,5 +1,6 @@
 import { toast } from "sonner";
 import { game, isNewer, type GameState } from "@/lib/game";
+import type { OwnedPet, Pets } from "@/lib/pets";
 
 // Telegram sign-in through RemnaWeb and two-way progress sync with it.
 // RemnaWeb runs the OAuth flow and hands the session token back in the URL fragment.
@@ -19,11 +20,13 @@ export type SyncState = {
   token: string | null;
   account: Account | null;
   traffic: Traffic | null;
+  /** Pet catalog and the pets this account owns; null until the first pull. */
+  pets: Pets | null;
   status: SyncStatus;
   syncedAt: number | null;
 };
 
-const SIGNED_OUT: SyncState = { enabled: false, token: null, account: null, traffic: null, status: "idle", syncedAt: null };
+const SIGNED_OUT: SyncState = { enabled: false, token: null, account: null, traffic: null, pets: null, status: "idle", syncedAt: null };
 
 const ERRORS: Record<string, string> = {
   disabled: "Sign-in is not configured yet.",
@@ -111,12 +114,13 @@ async function pull() {
   set({ status: "syncing" });
   const res = await api("GET");
   if (!res) return;
-  const { user, progress, traffic } = (await res.json()) as {
+  const { user, progress, traffic, pets } = (await res.json()) as {
     user: Account;
     progress: GameState | null;
     traffic?: Traffic;
+    pets?: Pets;
   };
-  set({ account: user, traffic: traffic ?? null });
+  set({ account: user, traffic: traffic ?? null, pets: pets ?? null });
   adopt(progress);
   game.setBoost(traffic?.boost ?? 0);
   if (synced !== game.getSnapshot()) await push();
@@ -187,6 +191,39 @@ export const sync = {
 
   /** Pulls what other devices saved, then pushes local progress if it is further along. */
   syncNow: () => pull(),
+
+  /**
+   * Buys a pet with this country's points. RemnaWeb issues the serial number and deducts the price
+   * from the further along of the local and the stored progress.
+   */
+  async buyPet(kind: string): Promise<{ pet: OwnedPet } | { error: string }> {
+    if (!state.token) return { error: "Sign in to buy pets." };
+    const price = state.pets?.kinds.find((k) => k.id === kind)?.price ?? 0;
+    let res: Response;
+    try {
+      res = await fetch(`${baseUrl}/api/sni/pets?${new URLSearchParams({ country })}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${state.token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ kind, progress: game.getSnapshot() }),
+        cache: "no-store",
+      });
+    } catch {
+      return { error: "No connection, try again." };
+    }
+    if (res.status === 401) {
+      signOut();
+      return { error: "Your session has expired, sign in again." };
+    }
+    const body = (await res.json().catch(() => ({}))) as { pet?: OwnedPet; pets?: Pets; error?: string };
+    if (!res.ok || !body.pet) return { error: body.error ?? "Could not buy the pet, try again." };
+
+    // Taps made while the request was in flight stay: the price comes off the local progress,
+    // and the push reconciles it with the stored one.
+    game.spend(price);
+    set({ pets: body.pets ?? state.pets });
+    void push();
+    return { pet: body.pet };
+  },
 
   signOut,
 };

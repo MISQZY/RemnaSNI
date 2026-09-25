@@ -206,6 +206,12 @@ export const game = {
     return true;
   },
 
+  /** Takes points paid elsewhere (a pet bought through RemnaWeb). */
+  spend(amount: number) {
+    set({ ...state, points: Math.max(0, state.points - amount) });
+    save();
+  },
+
   save,
 
   /** Adopts progress synced from another device; its passive income continues from its lastSeen. */

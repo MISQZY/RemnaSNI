@@ -131,3 +131,273 @@
     min-height: 100dvh;
   }
 }
+
+/* Pets: idle animations and rarity glows. Mirrored in RemnaWeb and RemnaSNI globals.css.
+   In a layer so that utilities (position, size) on a pet win. */
+@layer components {
+  .pet {
+    --pet-tint: oklch(0.72 0.03 250);
+    --pet-speed: 2.4s;
+    position: relative;
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    border-radius: 9999px;
+    background: radial-gradient(
+      circle at 50% 38%,
+      color-mix(in oklch, var(--pet-tint) 38%, transparent),
+      color-mix(in oklch, var(--pet-tint) 6%, transparent) 72%
+    );
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .pet-rare {
+    --pet-tint: oklch(0.7 0.15 245);
+  }
+  .pet-epic {
+    --pet-tint: oklch(0.66 0.22 305);
+  }
+  .pet-legendary {
+    --pet-tint: oklch(0.82 0.16 80);
+  }
+  .pet-mythic {
+    --pet-tint: oklch(0.72 0.2 10);
+  }
+  .pet-locked {
+    --pet-tint: oklch(0.6 0 0);
+  }
+
+  /* A rotating shimmer ring and a twinkle for the rarest kinds. */
+  .pet-legendary::before,
+  .pet-mythic::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 2px;
+    background: conic-gradient(from 0deg, transparent, var(--pet-tint), transparent 40%, var(--pet-tint), transparent 80%);
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+    animation: pet-spin 5s linear infinite;
+  }
+  .pet-legendary::after,
+  .pet-mythic::after {
+    content: "✦";
+    position: absolute;
+    top: 6%;
+    right: 8%;
+    font-size: 0.8em;
+    line-height: 1;
+    color: var(--pet-tint);
+    animation: pet-twinkle 1.8s ease-in-out infinite;
+  }
+  .pet-mythic {
+    --pet-speed: 3.2s;
+  }
+
+  .pet-body {
+    position: relative;
+    z-index: 1;
+    line-height: 1;
+    transform-origin: 50% 90%;
+    animation: var(--pet-anim) var(--pet-speed) ease-in-out var(--pet-delay, 0s) infinite;
+  }
+  .pet[data-anim="bob"] {
+    --pet-anim: pet-bob;
+  }
+  .pet[data-anim="hop"] {
+    --pet-anim: pet-hop;
+  }
+  .pet[data-anim="sway"] {
+    --pet-anim: pet-sway;
+  }
+  .pet[data-anim="wiggle"] {
+    --pet-anim: pet-wiggle;
+  }
+  .pet[data-anim="float"] {
+    --pet-anim: pet-float;
+  }
+  .pet-locked .pet-body {
+    /* A flat grey silhouette in either theme. */
+    filter: contrast(0) opacity(0.35);
+    animation-play-state: paused;
+  }
+
+  .pet-shadow {
+    position: absolute;
+    bottom: 17%;
+    width: 38%;
+    height: 7%;
+    border-radius: 50%;
+    background: rgb(0 0 0 / 0.16);
+  }
+  .pet[data-anim="bob"] .pet-shadow,
+  .pet[data-anim="float"] .pet-shadow {
+    animation: pet-bob-shadow var(--pet-speed) ease-in-out var(--pet-delay, 0s) infinite;
+  }
+  .pet[data-anim="hop"] .pet-shadow {
+    animation: pet-hop-shadow var(--pet-speed) ease-in-out var(--pet-delay, 0s) infinite;
+  }
+  .pet-locked .pet-shadow {
+    animation: none;
+  }
+
+  /* One-shot reaction to a tap, and a heart floating up. */
+  .pet-happy {
+    display: inline-block;
+    transform-origin: 50% 90%;
+    animation: pet-happy 0.45s ease-out;
+  }
+  .pet-heart {
+    position: absolute;
+    z-index: 2;
+    top: 10%;
+    left: 50%;
+    font-size: 0.45em;
+    pointer-events: none;
+    animation: pet-heart 0.9s ease-out forwards;
+  }
+
+  @keyframes pet-bob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8%);
+    }
+  }
+  @keyframes pet-bob-shadow {
+    0%,
+    100% {
+      transform: scaleX(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scaleX(0.8);
+      opacity: 0.6;
+    }
+  }
+  @keyframes pet-hop {
+    0%,
+    55%,
+    100% {
+      transform: translateY(0) scale(1, 1);
+    }
+    65% {
+      transform: translateY(0) scale(1.12, 0.88);
+    }
+    78% {
+      transform: translateY(-24%) scale(0.94, 1.06);
+    }
+    90% {
+      transform: translateY(0) scale(1.08, 0.92);
+    }
+  }
+  @keyframes pet-hop-shadow {
+    0%,
+    55%,
+    65%,
+    90%,
+    100% {
+      transform: scaleX(1);
+      opacity: 1;
+    }
+    78% {
+      transform: scaleX(0.6);
+      opacity: 0.4;
+    }
+  }
+  @keyframes pet-sway {
+    0%,
+    100% {
+      transform: rotate(-6deg);
+    }
+    50% {
+      transform: rotate(6deg);
+    }
+  }
+  @keyframes pet-wiggle {
+    0%,
+    70%,
+    100% {
+      transform: rotate(0);
+    }
+    75% {
+      transform: rotate(-12deg);
+    }
+    80% {
+      transform: rotate(10deg);
+    }
+    85% {
+      transform: rotate(-8deg);
+    }
+    90% {
+      transform: rotate(5deg);
+    }
+  }
+  @keyframes pet-float {
+    0%,
+    100% {
+      transform: translateY(0) rotate(-4deg);
+    }
+    50% {
+      transform: translateY(-10%) rotate(4deg);
+    }
+  }
+  @keyframes pet-happy {
+    0% {
+      transform: scale(1, 1);
+    }
+    30% {
+      transform: scale(1.25, 0.8);
+    }
+    60% {
+      transform: translateY(-10%) scale(0.9, 1.15);
+    }
+    100% {
+      transform: scale(1, 1);
+    }
+  }
+  @keyframes pet-heart {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, 0) scale(0.5);
+    }
+    20% {
+      opacity: 1;
+      transform: translate(-50%, -30%) scale(1.1);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(calc(-50% + var(--pet-drift, 0px)), -160%) scale(0.9);
+    }
+  }
+  @keyframes pet-spin {
+    to {
+      transform: rotate(1turn);
+    }
+  }
+  @keyframes pet-twinkle {
+    0%,
+    100% {
+      opacity: 0.2;
+      transform: scale(0.6) rotate(0);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.1) rotate(45deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pet::before,
+    .pet::after,
+    .pet-body,
+    .pet-shadow,
+    .pet-happy {
+      animation: none !important;
+    }
+  }
+}

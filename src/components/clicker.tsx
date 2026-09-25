@@ -4,6 +4,8 @@ import { Coins, Gauge, Hand, MousePointerClick, RotateCcw, Send, Sparkles, Trend
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { FlagButton } from "@/components/flag-button";
+import { useCompanionChoice } from "@/components/pet-shop";
+import { PetSprite } from "@/components/pet-sprite";
 import { useGame, useSync } from "@/components/game-runtime";
 import { Upgrades } from "@/components/upgrades";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { formatBytes, formatNumber } from "@/lib/format";
 import { critChance, critMultiplier, game, incomeMultiplier, perSecond, perTap } from "@/lib/game";
+import { pickCompanion } from "@/lib/pets";
 import { sync as syncApi, type SyncState } from "@/lib/sync";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +24,7 @@ export function Clicker({ code, name }: { code: string; name: string }) {
   const crit = critChance(state);
   const mult = incomeMultiplier(state);
   const boost = sync.traffic?.boost ?? 0;
+  const pet = pickCompanion(sync.pets, useCompanionChoice());
 
   return (
     <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
@@ -55,7 +59,11 @@ export function Clicker({ code, name }: { code: string; name: string }) {
         </Card>
 
         <div className="py-2">
-          <FlagButton code={code} name={name} />
+          <div className="relative mx-auto w-full max-w-md">
+            <FlagButton code={code} name={name} />
+            {/* The companion sits on the flag's corner and jumps at every tap. */}
+            {pet && <PetSprite pet={pet} size={72} pulse={state.taps} className="absolute -right-2 -bottom-6 z-10 sm:-right-6" />}
+          </div>
           <p className="mt-4 flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
             <MousePointerClick className="size-4" /> Tap the flag to earn points
           </p>
