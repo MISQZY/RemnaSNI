@@ -46,7 +46,7 @@ export function FlagButton({ code, name }: { code: string; name: string }) {
   }
 
   return (
-    <div className="relative mx-auto w-full max-w-md select-none">
+    <div className="relative mx-auto w-full max-w-lg select-none">
       {/* Soft glow in the flag's own colors. */}
       <div aria-hidden className={cn("fib pointer-events-none absolute inset-6 rounded-3xl blur-3xl animate-glow", `fi-${code}`)} />
 
