@@ -47,18 +47,16 @@ A node needs only `docker-compose.yml`, `Caddyfile` and `.env`. Caddy gets the c
 
 1. **Cloudflare**: an `A` record for the node's domain → node IP, **DNS only** (grey cloud). An API token with
    `Zone:Read` + `DNS:Edit` for the zone (one token can serve every node).
-2. **Files** (the repo is private, so use a GitHub token with `repo` + `read:packages`):
+2. **Files** (repo and images are public, no GitHub token needed):
    ```sh
-   mkdir -p /opt/remnasni && cd /opt/remnasni
+   sudo mkdir -p /opt/remnasni && sudo chown "$USER": /opt/remnasni && cd /opt/remnasni
    for f in docker-compose.yml Caddyfile .env.example; do
-     curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github.raw" \
-       -o "$f" "https://api.github.com/repos/MISQZY/RemnaSNI/contents/$f"
+     curl -fsSLO "https://raw.githubusercontent.com/MISQZY/RemnaSNI/main/$f"
    done
    cp .env.example .env && chmod 600 .env   # set NODE_COUNTRY, REMNAWEB_URL, DOMAIN, CF_API_TOKEN
    ```
 3. **Run**:
    ```sh
-   echo "$GH_TOKEN" | docker login ghcr.io -u MISQZY --password-stdin   # unless the packages are public
    docker compose pull && docker compose up -d
    docker logs -f remnasni-caddy    # wait for "certificate obtained successfully"
    ```
