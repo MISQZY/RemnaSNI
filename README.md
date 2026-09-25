@@ -38,6 +38,13 @@ pinned pets fly around the profile on the RemnaWeb Mini App home page. The `.pet
 
 On the RemnaWeb side set `TELEGRAM_LOGIN_CLIENT_SECRET` and add this site's origin to `SNI_ORIGINS`.
 
+## Languages
+
+English by default, Russian as well; the language button in the header switches between them and the choice is kept
+in the `lang` cookie, so the server renders the page in it. All interface strings are in `src/lib/i18n/en.ts` and
+`ru.ts` (typed by the English one, so a missing translation fails the build). Country names come from
+`Intl.DisplayNames`; pet names and descriptions arrive from RemnaWeb in both languages.
+
 ## Run on a node
 
 ```

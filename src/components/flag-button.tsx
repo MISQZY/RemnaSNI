@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useI18n } from "@/components/i18n-provider";
 import { game } from "@/lib/game";
-import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 type Pop = { id: number; x: number; y: number; value: number; crit: boolean; drift: number };
@@ -31,6 +31,7 @@ function burst(id: number, x: number, y: number, crit: boolean): Burst {
 }
 
 export function FlagButton({ code, name }: { code: string; name: string }) {
+  const { t, num } = useI18n();
   const [pops, setPops] = useState<Pop[]>([]);
   const [bursts, setBursts] = useState<Burst[]>([]);
   const [tilt, setTilt] = useState<{ x: number; y: number } | null>(null);
@@ -52,7 +53,7 @@ export function FlagButton({ code, name }: { code: string; name: string }) {
 
       <button
         type="button"
-        aria-label={`Tap the flag of ${name}`}
+        aria-label={t.clicker.tapFlag(name)}
         className="relative block w-full touch-manipulation rounded-2xl outline-none [perspective:800px] focus-visible:ring-3 focus-visible:ring-ring/50"
         onPointerDown={(e) => {
           if (e.button !== 0) return;
@@ -117,7 +118,7 @@ export function FlagButton({ code, name }: { code: string; name: string }) {
             style={{ left: p.x, top: p.y, "--drift": `${p.drift}px` } as React.CSSProperties}
             onAnimationEnd={() => setPops((all) => all.filter((x) => x.id !== p.id))}
           >
-            +{formatNumber(p.value, true)}
+            +{num(p.value, true)}
             {p.crit && "!"}
           </span>
         ))}

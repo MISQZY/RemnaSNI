@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AccountButton } from "@/components/account-button";
 import { useGame, useSync } from "@/components/game-runtime";
+import { LanguageSwitch, useI18n } from "@/components/i18n-provider";
 import { ACHIEVEMENTS } from "@/lib/achievements";
 import { unlockedCount } from "@/lib/game";
 import { cn } from "@/lib/utils";
@@ -13,19 +14,20 @@ export function SiteHeader({ code, name, account }: { code: string; name: string
   const pathname = usePathname();
   const state = useGame();
   const pets = useSync().pets;
+  const { t } = useI18n();
 
   const items = [
-    { href: "/", label: "Play", icon: Gamepad2, extra: null },
+    { href: "/", label: t.header.play, icon: Gamepad2, extra: null },
     {
       href: "/achievements",
-      label: "Achievements",
+      label: t.header.achievements,
       icon: Trophy,
       extra: `${unlockedCount(state)}/${ACHIEVEMENTS.length}`,
     },
   ];
   // Pets are bought through RemnaWeb, so the shop only exists where sign-in does.
   if (account) {
-    items.push({ href: "/pets", label: "Pets", icon: PawPrint, extra: pets && `${pets.owned.length}/${pets.kinds.length}` });
+    items.push({ href: "/pets", label: t.header.pets, icon: PawPrint, extra: pets && `${pets.owned.length}/${pets.kinds.length}` });
   }
 
   return (
@@ -34,11 +36,12 @@ export function SiteHeader({ code, name, account }: { code: string; name: string
         <span className={cn("fi shrink-0 rounded-[3px] text-2xl shadow-xs", `fi-${code}`)} />
         <div className="min-w-0">
           <p className="truncate text-xl font-semibold">{name}</p>
-          <p className="text-sm text-muted-foreground">Flag Clicker</p>
+          <p className="text-sm text-muted-foreground">{t.header.subtitle}</p>
         </div>
       </Link>
 
-      <div className="sm:order-last">
+      <div className="flex items-center gap-1 sm:order-last">
+        <LanguageSwitch />
         <AccountButton signIn={account} />
       </div>
 

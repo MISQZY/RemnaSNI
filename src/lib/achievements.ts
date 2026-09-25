@@ -28,9 +28,8 @@ import { UPGRADES } from "@/lib/upgrades";
 export type TapInfo = { gain: number; crit: boolean; /** Taps within the last 2 s, this one included. */ burst: number; hour: number };
 
 export type Achievement = {
+  /** Name and description are in the dictionaries (`achievements.items`) under this id. */
   id: string;
-  name: string;
-  description: string;
   icon: LucideIcon;
   /** Name and description stay hidden until unlocked. */
   secret?: boolean;
@@ -39,61 +38,40 @@ export type Achievement = {
   progress?: (s: GameState) => [number, number];
 };
 
-function counter(
-  id: string,
-  name: string,
-  description: string,
-  icon: LucideIcon,
-  value: (s: GameState) => number,
-  target: number,
-): Achievement {
-  return { id, name, description, icon, check: (s) => value(s) >= target, progress: (s) => [Math.min(value(s), target), target] };
+function counter(id: string, icon: LucideIcon, value: (s: GameState) => number, target: number): Achievement {
+  return { id, icon, check: (s) => value(s) >= target, progress: (s) => [Math.min(value(s), target), target] };
 }
 
 const totalLevels = (s: GameState) => UPGRADES.reduce((acc, u) => acc + (s.levels[u.id] ?? 0), 0);
 const ownedKinds = (s: GameState) => UPGRADES.filter((u) => (s.levels[u.id] ?? 0) > 0).length;
 
 export const ACHIEVEMENTS: Achievement[] = [
-  counter("tap-1", "First Tap", "Tap the flag once", MousePointerClick, (s) => s.taps, 1),
-  counter("tap-100", "Warming Up", "Tap 100 times", Hand, (s) => s.taps, 100),
-  counter("tap-1k", "Dedicated", "Tap 1K times", Target, (s) => s.taps, 1_000),
-  counter("tap-10k", "Tap Machine", "Tap 10K times", Zap, (s) => s.taps, 10_000),
-  counter("tap-100k", "Legendary Finger", "Tap 100K times", Crown, (s) => s.taps, 100_000),
+  counter("tap-1", MousePointerClick, (s) => s.taps, 1),
+  counter("tap-100", Hand, (s) => s.taps, 100),
+  counter("tap-1k", Target, (s) => s.taps, 1_000),
+  counter("tap-10k", Zap, (s) => s.taps, 10_000),
+  counter("tap-100k", Crown, (s) => s.taps, 100_000),
 
-  counter("earn-1k", "Pocket Change", "Earn 1K points in total", Coins, (s) => s.totalEarned, 1_000),
-  counter("earn-100k", "Saver", "Earn 100K points in total", PiggyBank, (s) => s.totalEarned, 100_000),
-  counter("earn-1m", "Millionaire", "Earn 1M points in total", Wallet, (s) => s.totalEarned, 1_000_000),
-  counter("earn-100m", "Tycoon", "Earn 100M points in total", Banknote, (s) => s.totalEarned, 100_000_000),
-  counter("earn-1b", "Billionaire", "Earn 1B points in total", Landmark, (s) => s.totalEarned, 1_000_000_000),
+  counter("earn-1k", Coins, (s) => s.totalEarned, 1_000),
+  counter("earn-100k", PiggyBank, (s) => s.totalEarned, 100_000),
+  counter("earn-1m", Wallet, (s) => s.totalEarned, 1_000_000),
+  counter("earn-100m", Banknote, (s) => s.totalEarned, 100_000_000),
+  counter("earn-1b", Landmark, (s) => s.totalEarned, 1_000_000_000),
 
-  counter("crit-1", "Lucky Strike", "Land a critical tap", Sparkles, (s) => s.crits, 1),
-  counter("crit-100", "Fortune's Favorite", "Land 100 critical taps", Star, (s) => s.crits, 100),
-  counter("crit-1k", "Crit Master", "Land 1K critical taps", Swords, (s) => s.crits, 1_000),
-  counter("best-1k", "Heavy Hand", "Earn 1K points with a single tap", Flame, (s) => s.bestTap, 1_000),
-  counter("best-100k", "Earthquake", "Earn 100K points with a single tap", Gem, (s) => s.bestTap, 100_000),
+  counter("crit-1", Sparkles, (s) => s.crits, 1),
+  counter("crit-100", Star, (s) => s.crits, 100),
+  counter("crit-1k", Swords, (s) => s.crits, 1_000),
+  counter("best-1k", Flame, (s) => s.bestTap, 1_000),
+  counter("best-100k", Gem, (s) => s.bestTap, 100_000),
 
-  counter("buy-1", "Investor", "Buy your first upgrade", ShoppingBag, totalLevels, 1),
-  counter("buy-50", "Collector", "Own 50 upgrade levels", Award, totalLevels, 50),
-  counter("buy-all", "Completionist", "Own every kind of upgrade", Trophy, ownedKinds, UPGRADES.length),
-  {
-    id: "anthem",
-    name: "Patriot",
-    description: "Buy the National Anthem",
-    icon: Music,
-    check: (s) => (s.levels.anthem ?? 0) > 0,
-  },
+  counter("buy-1", ShoppingBag, totalLevels, 1),
+  counter("buy-50", Award, totalLevels, 50),
+  counter("buy-all", Trophy, ownedKinds, UPGRADES.length),
+  { id: "anthem", icon: Music, check: (s) => (s.levels.anthem ?? 0) > 0 },
 
-  {
-    id: "frenzy",
-    name: "Frenzy",
-    description: "Tap 15 times within 2 seconds",
-    icon: Timer,
-    check: (_, tap) => !!tap && tap.burst >= 15,
-  },
+  { id: "frenzy", icon: Timer, check: (_, tap) => !!tap && tap.burst >= 15 },
   {
     id: "night-owl",
-    name: "Night Owl",
-    description: "Tap the flag between 2 and 5 AM",
     icon: Moon,
     secret: true,
     check: (_, tap) => !!tap && tap.hour >= 2 && tap.hour < 5,

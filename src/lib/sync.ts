@@ -1,5 +1,6 @@
 import { toast } from "sonner";
 import { game, isNewer, type GameState } from "@/lib/game";
+import { t } from "@/lib/i18n";
 import type { OwnedPet, Pets } from "@/lib/pets";
 
 // Telegram sign-in through RemnaWeb and two-way progress sync with it.
@@ -28,12 +29,6 @@ export type SyncState = {
 
 const SIGNED_OUT: SyncState = { enabled: false, token: null, account: null, traffic: null, pets: null, status: "idle", syncedAt: null };
 
-const ERRORS: Record<string, string> = {
-  disabled: "Sign-in is not configured yet.",
-  cancelled: "Sign-in was cancelled.",
-  access_denied: "Sign-in was cancelled.",
-};
-
 let state = SIGNED_OUT;
 let baseUrl = "";
 /** Node country; RemnaWeb keeps separate progress per country. */
@@ -42,6 +37,9 @@ let country = "";
 let synced: GameState | null = null;
 let inFlight = false;
 const listeners = new Set<() => void>();
+
+/** RemnaWeb's error message in the current language, when the dictionary knows it. */
+const serverError = (message?: string) => message && (t().sync.serverErrors[message] ?? message);
 
 function set(patch: Partial<SyncState>) {
   state = { ...state, ...patch };
@@ -73,7 +71,7 @@ function consumeFragment() {
   if (!token && !error) return;
   history.replaceState(null, "", location.pathname + location.search);
   if (token) storeToken(token);
-  if (error) toast.error("Could not sign in", { description: ERRORS[error] ?? "Please try again later." });
+  if (error) toast.error(t().sync.signInFailed, { description: t().sync.signInErrors[error] ?? t().sync.tryLater });
 }
 
 async function api(method: "GET" | "PUT", body?: GameState, keepalive = false): Promise<Response | null> {
@@ -88,7 +86,7 @@ async function api(method: "GET" | "PUT", body?: GameState, keepalive = false): 
     });
     if (res.status === 401) {
       signOut();
-      toast("Signed out", { description: "Your session has expired, sign in again to keep syncing." });
+      toast(t().sync.signedOut, { description: t().sync.expiredSync });
       return null;
     }
     if (!res.ok) throw new Error(String(res.status));
@@ -197,7 +195,7 @@ export const sync = {
    * from the further along of the local and the stored progress.
    */
   async buyPet(kind: string): Promise<{ pet: OwnedPet } | { error: string }> {
-    if (!state.token) return { error: "Sign in to buy pets." };
+    if (!state.token) return { error: t().sync.signInToBuy };
     const price = state.pets?.kinds.find((k) => k.id === kind)?.price ?? 0;
     let res: Response;
     try {
@@ -208,14 +206,14 @@ export const sync = {
         cache: "no-store",
       });
     } catch {
-      return { error: "No connection, try again." };
+      return { error: t().sync.offline };
     }
     if (res.status === 401) {
       signOut();
-      return { error: "Your session has expired, sign in again." };
+      return { error: t().sync.expired };
     }
     const body = (await res.json().catch(() => ({}))) as { pet?: OwnedPet; pets?: Pets; error?: string };
-    if (!res.ok || !body.pet) return { error: body.error ?? "Could not buy the pet, try again." };
+    if (!res.ok || !body.pet) return { error: serverError(body.error) ?? t().sync.buyFailed };
 
     // Taps made while the request was in flight stay: the price comes off the local progress,
     // and the push reconciles it with the stored one.
@@ -227,7 +225,7 @@ export const sync = {
 
   /** Pins an owned pet to the profile in the RemnaWeb Mini App, where it flies around the avatar, or unpins it. */
   async pinPet(kind: string, pinned: boolean): Promise<{ error?: string }> {
-    if (!state.token) return { error: "Sign in to pin pets." };
+    if (!state.token) return { error: t().sync.signInToPin };
     let res: Response;
     try {
       res = await fetch(`${baseUrl}/api/sni/pets`, {
@@ -237,14 +235,14 @@ export const sync = {
         cache: "no-store",
       });
     } catch {
-      return { error: "No connection, try again." };
+      return { error: t().sync.offline };
     }
     if (res.status === 401) {
       signOut();
-      return { error: "Your session has expired, sign in again." };
+      return { error: t().sync.expired };
     }
     const body = (await res.json().catch(() => ({}))) as { pets?: Pets; error?: string };
-    if (!res.ok || !body.pets) return { error: body.error ?? "Could not pin the pet, try again." };
+    if (!res.ok || !body.pets) return { error: serverError(body.error) ?? t().sync.pinFailed };
     set({ pets: body.pets });
     return {};
   },

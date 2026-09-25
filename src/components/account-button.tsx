@@ -4,6 +4,7 @@ import { CloudCheck, CloudOff, HardDrive, LoaderCircle, LogOut, RefreshCw, Rotat
 import { useState } from "react";
 import { toast } from "sonner";
 import { useSync } from "@/components/game-runtime";
+import { useI18n } from "@/components/i18n-provider";
 import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -24,24 +25,25 @@ const initials = (name: string) =>
 /** Telegram sign-in button, or the signed-in account with its sync status. Both menus hold the progress reset. */
 export function AccountButton({ signIn }: { signIn: boolean }) {
   const s = useSync();
+  const { t } = useI18n();
 
   if (!s.token) {
     return (
       <div className="flex items-center gap-2">
         {signIn && (
           <Button size="sm" onClick={() => location.assign(sync.signInUrl())}>
-            <Send /> Sign in
+            <Send /> {t.account.signIn}
           </Button>
         )}
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label="Settings">
+            <Button variant="ghost" size="icon-sm" aria-label={t.account.settings}>
               <Settings />
             </Button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-64 p-0">
             <p className="flex items-center gap-1.5 p-3 text-xs text-muted-foreground">
-              <HardDrive className="size-3.5" /> Progress is saved in this browser
+              <HardDrive className="size-3.5" /> {t.account.savedLocally}
             </p>
             <Separator />
             <div className="grid gap-1 p-1">
@@ -57,7 +59,7 @@ export function AccountButton({ signIn }: { signIn: boolean }) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button type="button" aria-label="Account" className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+        <button type="button" aria-label={t.account.account} className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
           <Avatar size="lg">
             {s.account?.photoUrl && <AvatarImage src={s.account.photoUrl} alt="" />}
             <AvatarFallback>{initials(name)}</AvatarFallback>
@@ -73,10 +75,10 @@ export function AccountButton({ signIn }: { signIn: boolean }) {
         <Separator />
         <div className="grid gap-1 p-1">
           <Button variant="ghost" size="sm" className="justify-start" disabled={s.status === "syncing"} onClick={() => void sync.syncNow()}>
-            <RefreshCw /> Sync now
+            <RefreshCw /> {t.account.syncNow}
           </Button>
           <Button variant="ghost" size="sm" className="justify-start text-destructive hover:text-destructive" onClick={sync.signOut}>
-            <LogOut /> Sign out
+            <LogOut /> {t.account.signOut}
           </Button>
         </div>
         <Separator />
@@ -89,14 +91,12 @@ export function AccountButton({ signIn }: { signIn: boolean }) {
 }
 
 function SyncLine({ state }: { state: SyncState }) {
+  const { t, time } = useI18n();
   const line = {
-    idle: { icon: CloudCheck, text: "Progress is synced to your account" },
-    syncing: { icon: LoaderCircle, text: "Syncing…" },
-    synced: {
-      icon: CloudCheck,
-      text: `Synced at ${state.syncedAt ? new Date(state.syncedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}`,
-    },
-    offline: { icon: CloudOff, text: "Offline, will retry" },
+    idle: { icon: CloudCheck, text: t.account.idle },
+    syncing: { icon: LoaderCircle, text: t.account.syncing },
+    synced: { icon: CloudCheck, text: t.account.synced(state.syncedAt ? time(state.syncedAt) : "—") },
+    offline: { icon: CloudOff, text: t.account.offline },
   }[state.status];
 
   return (
@@ -109,6 +109,7 @@ function SyncLine({ state }: { state: SyncState }) {
 /** Wipes the game; the first click only arms it so a stray tap does nothing. */
 function ResetButton() {
   const [armed, setArmed] = useState(false);
+  const { t } = useI18n();
   return (
     <Button
       variant={armed ? "destructive" : "ghost"}
@@ -122,10 +123,10 @@ function ResetButton() {
         }
         setArmed(false);
         game.reset();
-        toast("Progress reset");
+        toast(t.account.resetDone);
       }}
     >
-      <RotateCcw /> {armed ? "Click again to reset" : "Reset progress"}
+      <RotateCcw /> {armed ? t.account.resetConfirm : t.account.reset}
     </Button>
   );
 }

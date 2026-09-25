@@ -1,3 +1,5 @@
+import type { Locale } from "@/lib/i18n";
+
 // Pets bought in the shop. The catalog, prices and serial numbers live in RemnaWeb (lib/pets.ts there);
 // these types mirror its PetKindDto / PetDto.
 
@@ -33,13 +35,18 @@ export type OwnedPet = {
 
 export type Pets = { kinds: PetKind[]; owned: OwnedPet[] };
 
-export const RARITY: Record<PetRarity, { label: string; className: string }> = {
-  common: { label: "Common", className: "text-muted-foreground" },
-  rare: { label: "Rare", className: "text-sky-600 dark:text-sky-400" },
-  epic: { label: "Epic", className: "text-purple-600 dark:text-purple-400" },
-  legendary: { label: "Legendary", className: "text-amber-600 dark:text-amber-400" },
-  mythic: { label: "Mythic", className: "text-rose-600 dark:text-rose-400" },
+/** Text color of each rarity; the labels are in the dictionaries (`pets.rarity`). */
+export const RARITY_COLOR: Record<PetRarity, string> = {
+  common: "text-muted-foreground",
+  rare: "text-sky-600 dark:text-sky-400",
+  epic: "text-purple-600 dark:text-purple-400",
+  legendary: "text-amber-600 dark:text-amber-400",
+  mythic: "text-rose-600 dark:text-rose-400",
 };
+
+/** Name and description of a pet in the current language; RemnaWeb sends both. */
+export const petText = (k: PetKind, locale: Locale) =>
+  locale === "ru" ? { name: k.name, description: k.description } : { name: k.nameEn, description: k.descriptionEn };
 
 export const soldOut = (k: PetKind) => k.supply !== null && k.minted >= k.supply;
 

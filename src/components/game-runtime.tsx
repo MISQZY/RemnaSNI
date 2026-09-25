@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { ACHIEVEMENTS } from "@/lib/achievements";
 import { formatDuration, formatNumber } from "@/lib/format";
 import { game } from "@/lib/game";
+import { currentLocale, t } from "@/lib/i18n";
 import { sync } from "@/lib/sync";
 
 /** How often passive income from the traffic boost is credited. */
@@ -26,15 +27,16 @@ export function GameRuntime({ syncUrl, country }: { syncUrl: string | null; coun
   useEffect(() => {
     const away = game.hydrate();
     if (away.gain >= 1 && away.seconds >= 60) {
-      toast.success("Welcome back!", {
-        description: `Your traffic auto-tapped ${formatNumber(away.gain)} points in ${formatDuration(away.seconds)}.`,
+      const locale = currentLocale();
+      toast.success(t().clicker.welcomeBack, {
+        description: t().clicker.awayIncome(formatNumber(away.gain, false, locale), formatDuration(away.seconds, locale)),
       });
     }
     const ticker = setInterval(game.tick, TICK_MS);
     game.onUnlock((ids) => {
       for (const id of ids) {
-        const a = ACHIEVEMENTS.find((x) => x.id === id);
-        if (a) toast.success("Achievement unlocked", { description: a.name });
+        const text = ACHIEVEMENTS.some((x) => x.id === id) && t().achievements.items[id];
+        if (text) toast.success(t().achievements.toast, { description: text.name });
       }
     });
     const stopSync = syncUrl ? sync.start(syncUrl, country) : null;
