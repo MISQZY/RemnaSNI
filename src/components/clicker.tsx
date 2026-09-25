@@ -178,12 +178,12 @@ function TrafficHint({ name, sync: s }: { name: string; sync: SyncState }) {
 function Stats({ taps, total }: { taps: number; total: number }) {
   const { t, num } = useI18n();
   return (
-    <div className="flex shrink-0 items-center gap-4 text-xs sm:border-l sm:pl-6">
-      <div>
+    <div className="grid w-full gap-1.5 border-t pt-3 text-xs sm:flex sm:w-auto sm:shrink-0 sm:items-center sm:gap-4 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-6">
+      <div className="flex items-baseline justify-between gap-3 sm:block">
         <p className="text-muted-foreground">{t.clicker.totalTaps}</p>
         <p className="text-sm font-semibold tabular-nums">{num(taps)}</p>
       </div>
-      <div>
+      <div className="flex items-baseline justify-between gap-3 sm:block">
         <p className="text-muted-foreground">{t.clicker.totalEarned}</p>
         <p className="text-sm font-semibold tabular-nums">{num(total)}</p>
       </div>
