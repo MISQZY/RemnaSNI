@@ -1,4 +1,6 @@
 {
+	# No admin API on :2019 (host network, may clash with another Caddy); config changes = container restart.
+	admin off
 	# Xray owns :443 and passes browsers here; nothing listens on :80 since certificates come via DNS.
 	auto_https disable_redirects
 	default_bind 127.0.0.1
