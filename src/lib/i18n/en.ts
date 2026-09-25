@@ -46,8 +46,10 @@ export const en = {
   },
 
   traffic: {
-    signIn: (country: string) => `Sign in with Telegram and your traffic through ${country} will tap the flag for you.`,
+    signIn: "Sign in with Telegram to sync progress and collect pets.",
     checking: "Checking your traffic…",
+    noVpn: (country: string) =>
+      `The turbo is for VPN users only: their traffic through ${country} taps the flag for them. Everything else works without a subscription.`,
     none: (country: string, days: number) =>
       `No traffic through ${country} in the last ${days} days. 10 GB, 100 GB and 1 TB unlock 1, 2 and 3 auto-taps per second.`,
     /** `boost` goes in between, highlighted. */
@@ -148,6 +150,7 @@ export const en = {
       disabled: "Sign-in is not configured yet.",
       cancelled: "Sign-in was cancelled.",
       access_denied: "Sign-in was cancelled.",
+      blocked: "This account is blocked.",
     } as Record<string, string>,
     signedOut: "Signed out",
     expiredSync: "Your session has expired, sign in again to keep syncing.",

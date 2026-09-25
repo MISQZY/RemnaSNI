@@ -1,6 +1,6 @@
 "use client";
 
-import { Coins, Gauge, Hand, MousePointerClick, Send, Sparkles, TrendingUp } from "lucide-react";
+import { Cloud, Coins, Gauge, Hand, MousePointerClick, Send, Sparkles, TrendingUp } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { FlagButton } from "@/components/flag-button";
 import { useGame, useSync } from "@/components/game-runtime";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { critChance, critMultiplier, incomeMultiplier, perSecond, perTap } from "@/lib/game";
 import { sync as syncApi, type SyncState } from "@/lib/sync";
+import { cn } from "@/lib/utils";
 
 export function Clicker({ code, name }: { code: string; name: string }) {
   const state = useGame();
@@ -135,14 +136,15 @@ function changedRange(prev: string, next: string): [number, number] {
   return [from, to];
 }
 
-/** A short hint about the traffic boost: sign-in prompt, how to unlock it, or the current rate. */
+/** Signed out: a sign-in prompt without a word about the turbo. Signed in: VPN-only notice, how to unlock the turbo, or its rate. */
 function TrafficHint({ name, sync: s }: { name: string; sync: SyncState }) {
   const { t, bytes } = useI18n();
   const traffic = s.traffic;
 
   let text: ReactNode;
-  if (!s.token) text = t.traffic.signIn(name);
+  if (!s.token) text = t.traffic.signIn;
   else if (!traffic) text = t.traffic.checking;
+  else if (traffic.vpn === false) text = t.traffic.noVpn(name);
   else if (traffic.boost <= 0) text = t.traffic.none(name, traffic.windowDays);
   else {
     const [before, after] = t.traffic.active(bytes(traffic.bytes), name, traffic.windowDays);
@@ -156,8 +158,13 @@ function TrafficHint({ name, sync: s }: { name: string; sync: SyncState }) {
   }
 
   return (
-    <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
-      <Gauge className="size-3.5 shrink-0 text-primary" />
+    <div
+      className={cn(
+        "flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground",
+        s.token && traffic && traffic.boost > 0 && "ring-1 ring-primary/40",
+      )}
+    >
+      {s.token ? <Gauge className="size-3.5 shrink-0 text-primary" /> : <Cloud className="size-3.5 shrink-0 text-primary" />}
       <p className="flex-1">{text}</p>
       {!s.token && (
         <Button size="xs" variant="outline" onClick={() => location.assign(syncApi.signInUrl())}>

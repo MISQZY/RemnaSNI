@@ -13,8 +13,11 @@ const PULL_EVERY_MS = 5 * 60_000;
 
 export type Account = { name: string; photoUrl: string | null };
 export type SyncStatus = "idle" | "syncing" | "synced" | "offline";
-/** Traffic through this country's nodes and the auto-tap rate RemnaWeb grants for it. */
-export type Traffic = { bytes: number; boost: number; windowDays: number };
+/**
+ * Traffic through this country's nodes and the auto-tap rate RemnaWeb grants for it.
+ * The turbo is for VPN users only; `vpn` is missing from older RemnaWeb versions.
+ */
+export type Traffic = { vpn?: boolean; bytes: number; boost: number; windowDays: number };
 export type SyncState = {
   /** Whether this site has REMNAWEB_URL, i.e. sign-in is available at all. */
   enabled: boolean;
