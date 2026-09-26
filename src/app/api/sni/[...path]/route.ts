@@ -3,7 +3,7 @@ import { syncUrl } from "@/lib/sync-url";
 // RemnaWeb's SNI API behind this site's own origin: the page never names RemnaWeb, so a visitor or a
 // probe sees a standalone game. Only the calls the game makes are passed through.
 
-const API = new Set(["progress", "pets", "auth/logout"]);
+const API = new Set(["progress", "pets", "pets/upgrade", "auth/logout"]);
 const MAX_BODY_BYTES = 64 * 1024;
 const TIMEOUT_MS = 10_000;
 

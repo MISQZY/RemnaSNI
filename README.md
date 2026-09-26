@@ -47,10 +47,13 @@ every 5 minutes. Signed-out players tap by hand only. The page itself calls it t
 
 ### Pets
 
-Signed-in players can adopt pets in the shop (`/pets`) with this country's points. RemnaWeb owns the catalog, prices
-and serial numbers: every pet is numbered within its kind, and rarer kinds are limited series (rare 1000, epic 250,
-legendary 50, mythic 10). The catalog and owned pets come with `/api/sni/progress`; buying calls
-`POST /api/sni/pets?country=xx`. Up to `maxPinnedPets` pets (from the config) can be pinned in "My pets" (`PATCH /api/sni/pets`, body `{ kind, pinned }`);
+Signed-in players can adopt pets in the shop (`/pets`) with this country's points, any number of the same kind.
+RemnaWeb owns the catalog, prices, serial numbers and the upgrader: rarity belongs to each pet, the shop sells a kind at
+its own rarity, and every pet is numbered within the series of its kind and rarity (limited: rare 300, epic 75,
+legendary 15, mythic 3, cosmic 1). The upgrader in "My pets" (`POST /api/sni/pets/upgrade`, body `{ pet }`) raises a
+pet's rarity by one with a falling chance (50% from common down to 3% from mythic); on failure the pet is gone and its
+number goes back to the shop. The catalog, owned pets and rarities come with `/api/sni/progress`; buying calls
+`POST /api/sni/pets?country=xx`. Up to `maxPinnedPets` pets (from the config) can be pinned in "My pets" (`PATCH /api/sni/pets`, body `{ pet, pinned }`);
 pinned pets fly around the profile on the RemnaWeb Mini App home page. The `.pet` animations in
 `globals.css` and `components/pet-sprite.tsx` are mirrored in RemnaWeb.
 

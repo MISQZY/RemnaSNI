@@ -180,13 +180,18 @@
   .pet-mythic {
     --pet-tint: oklch(0.72 0.2 10);
   }
+  /* Above mythic, reached only through the upgrader. */
+  .pet-cosmic {
+    --pet-tint: oklch(0.8 0.14 200);
+  }
   .pet-locked {
     --pet-tint: oklch(0.6 0 0);
   }
 
   /* A rotating shimmer ring and a twinkle for the rarest kinds. */
   .pet-legendary::before,
-  .pet-mythic::before {
+  .pet-mythic::before,
+  .pet-cosmic::before {
     content: "";
     position: absolute;
     inset: 0;
@@ -199,7 +204,8 @@
     animation: pet-spin 5s linear infinite;
   }
   .pet-legendary::after,
-  .pet-mythic::after {
+  .pet-mythic::after,
+  .pet-cosmic::after {
     content: "✦";
     position: absolute;
     top: 6%;
@@ -211,6 +217,12 @@
   }
   .pet-mythic {
     --pet-speed: 3.2s;
+  }
+  .pet-cosmic {
+    --pet-speed: 2.6s;
+  }
+  .pet-cosmic::before {
+    animation-duration: 2.5s;
   }
 
   .pet-body {

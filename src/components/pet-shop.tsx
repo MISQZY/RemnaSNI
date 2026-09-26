@@ -1,6 +1,6 @@
 "use client";
 
-import { Coins, PawPrint, Pin, PinOff, Send } from "lucide-react";
+import { ArrowUp, Coins, PawPrint, Pin, PinOff, Send, Sparkles, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useConfig } from "@/components/config-provider";
@@ -10,18 +10,23 @@ import { PetSprite } from "@/components/pet-sprite";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RARITY_COLOR, petText, soldOut, type OwnedPet, type PetKind } from "@/lib/pets";
+import { RARITIES, RARITY_COLOR, nextRarity, petLook, petText, soldOut, type OwnedPet, type PetKind, type PetRarity, type Rarity } from "@/lib/pets";
 import { sync as syncApi } from "@/lib/sync";
 import { cn } from "@/lib/utils";
+
+/** The upgrader keeps the player in suspense at least this long, ms. */
+const ROLL_MS = 1200;
+const percent = (chance: number) => `${Math.round(chance * 1000) / 10}%`;
 
 export function PetShop() {
   const s = useSync();
   const state = useGame();
   const { t, num, locale } = useI18n();
   const { maxPinnedPets } = useConfig();
-  const [pinning, setPinning] = useState<string | null>(null);
+  const [pinning, setPinning] = useState<number | null>(null);
 
   // Fresh series counters: somebody may have just taken the last one.
   useEffect(() => {
@@ -53,11 +58,13 @@ export function PetShop() {
     return <p className="py-10 text-center text-sm text-muted-foreground">{t.pets.loading}</p>;
   }
 
-  const { kinds, owned } = s.pets;
-  const ownedBy = new Map(owned.map((p) => [p.kind, p]));
+  const { kinds, owned, rarities = [] } = s.pets;
+  const kindOf = new Map(kinds.map((k) => [k.id, k]));
   const pinnedCount = owned.filter((p) => p.pinned).length;
-  const shop = kinds.filter((k) => !ownedBy.has(k.id));
-  const mine = owned.flatMap((p) => kinds.find((k) => k.id === p.kind) ?? []);
+  const kindsOwned = new Set(owned.map((p) => p.kind)).size;
+  const mine = [...owned].sort(
+    (a, b) => RARITIES.indexOf(b.rarity) - RARITIES.indexOf(a.rarity) || a.kind.localeCompare(b.kind) || a.serial - b.serial,
+  );
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6">
@@ -65,7 +72,7 @@ export function PetShop() {
         <CardHeader>
           <CardDescription>{t.pets.title}</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums">
-            {owned.length} <span className="text-muted-foreground">/ {kinds.length}</span>
+            {kindsOwned} <span className="text-muted-foreground">/ {kinds.length}</span>
           </CardTitle>
           <CardAction>
             <Badge variant="secondary" className="tabular-nums">
@@ -74,7 +81,7 @@ export function PetShop() {
           </CardAction>
         </CardHeader>
         <CardContent className="gap-2">
-          <Progress value={kinds.length ? (owned.length / kinds.length) * 100 : 0} />
+          <Progress value={kinds.length ? (kindsOwned / kinds.length) * 100 : 0} />
           <p className="text-xs text-muted-foreground">{t.pets.paidWith}</p>
         </CardContent>
       </Card>
@@ -82,40 +89,38 @@ export function PetShop() {
       <Tabs defaultValue="shop">
         <TabsList className="w-full sm:w-fit">
           <TabsTrigger value="shop" className="sm:px-4">
-            {t.pets.shop} <span className="text-xs text-muted-foreground tabular-nums">{shop.length}</span>
+            {t.pets.shop} <span className="text-xs text-muted-foreground tabular-nums">{kinds.length}</span>
           </TabsTrigger>
           <TabsTrigger value="mine" className="sm:px-4">
             {t.pets.mine} <span className="text-xs text-muted-foreground tabular-nums">{owned.length}</span>
           </TabsTrigger>
         </TabsList>
         <TabsContent value="shop" className="mt-2">
-          {shop.length ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {shop.map((k) => (
-                <ShopCard key={k.id} kind={k} points={state.points} />
-              ))}
-            </div>
-          ) : (
-            <p className="py-10 text-center text-sm text-muted-foreground">{t.pets.allAdopted}</p>
-          )}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {kinds.map((k) => (
+              <ShopCard key={k.id} kind={k} points={state.points} owned={owned.filter((p) => p.kind === k.id).length} />
+            ))}
+          </div>
         </TabsContent>
         <TabsContent value="mine" className="mt-2 space-y-3">
           {mine.length ? (
             <>
               <p className="text-xs text-muted-foreground tabular-nums">{t.pets.pinnedHint(pinnedCount, maxPinnedPets)}</p>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {mine.map((k) => {
-                  const pet = ownedBy.get(k.id)!;
+                {mine.map((pet) => {
+                  const k = kindOf.get(pet.kind);
+                  if (!k) return null;
                   return (
                     <OwnedCard
-                      key={k.id}
+                      key={pet.id}
                       kind={k}
                       pet={pet}
+                      rarities={rarities}
                       busy={pinning !== null}
                       full={pinnedCount >= maxPinnedPets}
                       onPin={async () => {
-                        setPinning(k.id);
-                        const { error } = await syncApi.pinPet(k.id, !pet.pinned);
+                        setPinning(pet.id);
+                        const { error } = await syncApi.pinPet(pet.id, !pet.pinned);
                         setPinning(null);
                         if (!error) return;
                         const name = petText(k, locale).name;
@@ -135,17 +140,17 @@ export function PetShop() {
   );
 }
 
-function PetTitle({ kind: k }: { kind: PetKind }) {
+function PetTitle({ kind: k, rarity }: { kind: PetKind; rarity: PetRarity }) {
   const { t, locale } = useI18n();
   return (
     <div className="space-y-0.5">
       <p className="text-sm font-semibold">{petText(k, locale).name}</p>
-      <p className={cn("text-[11px] font-medium tracking-wide uppercase", RARITY_COLOR[k.rarity])}>{t.pets.rarity[k.rarity]}</p>
+      <p className={cn("text-[11px] font-medium tracking-wide uppercase", RARITY_COLOR[rarity])}>{t.pets.rarity[rarity]}</p>
     </div>
   );
 }
 
-function ShopCard({ kind: k, points }: { kind: PetKind; points: number }) {
+function ShopCard({ kind: k, points, owned }: { kind: PetKind; points: number; owned: number }) {
   const { t, num, locale } = useI18n();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -185,15 +190,12 @@ function ShopCard({ kind: k, points }: { kind: PetKind; points: number }) {
   return (
     <Card size="sm" className={cn(!canBuy && "bg-card/60")}>
       <CardContent className="flex-1 items-center gap-2 text-center">
-        <PetSprite pet={k} size={80} locked={gone} />
-        <PetTitle kind={k} />
+        <PetSprite pet={petLook(k, k.rarity, "shop")} size={80} locked={gone} />
+        <PetTitle kind={k} rarity={k.rarity} />
         <p className="text-xs text-muted-foreground">{text.description}</p>
         <p className={cn("text-[11px] text-muted-foreground tabular-nums", gone && "text-destructive")}>
-          {gone
-            ? t.pets.goneAll
-            : k.supply === null
-              ? t.pets.minted(num(k.minted))
-              : t.pets.left(num(k.supply - k.minted), num(k.supply))}
+          {gone ? t.pets.goneAll : k.supply === null ? t.pets.minted(num(k.minted)) : t.pets.left(num(k.supply - k.minted), num(k.supply))}
+          {owned > 0 && ` · ${t.pets.owned(num(owned))}`}
         </p>
         {!gone && !canBuy && <Progress value={Math.min(100, (points / k.price) * 100)} className="h-1 w-full" />}
         <Button
@@ -213,49 +215,130 @@ function ShopCard({ kind: k, points }: { kind: PetKind; points: number }) {
 function OwnedCard({
   kind: k,
   pet,
+  rarities,
   busy,
   full,
   onPin,
 }: {
   kind: PetKind;
   pet: OwnedPet;
+  rarities: Rarity[];
   busy: boolean;
   /** No room left for one more pinned pet. */
   full: boolean;
   onPin: () => void;
 }) {
   const { t, date } = useI18n();
+  const chance = rarities.find((r) => r.id === pet.rarity)?.chance ?? 0;
   return (
     <Card size="sm" className={cn(pet.pinned && "ring-primary/50")}>
       <CardContent className="flex-1 items-center gap-2 text-center">
-        <PetSprite pet={k} size={80} />
-        <PetTitle kind={k} />
+        <PetSprite pet={petLook(k, pet.rarity, pet.id)} size={80} />
+        <PetTitle kind={k} rarity={pet.rarity} />
         <p className="font-mono text-sm font-semibold tabular-nums">
           {t.pets.numberSign}
           {pet.serial}
-          {k.supply !== null && <span className="text-muted-foreground"> / {k.supply}</span>}
+          {pet.supply !== null && <span className="text-muted-foreground"> / {pet.supply}</span>}
         </p>
         <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
           <span className={cn("fi rounded-[2px]", `fi-${pet.country}`)} /> {date(pet.createdAt)}
         </p>
-        <Button
-          size="sm"
-          variant={pet.pinned ? "secondary" : "outline"}
-          className="mt-auto w-full"
-          disabled={busy || (!pet.pinned && full)}
-          onClick={onPin}
-        >
-          {pet.pinned ? (
-            <>
-              <PinOff /> {t.pets.unpin}
-            </>
+        <div className="mt-auto grid w-full gap-1.5">
+          <Button size="sm" variant={pet.pinned ? "secondary" : "outline"} disabled={busy || (!pet.pinned && full)} onClick={onPin}>
+            {pet.pinned ? (
+              <>
+                <PinOff /> {t.pets.unpin}
+              </>
+            ) : (
+              <>
+                <Pin /> {t.pets.pin}
+              </>
+            )}
+          </Button>
+          {pet.listing ? (
+            <Button size="sm" variant="ghost" disabled>
+              {t.pets.upgradeListed}
+            </Button>
+          ) : chance > 0 ? (
+            <Upgrader kind={k} pet={pet} chance={chance} />
           ) : (
-            <>
-              <Pin /> {t.pets.pin}
-            </>
+            <Button size="sm" variant="ghost" disabled>
+              {t.pets.upgradeMax}
+            </Button>
           )}
-        </Button>
+        </div>
       </CardContent>
     </Card>
+  );
+}
+
+/** The upgrader in a popover: the odds, a confirming second press, the roll and its result. */
+function Upgrader({ kind: k, pet, chance }: { kind: PetKind; pet: OwnedPet; chance: number }) {
+  const { t, locale } = useI18n();
+  const [open, setOpen] = useState(false);
+  const [armed, setArmed] = useState(false);
+  const [rolling, setRolling] = useState(false);
+  const next = nextRarity(pet.rarity);
+  const name = petText(k, locale).name;
+
+  useEffect(() => {
+    if (!armed) return;
+    const timer = setTimeout(() => setArmed(false), 3000);
+    return () => clearTimeout(timer);
+  }, [armed]);
+
+  async function roll() {
+    if (!armed) {
+      setArmed(true);
+      return;
+    }
+    setArmed(false);
+    setRolling(true);
+    const [result] = await Promise.all([syncApi.upgradePet(pet.id), new Promise((r) => setTimeout(r, ROLL_MS))]);
+    setRolling(false);
+    setOpen(false);
+    if ("error" in result) {
+      toast.error(t.pets.upgradeFailed, { description: result.error });
+      return;
+    }
+    if (result.success && result.pet) {
+      toast.success(`${k.emoji} ${t.pets.upgradeWon(name, t.pets.rarity[result.pet.rarity])}`, {
+        description: t.pets.serialOf(result.pet.serial, result.pet.supply),
+      });
+    } else {
+      toast.error(t.pets.upgradeLost(name));
+    }
+  }
+
+  return (
+    <Popover open={open} onOpenChange={(o) => !rolling && setOpen(o)}>
+      <PopoverTrigger asChild>
+        <Button size="sm" variant="outline">
+          <ArrowUp /> {t.pets.upgrade}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 space-y-3 p-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="size-4 text-primary" />
+          <p className="font-medium">{t.pets.upgradeTitle}</p>
+        </div>
+        <p className="text-xs text-muted-foreground">{t.pets.upgradeHint}</p>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="rounded-lg bg-muted/60 px-2.5 py-2">
+            <p className="text-xs text-muted-foreground">{t.pets.upgradeBecomes}</p>
+            {next && <p className={cn("text-xs font-medium uppercase", RARITY_COLOR[next])}>{t.pets.rarity[next]}</p>}
+          </div>
+          <div className="rounded-lg bg-muted/60 px-2.5 py-2">
+            <p className="text-xs text-muted-foreground">{t.pets.upgradeChance}</p>
+            <p className="font-semibold tabular-nums">{percent(chance)}</p>
+          </div>
+        </div>
+        <Progress value={chance * 100} className="h-1.5" />
+        <Button className="w-full" size="sm" variant={armed ? "destructive" : "default"} disabled={rolling} onClick={() => void roll()}>
+          <Zap />
+          {rolling ? t.pets.upgradeRolling : armed ? t.pets.upgradeConfirm : t.pets.upgradeGo(percent(chance))}
+        </Button>
+      </PopoverContent>
+    </Popover>
   );
 }

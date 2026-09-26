@@ -321,15 +321,42 @@ export const sync = {
     return { pet: body.pet };
   },
 
+  /**
+   * The upgrader: tries to raise an owned pet's rarity by one. On failure the pet is gone and its number
+   * returns to the shop. Returns whether it worked and the pet after it.
+   */
+  async upgradePet(petId: number): Promise<{ success: boolean; pet: OwnedPet | null } | { error: string }> {
+    if (!state.token) return { error: t().sync.signInToBuy };
+    let res: Response;
+    try {
+      res = await fetch("/api/sni/pets/upgrade", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${state.token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ pet: petId }),
+        cache: "no-store",
+      });
+    } catch {
+      return { error: t().sync.offline };
+    }
+    if (res.status === 401) {
+      signOut();
+      return { error: t().sync.expired };
+    }
+    const body = (await res.json().catch(() => ({}))) as { success?: boolean; pet?: OwnedPet | null; pets?: Pets; error?: string };
+    if (!res.ok || body.success === undefined) return { error: serverError(body.error) ?? t().pets.upgradeFailed };
+    set({ pets: body.pets ?? state.pets });
+    return { success: body.success, pet: body.pet ?? null };
+  },
+
   /** Pins an owned pet to the profile in the RemnaWeb Mini App, where it flies around the avatar, or unpins it. */
-  async pinPet(kind: string, pinned: boolean): Promise<{ error?: string }> {
+  async pinPet(petId: number, pinned: boolean): Promise<{ error?: string }> {
     if (!state.token) return { error: t().sync.signInToPin };
     let res: Response;
     try {
       res = await fetch("/api/sni/pets", {
         method: "PATCH",
         headers: { Authorization: `Bearer ${state.token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ kind, pinned }),
+        body: JSON.stringify({ pet: petId, pinned }),
         cache: "no-store",
       });
     } catch {

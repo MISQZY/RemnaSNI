@@ -28,7 +28,7 @@ export function SiteHeader({ code, name, account }: { code: string; name: string
   ];
   // Pets are bought through RemnaWeb, so the shop only exists where sign-in does.
   if (account) {
-    items.push({ href: "/pets", label: t.header.pets, icon: PawPrint, extra: pets && `${pets.owned.length}/${pets.kinds.length}` });
+    items.push({ href: "/pets", label: t.header.pets, icon: PawPrint, extra: pets && `${new Set(pets.owned.map((p) => p.kind)).size}/${pets.kinds.length}` });
   }
 
   return (
