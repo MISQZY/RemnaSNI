@@ -1,5 +1,5 @@
 import "server-only";
-import type { GameConfig } from "@/lib/config";
+import { withDefaults, type GameConfig } from "@/lib/config";
 import { syncUrl } from "@/lib/sync-url";
 
 const TTL_MS = 5 * 60_000;
@@ -21,7 +21,7 @@ export async function loadConfig(): Promise<GameConfig | null> {
     try {
       const res = await fetch(`${base}/api/sni/config`, { cache: "no-store", signal: AbortSignal.timeout(TIMEOUT_MS) });
       if (!res.ok) throw new Error(`RemnaWeb config: ${res.status}`);
-      const config = (await res.json()) as GameConfig;
+      const config = withDefaults((await res.json()) as GameConfig);
       cached = { at: Date.now(), config };
       return config;
     } catch (err) {

@@ -1,20 +1,24 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useSync } from "@/components/game-runtime";
 import { useI18n } from "@/components/i18n-provider";
 import { game } from "@/lib/game";
 import { cn } from "@/lib/utils";
 
 type Pop = { id: number; x: number; y: number; value: number; crit: boolean; drift: number };
 
-type Burst = { id: number; x: number; y: number; flags: { dx: number; dy: number; rot: number; size: number }[] };
+type Burst = { id: number; x: number; y: number; flags: { dx: number; dy: number; rot: number; size: number; emoji?: string }[] };
 
 /** Most pops and flag bursts that can be on screen at once, so frantic tapping stays cheap. */
 const MAX_POPS = 40;
 const MAX_BURSTS = 12;
 
-/** A few tiny flags thrown far from the tapped spot, evenly around it; crits throw one more and further. */
-function burst(id: number, x: number, y: number, crit: boolean): Burst {
+/**
+ * A few tiny flags thrown far from the tapped spot, evenly around it; crits throw one more and further.
+ * With a tap effect bought in the RemnaWeb shop, its emoji fly instead of the flags.
+ */
+function burst(id: number, x: number, y: number, crit: boolean, effect: string[] | null): Burst {
   const count = crit ? 4 : 3;
   const start = Math.random() * Math.PI * 2;
   const flags = Array.from({ length: count }, (_, i) => {
@@ -25,6 +29,7 @@ function burst(id: number, x: number, y: number, crit: boolean): Burst {
       dy: Math.sin(angle) * dist - 20,
       rot: (Math.random() - 0.5) * 540,
       size: 14 + Math.random() * 8,
+      ...(effect?.length && { emoji: effect[Math.floor(Math.random() * effect.length)] }),
     };
   });
   return { id, x, y, flags };
@@ -32,6 +37,7 @@ function burst(id: number, x: number, y: number, crit: boolean): Burst {
 
 export function FlagButton({ code, name }: { code: string; name: string }) {
   const { t, num } = useI18n();
+  const { effect } = useSync();
   const [pops, setPops] = useState<Pop[]>([]);
   const [bursts, setBursts] = useState<Burst[]>([]);
   const [tilt, setTilt] = useState<{ x: number; y: number } | null>(null);
@@ -41,7 +47,7 @@ export function FlagButton({ code, name }: { code: string; name: string }) {
     const { gain, crit } = game.tap();
     const pop = { id: nextId.current++, x, y, value: gain, crit, drift: (Math.random() - 0.5) * 60 };
     setPops((p) => [...p.slice(-(MAX_POPS - 1)), pop]);
-    setBursts((b) => [...b.slice(-(MAX_BURSTS - 1)), burst(pop.id, x, y, crit)]);
+    setBursts((b) => [...b.slice(-(MAX_BURSTS - 1)), burst(pop.id, x, y, crit, effect)]);
     // Lean the flag towards the tapped spot.
     setTilt({ x: (0.5 - y / rect.height) * 14, y: (x / rect.width - 0.5) * 14 });
   }
@@ -91,21 +97,38 @@ export function FlagButton({ code, name }: { code: string; name: string }) {
             // All flags of a burst share one duration, so the first to finish ends it.
             onAnimationEnd={() => setBursts((all) => all.filter((x) => x.id !== b.id))}
           >
-            {b.flags.map((f, i) => (
-              <span
-                key={i}
-                className={cn("fib absolute rounded-[2px] shadow-sm animate-flag-burst", `fi-${code}`)}
-                style={
-                  {
-                    width: f.size,
-                    height: f.size * 0.75,
-                    "--dx": `${f.dx}px`,
-                    "--dy": `${f.dy}px`,
-                    "--rot": `${f.rot}deg`,
-                  } as React.CSSProperties
-                }
-              />
-            ))}
+            {b.flags.map((f, i) =>
+              f.emoji ? (
+                <span
+                  key={i}
+                  className="absolute leading-none animate-flag-burst"
+                  style={
+                    {
+                      fontSize: f.size * 1.1,
+                      "--dx": `${f.dx}px`,
+                      "--dy": `${f.dy}px`,
+                      "--rot": `${f.rot}deg`,
+                    } as React.CSSProperties
+                  }
+                >
+                  {f.emoji}
+                </span>
+              ) : (
+                <span
+                  key={i}
+                  className={cn("fib absolute rounded-[2px] shadow-sm animate-flag-burst", `fi-${code}`)}
+                  style={
+                    {
+                      width: f.size,
+                      height: f.size * 0.75,
+                      "--dx": `${f.dx}px`,
+                      "--dy": `${f.dy}px`,
+                      "--rot": `${f.rot}deg`,
+                    } as React.CSSProperties
+                  }
+                />
+              ),
+            )}
           </div>
         ))}
         {pops.map((p) => (

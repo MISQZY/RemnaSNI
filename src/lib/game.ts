@@ -19,6 +19,16 @@ export type GameState = {
   resetAt: number;
   /** Last passive-income accrual (ms); 0 until the traffic boost first kicks in. */
   lastSeen?: number;
+  /** Points RemnaWeb took for Mini App purchases and credited for market sales; kept as is and sent back. */
+  shopSpent?: number;
+  shopEarned?: number;
+  /** Encryption keys received for all moves (prestige); they survive them. */
+  keys?: number;
+  prestiges?: number;
+  /** Prestige perk id -> level. */
+  perks?: Record<string, number>;
+  /** Ladder id -> highest tier reached. */
+  ladders?: Record<string, number>;
 };
 
 const INITIAL: GameState = {
@@ -39,17 +49,22 @@ export const incomeMultiplier = (s: GameState) => rules.incomeMultiplier(config(
 export const perTap = (s: GameState) => rules.perTap(config(), s);
 export const critChance = (s: GameState) => rules.critChance(config(), s);
 export const critMultiplier = (s: GameState) => rules.critMultiplier(config(), s);
+export const prestigeMultiplier = (s: GameState) => rules.prestigeMultiplier(config(), s);
 /** Passive income: the traffic boost auto-taps `boost` times per second (without crits). */
 export const perSecond = (s: GameState, boost: number) => perTap(s) * boost;
 
+/** Points RemnaWeb has moved in or out of this progress; only ever grows until a reset. */
+const shopActivity = (s: GameState) => (s.shopSpent ?? 0) + (s.shopEarned ?? 0);
+
 /**
- * Whether `a` is further along than `b`: a later reset wins, then more points earned,
- * then more points spent (buying an upgrade does not change totalEarned).
- * Mirrors isNewer in RemnaWeb/src/lib/clicker/state.ts.
+ * Whether `a` is further along than `b`: a later reset (or move) wins, then more points earned,
+ * then more RemnaWeb purchases and sales seen, then more points spent (buying an upgrade does not
+ * change totalEarned). Mirrors isNewer in RemnaWeb/src/lib/clicker/state.ts.
  */
 export function isNewer(a: GameState, b: GameState): boolean {
   if (a.resetAt !== b.resetAt) return a.resetAt > b.resetAt;
   if (a.totalEarned !== b.totalEarned) return a.totalEarned > b.totalEarned;
+  if (shopActivity(a) !== shopActivity(b)) return shopActivity(a) > shopActivity(b);
   return a.totalEarned - a.points > b.totalEarned - b.points;
 }
 
@@ -70,6 +85,11 @@ function set(next: GameState, tap?: rules.TapInfo) {
   if (unlocked.length) {
     const now = Date.now();
     next = { ...next, achievements: { ...next.achievements, ...Object.fromEntries(unlocked.map((id) => [id, now])) } };
+  }
+  const tiers = rules.newTiers(config(), next);
+  if (Object.keys(tiers).length) {
+    next = { ...next, ladders: { ...next.ladders, ...tiers } };
+    unlocked.push(...Object.entries(tiers).map(([id, n]) => rules.tierId(id, n)));
   }
   state = next;
   listeners.forEach((l) => l());
@@ -189,9 +209,32 @@ export const game = {
     const u = config().upgrades.find((x) => x.id === id);
     if (!u) return false;
     const lvl = level(state, id);
-    const cost = rules.upgradeCost(u, lvl);
+    const cost = rules.upgradePrice(config(), state, u);
     if (state.points < cost || (u.maxLevel && lvl >= u.maxLevel)) return false;
     set({ ...state, points: state.points - cost, levels: { ...state.levels, [id]: lvl + 1 } });
+    save();
+    return true;
+  },
+
+  /**
+   * Moves to a new SNI: trades points and upgrades for keys, after crediting passive income so far.
+   * Returns the keys received, 0 while none are due.
+   */
+  prestige(): number {
+    const now = Date.now();
+    const current = accrue(state, now).next;
+    const gain = rules.pendingKeys(config(), current);
+    const next = rules.prestige(config(), current, now);
+    if (!next) return 0;
+    set(next);
+    save();
+    return gain;
+  },
+
+  buyPerk(id: string): boolean {
+    const next = rules.buyPerk(config(), state, id);
+    if (!next) return false;
+    set(next);
     save();
     return true;
   },

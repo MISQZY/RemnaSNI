@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { UpgradeDef as Upgrade, UpgradeKind } from "@/lib/config";
+import { config, type UpgradeDef as Upgrade, type UpgradeKind } from "@/lib/config";
 import { game, level, type GameState } from "@/lib/game";
-import { upgradeCost } from "@/lib/rules";
+import { upgradePrice } from "@/lib/rules";
 import { cn } from "@/lib/utils";
 
 const TABS: { value: "tap" | "luck" | "boost"; kinds: UpgradeKind[] }[] = [
@@ -24,7 +24,7 @@ const TABS: { value: "tap" | "luck" | "boost"; kinds: UpgradeKind[] }[] = [
 const revealed = (s: GameState, u: Upgrade) => level(s, u.id) > 0 || s.totalEarned >= u.baseCost / 2;
 
 const affordable = (s: GameState, u: Upgrade) =>
-  !(u.maxLevel && level(s, u.id) >= u.maxLevel) && s.points >= upgradeCost(u, level(s, u.id));
+  !(u.maxLevel && level(s, u.id) >= u.maxLevel) && s.points >= upgradePrice(config(), s, u);
 
 export function Upgrades({ state }: { state: GameState }) {
   const { t } = useI18n();
@@ -87,7 +87,7 @@ function UpgradeList({ state, upgrades }: { state: GameState; upgrades: Upgrade[
 function UpgradeRow({ state, upgrade: u }: { state: GameState; upgrade: Upgrade }) {
   const lvl = level(state, u.id);
   const maxed = !!u.maxLevel && lvl >= u.maxLevel;
-  const cost = upgradeCost(u, lvl);
+  const cost = upgradePrice(config(), state, u);
   const canBuy = affordable(state, u);
   const { t, num, locale } = useI18n();
 

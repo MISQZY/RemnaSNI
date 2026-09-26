@@ -9,14 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { AchievementDef as Achievement } from "@/lib/config";
+import type { AchievementDef as Achievement, LadderDef } from "@/lib/config";
 import type { GameState } from "@/lib/game";
-import { achievementProgress } from "@/lib/rules";
+import { achievementProgress, ladderProgress, ladderTier, roman } from "@/lib/rules";
 import { cn } from "@/lib/utils";
 
 export function Achievements() {
   const state = useGame();
-  const { achievements: ACHIEVEMENTS } = useConfig();
+  const { achievements: ACHIEVEMENTS, ladders, achievementBonus } = useConfig();
   const unlocked = ACHIEVEMENTS.filter((a) => state.achievements[a.id]);
   const locked = ACHIEVEMENTS.filter((a) => !state.achievements[a.id]);
   const percent = Math.round((unlocked.length / ACHIEVEMENTS.length) * 100);
@@ -42,10 +42,22 @@ export function Achievements() {
             </Badge>
           </CardAction>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-2">
           <Progress value={percent} />
+          {achievementBonus > 0 && <p className="text-xs text-muted-foreground">{t.achievements.bonus(Math.round(achievementBonus * 100))}</p>}
         </CardContent>
       </Card>
+
+      {ladders.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-medium text-muted-foreground">{t.achievements.endless}</h2>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {ladders.map((l) => (
+              <LadderCard key={l.id} state={state} ladder={l} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <Tabs defaultValue="all">
         <TabsList className="w-full sm:w-fit">
@@ -114,6 +126,40 @@ function AchievementCard({ state, achievement: a }: { state: GameState; achievem
               </div>
             )
           )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function LadderCard({ state, ladder: l }: { state: GameState; ladder: LadderDef }) {
+  const config = useConfig();
+  const { t, num, locale } = useI18n();
+  const tier = ladderTier(state, l.id);
+  const [value, target] = ladderProgress(config, l, state);
+
+  return (
+    <Card size="sm" className={cn(!tier && "bg-card/60")}>
+      <CardContent className="flex-row items-start gap-3">
+        <div
+          className={cn(
+            "grid size-11 shrink-0 place-items-center rounded-lg",
+            tier ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+          )}
+        >
+          <DynamicIcon name={l.icon as IconName} className="size-5" />
+        </div>
+        <div className="min-w-0 flex-1 space-y-1">
+          <p className={cn("font-medium", !tier && "text-muted-foreground")}>
+            {l.name[locale]} {tier > 0 && roman(tier)}
+          </p>
+          <p className="text-xs text-muted-foreground">{tier ? t.achievements.tier(roman(tier)) : t.achievements.notYet}</p>
+          <div className="space-y-1 pt-1">
+            <Progress value={(value / target) * 100} className="h-1" />
+            <p className="text-xs text-muted-foreground tabular-nums">
+              {t.achievements.nextTier}: {l.description[locale].replace("{n}", num(target))}
+            </p>
+          </div>
         </div>
       </CardContent>
     </Card>

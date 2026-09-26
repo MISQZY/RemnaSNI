@@ -37,6 +37,29 @@ export type AchievementDef = {
   description: Text;
 };
 
+export type PerkKind = "income" | "crit" | "critPower" | "discount" | "keys";
+
+export type PerkDef = {
+  id: string;
+  kind: PerkKind;
+  icon: string;
+  /** Cost in keys of the first level; each level costs `growth` times more. */
+  baseCost: number;
+  growth: number;
+  amount: number;
+  maxLevel?: number;
+  name: Text;
+  description: Text;
+};
+
+/** Prestige, "moving to a new SNI": keys ever received are floor(cbrt(totalEarned / base) × (1 + keys perks)). */
+export type PrestigeConfig = { base: number; keyBonus: number; perks: PerkDef[] };
+
+export type LadderStat = "taps" | "totalEarned" | "crits" | "bestTap" | "upgradeLevels" | "prestiges";
+
+/** An endless achievement: tier n at `start × factor^(n-1)`; `{n}` in the description is the target. */
+export type LadderDef = { id: string; icon: string; stat: LadderStat; start: number; factor: number; name: Text; description: Text };
+
 export type GameConfig = {
   baseCritMultiplier: number;
   frenzyWindowMs: number;
@@ -45,7 +68,18 @@ export type GameConfig = {
   maxPinnedPets: number;
   upgrades: UpgradeDef[];
   achievements: AchievementDef[];
+  achievementBonus: number;
+  ladders: LadderDef[];
+  prestige: PrestigeConfig;
 };
+
+/** Fills in what an older RemnaWeb does not send yet: no ladders, no achievement bonus, no prestige. */
+export const withDefaults = (c: GameConfig): GameConfig => ({
+  ...c,
+  achievementBonus: c.achievementBonus ?? 0,
+  ladders: c.ladders ?? [],
+  prestige: c.prestige ?? { base: Infinity, keyBonus: 0, perks: [] },
+});
 
 // Code outside React (the game store, toasts) reads the config through here; ConfigProvider sets it.
 let current: GameConfig | null = null;

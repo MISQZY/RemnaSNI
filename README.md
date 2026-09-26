@@ -28,7 +28,7 @@ RemnaWeb runs the Telegram OAuth (OIDC) flow, so nodes hold no secrets:
 1. The site sends the player to `REMNAWEB_URL/api/sni/auth/start?return_to=<this page>`.
 2. RemnaWeb signs them in with Telegram and redirects back with `#sni_token=…`; the site keeps it in `localStorage`.
 3. The site pulls progress from `/api/sni/progress` and pushes changes every 10 s and when the tab hides.
-   Each country keeps its own progress (`?country=de`); the one further along wins (later reset → more earned → more spent).
+   Each country keeps its own progress (`?country=de`); the one further along wins (later reset or move → more earned → more RemnaWeb purchases and sales seen → more spent).
 
 ### Traffic boost
 
@@ -45,6 +45,13 @@ legendary 50, mythic 10). The catalog and owned pets come with `/api/sni/progres
 `POST /api/sni/pets?country=xx`. Up to `maxPinnedPets` pets (from the config) can be pinned in "My pets" (`PATCH /api/sni/pets`, body `{ kind, pinned }`);
 pinned pets fly around the profile on the RemnaWeb Mini App home page. The `.pet` animations in
 `globals.css` and `components/pet-sprite.tsx` are mirrored in RemnaWeb.
+
+### Moves and endless achievements
+
+"Move to a new SNI" (prestige, `components/prestige.tsx`) trades points and upgrade levels for encryption keys; each key
+adds income for good and free keys buy perks. Endless achievement ladders (`components/achievements.tsx`) add tiers without
+end, and every achievement or tier adds income too. Formulas are in `lib/rules.ts`, mirroring RemnaWeb. A tap effect bought
+in the RemnaWeb Mini App shop comes with `/api/sni/progress` as `effect` and replaces the mini flags thrown by a tap.
 
 On the RemnaWeb side set `TELEGRAM_LOGIN_CLIENT_SECRET` and add this site's origin to `SNI_ORIGINS`.
 

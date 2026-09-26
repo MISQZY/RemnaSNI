@@ -6,6 +6,7 @@ import { config } from "@/lib/config";
 import { formatDuration, formatNumber } from "@/lib/format";
 import { game } from "@/lib/game";
 import { currentLocale, t } from "@/lib/i18n";
+import { unlockName } from "@/lib/rules";
 import { sync } from "@/lib/sync";
 
 /** How often passive income from the traffic boost is credited. */
@@ -35,8 +36,8 @@ export function GameRuntime({ syncUrl, country }: { syncUrl: string | null; coun
     const ticker = setInterval(game.tick, TICK_MS);
     game.onUnlock((ids) => {
       for (const id of ids) {
-        const a = config().achievements.find((x) => x.id === id);
-        if (a) toast.success(t().achievements.toast, { description: a.name[currentLocale()] });
+        const name = unlockName(config(), id);
+        if (name) toast.success(t().achievements.toast, { description: t().achievements.toastBonus(name[currentLocale()], Math.round(config().achievementBonus * 100)) });
       }
     });
     const stopSync = syncUrl ? sync.start(syncUrl, country) : null;

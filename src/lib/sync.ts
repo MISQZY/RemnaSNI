@@ -26,11 +26,22 @@ export type SyncState = {
   traffic: Traffic | null;
   /** Pet catalog and the pets this account owns; null until the first pull. */
   pets: Pets | null;
+  /** Particles of the tapped flag bought in the RemnaWeb Mini App shop; null for the default mini flags. */
+  effect: string[] | null;
   status: SyncStatus;
   syncedAt: number | null;
 };
 
-const SIGNED_OUT: SyncState = { enabled: false, token: null, account: null, traffic: null, pets: null, status: "idle", syncedAt: null };
+const SIGNED_OUT: SyncState = {
+  enabled: false,
+  token: null,
+  account: null,
+  traffic: null,
+  pets: null,
+  effect: null,
+  status: "idle",
+  syncedAt: null,
+};
 
 let state = SIGNED_OUT;
 let baseUrl = "";
@@ -115,13 +126,14 @@ async function pull() {
   set({ status: "syncing" });
   const res = await api("GET");
   if (!res) return;
-  const { user, progress, traffic, pets } = (await res.json()) as {
+  const { user, progress, traffic, pets, effect } = (await res.json()) as {
     user: Account;
     progress: GameState | null;
     traffic?: Traffic;
     pets?: Pets;
+    effect?: string[] | null;
   };
-  set({ account: user, traffic: traffic ?? null, pets: pets ?? null });
+  set({ account: user, traffic: traffic ?? null, pets: pets ?? null, effect: effect ?? null });
   adopt(progress);
   game.setBoost(traffic?.boost ?? 0);
   if (synced !== game.getSnapshot()) await push();

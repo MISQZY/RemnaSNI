@@ -5,6 +5,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { FlagButton } from "@/components/flag-button";
 import { useGame, useSync } from "@/components/game-runtime";
 import { useI18n } from "@/components/i18n-provider";
+import { Prestige } from "@/components/prestige";
 import { Upgrades } from "@/components/upgrades";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,6 +68,7 @@ export function Clicker({ code, name }: { code: string; name: string }) {
       <aside className="space-y-3 lg:sticky lg:top-6">
         {sync.enabled && <TrafficHint name={name} sync={sync} />}
         <Upgrades state={state} />
+        <Prestige state={state} />
       </aside>
     </div>
   );

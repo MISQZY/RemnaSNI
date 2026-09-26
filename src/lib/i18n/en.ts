@@ -79,6 +79,28 @@ export const en = {
     secret: "Secret achievement",
     unlockedAt: (date: string) => `Unlocked ${date}`,
     toast: "Achievement unlocked",
+    toastBonus: (name: string, percent: number) => `${name} · +${percent}% income`,
+    bonus: (percent: number) => `Every achievement and every endless tier adds +${percent}% to all points.`,
+    endless: "Endless",
+    tier: (n: string) => `Tier ${n}`,
+    notYet: "Not reached yet",
+    nextTier: "Next tier",
+  },
+
+  prestige: {
+    title: "Move to a new SNI",
+    description: (percent: number) =>
+      `Points and upgrades are reset, and you get encryption keys in return: each one adds +${percent}% to income for good. Achievements, pets and cosmetics stay.`,
+    keys: "Keys",
+    free: (n: string) => `${n} free`,
+    bonus: "Income bonus",
+    nextKey: "Next key",
+    move: (keys: string, n: number) => `Move: +${keys} ${n === 1 ? "key" : "keys"}`,
+    nothing: "No keys to earn yet",
+    confirm: "Click again: points will be gone",
+    done: "Moved!",
+    doneHint: (keys: string, n: number, mult: string) => `+${keys} ${n === 1 ? "key" : "keys"}. Income is now ×${mult}.`,
+    perks: "Key perks",
   },
 
   pets: {
