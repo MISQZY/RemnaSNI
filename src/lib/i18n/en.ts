@@ -51,11 +51,13 @@ export const en = {
   traffic: {
     signIn: "Sign in with Telegram to sync progress and collect pets.",
     checking: "Checking your turbo…",
-    noVpn: (country: string) => `The turbo is not available to this account in ${country}. Everything else works without it.`,
+    unavailable: (country: string) => `The turbo is not available to this account in ${country}. Everything else works without it.`,
     none: (country: string, days: number) => `No turbo activity in ${country} in the last ${days} days.`,
     /** `boost` goes in between, highlighted. */
     active: (_bytes: string, country: string, days: number) =>
       [`Your activity in ${country} over ${days} days taps the flag `, " per second, at half speed while the page is closed (up to 8 h)."] as [string, string],
+    /** The turbo bought for points is the one at work; `boost` goes in between, highlighted. */
+    bought: () => ["The turbo bought for points taps the flag ", " per second, at half speed while the page is closed (up to 8 h)."] as [string, string],
   },
 
   upgrades: {

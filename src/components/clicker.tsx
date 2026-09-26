@@ -173,7 +173,7 @@ function changedRange(prev: string, next: string): [number, number] {
   return [from, to];
 }
 
-/** Signed out: a sign-in prompt without a word about the turbo. Signed in: VPN-only notice, how to unlock the turbo, or its rate. */
+/** Signed out: a sign-in prompt without a word about the turbo. Signed in: that the turbo is not open to the account, how to unlock it, or its rate. */
 function TrafficHint({ name, sync: s }: { name: string; sync: SyncState }) {
   const { t, bytes } = useI18n();
   const traffic = s.traffic;
@@ -181,7 +181,16 @@ function TrafficHint({ name, sync: s }: { name: string; sync: SyncState }) {
   let text: ReactNode;
   if (!s.token) text = t.traffic.signIn;
   else if (!traffic) text = t.traffic.checking;
-  else if (traffic.vpn === false) text = t.traffic.noVpn(name);
+  else if (traffic.boost > 0 && traffic.boost === traffic.bought) {
+    const [before, after] = t.traffic.bought();
+    text = (
+      <>
+        {before}
+        <span className="font-medium text-foreground">{traffic.boost}×</span>
+        {after}
+      </>
+    );
+  } else if (traffic.eligible === false) text = t.traffic.unavailable(name);
   else if (traffic.boost <= 0) text = t.traffic.none(name, traffic.windowDays);
   else {
     const [before, after] = t.traffic.active(bytes(traffic.bytes), name, traffic.windowDays);

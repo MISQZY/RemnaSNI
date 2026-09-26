@@ -20,9 +20,10 @@ export type Account = { name: string; photoUrl: string | null };
 export type SyncStatus = "idle" | "syncing" | "synced" | "offline";
 /**
  * Traffic through this country's nodes and the auto-tap rate RemnaWeb grants for it.
- * The turbo is for VPN users only; `vpn` is missing from older RemnaWeb versions.
+ * The traffic turbo is not open to every account (`eligible`, missing from older RemnaWeb versions). `bought`
+ * is the turbo bought for points, open to anyone; `boost` is the stronger of the two.
  */
-export type Traffic = { vpn?: boolean; bytes: number; boost: number; windowDays: number };
+export type Traffic = { eligible?: boolean; bytes: number; boost: number; bought?: number; windowDays: number };
 export type SyncState = {
   /** Whether this site has REMNAWEB_URL (set on the server), i.e. sign-in is available at all. */
   enabled: boolean;
