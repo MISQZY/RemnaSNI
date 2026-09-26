@@ -62,8 +62,11 @@ export function SiteHeader({ code, name, account }: { code: string; name: string
               )}
             >
               <item.icon />
-              {item.label}
-              {item.extra && <span className="hidden text-xs text-muted-foreground tabular-nums min-[480px]:inline">{item.extra}</span>}
+              {/* The smaller counter sits on the label's baseline, not centered next to it. */}
+              <span className="inline-flex items-baseline gap-1.5">
+                {item.label}
+                {item.extra && <span className="hidden text-xs text-muted-foreground tabular-nums min-[480px]:inline">{item.extra}</span>}
+              </span>
             </Link>
           );
         })}

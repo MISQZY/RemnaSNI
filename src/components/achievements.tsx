@@ -63,8 +63,10 @@ export function Achievements() {
         <TabsList className="w-full sm:w-fit">
           {tabs.map((tab) => (
             <TabsTrigger key={tab.value} value={tab.value} className="sm:px-4">
-              {tab.label}
-              <span className="text-xs text-muted-foreground tabular-nums">{tab.list.length}</span>
+              <span className="inline-flex items-baseline gap-1.5">
+                {tab.label}
+                <span className="text-xs text-muted-foreground tabular-nums">{tab.list.length}</span>
+              </span>
             </TabsTrigger>
           ))}
         </TabsList>

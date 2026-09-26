@@ -1,24 +1,25 @@
 "use client";
 
 import { ArrowUp, Coins, PawPrint, Pin, PinOff, Send, Sparkles, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useConfig } from "@/components/config-provider";
 import { useGame, useSync } from "@/components/game-runtime";
 import { useI18n } from "@/components/i18n-provider";
 import { PetSprite } from "@/components/pet-sprite";
+import { UpgradeWheel, landingAngle, spinTo } from "@/components/upgrade-wheel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RARITIES, RARITY_COLOR, nextRarity, petLook, petText, soldOut, type OwnedPet, type PetKind, type PetRarity, type Rarity } from "@/lib/pets";
+import { RARITIES, RARITY_COLOR, nextRarity, petLook, petText, soldOut, type OwnedPet, type PetKind, type PetRarity, type Pets, type Rarity } from "@/lib/pets";
 import { sync as syncApi } from "@/lib/sync";
 import { cn } from "@/lib/utils";
 
-/** The upgrader keeps the player in suspense at least this long, ms. */
-const ROLL_MS = 1200;
+/** How long the result stays on the wheel before the pets list is updated, ms. */
+const RESULT_MS = 1500;
 const percent = (chance: number) => `${Math.round(chance * 1000) / 10}%`;
 
 export function PetShop() {
@@ -89,10 +90,14 @@ export function PetShop() {
       <Tabs defaultValue="shop">
         <TabsList className="w-full sm:w-fit">
           <TabsTrigger value="shop" className="sm:px-4">
-            {t.pets.shop} <span className="text-xs text-muted-foreground tabular-nums">{kinds.length}</span>
+            <span className="inline-flex items-baseline gap-1.5">
+              {t.pets.shop} <span className="text-xs text-muted-foreground tabular-nums">{kinds.length}</span>
+            </span>
           </TabsTrigger>
           <TabsTrigger value="mine" className="sm:px-4">
-            {t.pets.mine} <span className="text-xs text-muted-foreground tabular-nums">{owned.length}</span>
+            <span className="inline-flex items-baseline gap-1.5">
+              {t.pets.mine} <span className="text-xs text-muted-foreground tabular-nums">{owned.length}</span>
+            </span>
           </TabsTrigger>
         </TabsList>
         <TabsContent value="shop" className="mt-2">
@@ -272,12 +277,18 @@ function OwnedCard({
   );
 }
 
-/** The upgrader in a popover: the odds, a confirming second press, the roll and its result. */
+type UpgradeResult = { success: boolean; pet: OwnedPet | null; pets: Pets | null };
+
+/** The upgrader in a popover: the odds on a wheel, a confirming second press, the spin and its result. */
 function Upgrader({ kind: k, pet, chance }: { kind: PetKind; pet: OwnedPet; chance: number }) {
   const { t, locale } = useI18n();
   const [open, setOpen] = useState(false);
   const [armed, setArmed] = useState(false);
-  const [rolling, setRolling] = useState(false);
+  const [phase, setPhase] = useState<"ready" | "rolling" | "won" | "lost">("ready");
+  const [rotation, setRotation] = useState(0);
+  /** RemnaWeb's answer, played out once the needle stops. */
+  const pending = useRef<UpgradeResult | null>(null);
+  const rolling = phase === "rolling";
   const next = nextRarity(pet.rarity);
   const name = petText(k, locale).name;
 
@@ -293,14 +304,22 @@ function Upgrader({ kind: k, pet, chance }: { kind: PetKind; pet: OwnedPet; chan
       return;
     }
     setArmed(false);
-    setRolling(true);
-    const [result] = await Promise.all([syncApi.upgradePet(pet.id), new Promise((r) => setTimeout(r, ROLL_MS))]);
-    setRolling(false);
-    setOpen(false);
+    setPhase("rolling");
+    const result = await syncApi.upgradePet(pet.id);
     if ("error" in result) {
+      setPhase("ready");
       toast.error(t.pets.upgradeFailed, { description: result.error });
       return;
     }
+    pending.current = result;
+    setRotation((r) => spinTo(r, landingAngle(chance, result.success)));
+  }
+
+  function stopped() {
+    const result = pending.current;
+    if (!result) return;
+    pending.current = null;
+    setPhase(result.success ? "won" : "lost");
     if (result.success && result.pet) {
       toast.success(`${k.emoji} ${t.pets.upgradeWon(name, t.pets.rarity[result.pet.rarity])}`, {
         description: t.pets.serialOf(result.pet.serial, result.pet.supply),
@@ -308,6 +327,12 @@ function Upgrader({ kind: k, pet, chance }: { kind: PetKind; pet: OwnedPet; chan
     } else {
       toast.error(t.pets.upgradeLost(name));
     }
+    // Let the result sink in, then show the new pets (a lost one leaves the list, and this popover with it).
+    setTimeout(() => {
+      setOpen(false);
+      setPhase("ready");
+      syncApi.applyPets(result.pets);
+    }, RESULT_MS);
   }
 
   return (
@@ -333,8 +358,25 @@ function Upgrader({ kind: k, pet, chance }: { kind: PetKind; pet: OwnedPet; chan
             <p className="font-semibold tabular-nums">{percent(chance)}</p>
           </div>
         </div>
-        <Progress value={chance * 100} className="h-1.5" />
-        <Button className="w-full" size="sm" variant={armed ? "destructive" : "default"} disabled={rolling} onClick={() => void roll()}>
+        <UpgradeWheel
+          chance={chance}
+          rotation={rotation}
+          spinning={rolling}
+          result={phase === "won" || phase === "lost" ? phase : null}
+          arcClassName={next ? RARITY_COLOR[next] : undefined}
+          onStop={stopped}
+        >
+          <div className={cn("transition-all duration-500", phase === "lost" && "scale-75 opacity-20 grayscale")}>
+            <PetSprite pet={petLook(k, phase === "won" && next ? next : pet.rarity, pet.id)} size={64} pulse={phase === "won" ? 1 : 0} />
+          </div>
+        </UpgradeWheel>
+        <Button
+          className="w-full"
+          size="sm"
+          variant={armed ? "destructive" : "default"}
+          disabled={phase !== "ready"}
+          onClick={() => void roll()}
+        >
           <Zap />
           {rolling ? t.pets.upgradeRolling : armed ? t.pets.upgradeConfirm : t.pets.upgradeGo(percent(chance))}
         </Button>

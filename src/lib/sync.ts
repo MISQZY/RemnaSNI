@@ -372,7 +372,7 @@ export const sync = {
    * The upgrader: tries to raise an owned pet's rarity by one. On failure the pet is gone and its number
    * returns to the shop. Returns whether it worked and the pet after it.
    */
-  async upgradePet(petId: number): Promise<{ success: boolean; pet: OwnedPet | null } | { error: string }> {
+  async upgradePet(petId: number): Promise<{ success: boolean; pet: OwnedPet | null; pets: Pets | null } | { error: string }> {
     if (!state.token) return { error: t().sync.signInToBuy };
     let res: Response;
     try {
@@ -391,8 +391,13 @@ export const sync = {
     }
     const body = (await res.json().catch(() => ({}))) as { success?: boolean; pet?: OwnedPet | null; pets?: Pets; error?: string };
     if (!res.ok || body.success === undefined) return { error: serverError(body.error) ?? t().pets.upgradeFailed };
-    set({ pets: body.pets ?? state.pets });
-    return { success: body.success, pet: body.pet ?? null };
+    // The caller shows the pets after its wheel stops (applyPets): a lost pet would vanish mid-spin.
+    return { success: body.success, pet: body.pet ?? null, pets: body.pets ?? null };
+  },
+
+  /** Takes the pets RemnaWeb returned, e.g. after the upgrader wheel has stopped. */
+  applyPets(pets: Pets | null) {
+    if (pets) set({ pets });
   },
 
   /** Pins an owned pet to the profile in the RemnaWeb Mini App, where it flies around the avatar, or unpins it. */
