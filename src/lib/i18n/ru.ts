@@ -136,7 +136,7 @@ export const ru: Dict = {
     upgradeBecomes: "Станет",
     upgradeChance: "Шанс",
     upgradeGo: (chance) => `Улучшить · ${chance}`,
-    upgradeConfirm: "Точно? Можно потерять питомца",
+    upgradeConfirm: "Рискнуть питомцем?",
     upgradeRolling: "Крутим…",
     upgradeWon: (pet, rarity) => `${pet}: теперь ${rarity.toLowerCase()}!`,
     upgradeLost: (pet) => `Не повезло: ${pet} вернулся в магазин.`,

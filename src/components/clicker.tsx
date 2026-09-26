@@ -38,26 +38,31 @@ export function Clicker({ code, name }: { code: string; name: string }) {
                 <Coins className="size-4" /> {t.clicker.points}
               </p>
               <PointsValue points={state.points} taps={state.taps} />
+              {/* Upgrades first, bonuses (turbo, income multiplier) on a line of their own. */}
               <div className="mt-2 flex flex-wrap gap-1.5">
                 <Badge variant="secondary" className="tabular-nums">
                   <Hand /> {num(perTap(state), true)} {t.clicker.perTap}
                 </Badge>
-                {boost > 0 && (
-                  <Badge className="tabular-nums">
-                    <Gauge /> {num(perSecond(state, boost), true)} {t.clicker.perSec}
-                  </Badge>
-                )}
                 {crit > 0 && (
                   <Badge variant="secondary" className="tabular-nums">
                     <Sparkles /> {Math.round(crit * 100)}% ×{critMultiplier(state)}
                   </Badge>
                 )}
-                {mult > 1 && (
-                  <Badge className="tabular-nums">
-                    <TrendingUp /> ×{fixed(mult, 2)}
-                  </Badge>
-                )}
               </div>
+              {(boost > 0 || mult > 1) && (
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {boost > 0 && (
+                    <Badge className="tabular-nums">
+                      <Gauge /> {num(perSecond(state, boost), true)} {t.clicker.perSec}
+                    </Badge>
+                  )}
+                  {mult > 1 && (
+                    <Badge className="tabular-nums">
+                      <TrendingUp /> ×{fixed(mult, 2)}
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
             <Stats taps={state.taps} total={state.totalEarned} />
           </CardContent>

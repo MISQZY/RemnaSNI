@@ -130,7 +130,7 @@ export const en = {
     upgradeBecomes: "Becomes",
     upgradeChance: "Chance",
     upgradeGo: (chance: string) => `Upgrade · ${chance}`,
-    upgradeConfirm: "Sure? You may lose the pet",
+    upgradeConfirm: "Risk the pet?",
     upgradeRolling: "Rolling…",
     upgradeWon: (pet: string, rarity: string) => `${pet} is ${rarity} now!`,
     upgradeLost: (pet: string) => `No luck: ${pet} went back to the shop.`,

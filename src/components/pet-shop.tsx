@@ -371,7 +371,7 @@ function Upgrader({ kind: k, pet, chance }: { kind: PetKind; pet: OwnedPet; chan
           </div>
         </UpgradeWheel>
         <Button
-          className="w-full"
+          className="h-auto min-h-8 w-full py-1.5 whitespace-normal"
           size="sm"
           variant={armed ? "destructive" : "default"}
           disabled={phase !== "ready"}
