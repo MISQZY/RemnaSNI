@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/
 import { Progress } from "@/components/ui/progress";
 import type { GameConfig, PerkDef } from "@/lib/config";
 import { game, prestigeMultiplier, type GameState } from "@/lib/game";
-import { freeKeys, nextKeyAt, pendingKeys, perkCost, perkLevel } from "@/lib/rules";
+import { freeKeys, keysFor, nextKeyAt, pendingKeys, perkCost, perkLevel } from "@/lib/rules";
 import { cn } from "@/lib/utils";
 
 // Prestige: moving to a new place trades points and upgrades for keys. Mirrors
@@ -34,6 +34,10 @@ export function Prestige({ state }: { state: GameState }) {
   const keys = state.keys ?? 0;
   const pending = pendingKeys(config, state);
   const next = nextKeyAt(config, state);
+  // The bar runs from the key reached last to the next one, also while keys wait to be taken.
+  const reached = keysFor(config, state);
+  const prev = reached > 0 ? next * (reached / (reached + 1)) ** 3 : 0;
+  const toNext = Math.min(100, Math.max(0, ((state.totalEarned - prev) / (next - prev)) * 100));
 
   useEffect(() => {
     if (!confirming) return;
@@ -74,17 +78,15 @@ export function Prestige({ state }: { state: GameState }) {
           </div>
         </div>
 
-        {pending < 1 && (
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{t.prestige.nextKey}</span>
-              <span className="tabular-nums">
-                {num(state.totalEarned)} / {num(next)}
-              </span>
-            </div>
-            <Progress value={Math.min(100, (state.totalEarned / next) * 100)} className="h-1" />
+        <div className="space-y-1.5">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>{t.prestige.nextKey}</span>
+            <span className="tabular-nums">
+              {num(state.totalEarned)} / {num(next)}
+            </span>
           </div>
-        )}
+          <Progress value={toNext} className="h-1" />
+          </div>
 
         <Button className="w-full" variant={confirming ? "destructive" : "default"} disabled={pending < 1} onClick={move}>
           <KeyRound />
