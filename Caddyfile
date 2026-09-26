@@ -15,5 +15,17 @@
 		dns cloudflare {$CF_API_TOKEN}
 		resolvers 1.1.1.1
 	}
+	encode zstd gzip
+	header {
+		# No "Server: Caddy": the site should not tell what serves it.
+		-Server
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		X-Frame-Options DENY
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# Next.js inlines its bootstrap scripts; the API is proxied by the site itself, avatars come from Telegram.
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+	}
 	reverse_proxy 127.0.0.1:{$PORT:8080}
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { KeyRound } from "lucide-react";
-import { DynamicIcon, type IconName } from "lucide-react/dynamic";
+import { GameIcon } from "@/components/game-icon";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useConfig } from "@/components/config-provider";
@@ -117,7 +117,7 @@ function PerkRow({ state, perk: p }: { state: GameState; perk: PerkDef }) {
           canBuy ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground",
         )}
       >
-        <DynamicIcon name={p.icon as IconName} className="size-5" />
+        <GameIcon name={p.icon} className="size-5" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">

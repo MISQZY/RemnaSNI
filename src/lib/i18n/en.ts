@@ -25,6 +25,7 @@ export const en = {
     account: "Account",
     savedLocally: "Progress is saved in this browser",
     syncNow: "Sync now",
+    signOutEverywhere: "Sign out on all devices",
     signOut: "Sign out",
     idle: "Progress is synced to your account",
     syncing: "Syncing…",
@@ -44,19 +45,17 @@ export const en = {
     totalTaps: "Total taps",
     totalEarned: "Total earned",
     welcomeBack: "Welcome back!",
-    awayIncome: (points: string, time: string) => `Your traffic auto-tapped ${points} points in ${time}.`,
+    awayIncome: (points: string, time: string) => `The turbo auto-tapped ${points} points in ${time}.`,
   },
 
   traffic: {
     signIn: "Sign in with Telegram to sync progress and collect pets.",
-    checking: "Checking your traffic…",
-    noVpn: (country: string) =>
-      `The turbo is for VPN users only: their traffic through ${country} taps the flag for them. Everything else works without a subscription.`,
-    none: (country: string, days: number) =>
-      `No traffic through ${country} in the last ${days} days. 10 GB, 100 GB and 1 TB unlock 1, 2 and 3 auto-taps per second.`,
+    checking: "Checking your turbo…",
+    noVpn: (country: string) => `The turbo is not available to this account in ${country}. Everything else works without it.`,
+    none: (country: string, days: number) => `No turbo activity in ${country} in the last ${days} days.`,
     /** `boost` goes in between, highlighted. */
-    active: (bytes: string, country: string, days: number) =>
-      [`${bytes} through ${country} in ${days} days taps the flag `, " per second, at half speed while the page is closed (up to 8 h)."] as [string, string],
+    active: (_bytes: string, country: string, days: number) =>
+      [`Your activity in ${country} over ${days} days taps the flag `, " per second, at half speed while the page is closed (up to 8 h)."] as [string, string],
   },
 
   upgrades: {
@@ -88,9 +87,9 @@ export const en = {
   },
 
   prestige: {
-    title: "Move to a new SNI",
+    title: "Relocate",
     description: (percent: number) =>
-      `Points and upgrades are reset, and you get encryption keys in return: each one adds +${percent}% to income for good. Achievements, pets and cosmetics stay.`,
+      `Points and upgrades are reset, and you get keys in return: each one adds +${percent}% to income for good. Achievements, pets and cosmetics stay.`,
     keys: "Keys",
     free: (n: string) => `${n} free`,
     bonus: "Income bonus",

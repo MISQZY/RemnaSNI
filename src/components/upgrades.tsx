@@ -1,7 +1,7 @@
 "use client";
 
 import { Lock } from "lucide-react";
-import { DynamicIcon, type IconName } from "lucide-react/dynamic";
+import { GameIcon } from "@/components/game-icon";
 import { useConfig } from "@/components/config-provider";
 import { useI18n } from "@/components/i18n-provider";
 import { Badge } from "@/components/ui/badge";
@@ -99,7 +99,7 @@ function UpgradeRow({ state, upgrade: u }: { state: GameState; upgrade: Upgrade 
           canBuy ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground",
         )}
       >
-        <DynamicIcon name={u.icon as IconName} className="size-5" />
+        <GameIcon name={u.icon} className="size-5" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">

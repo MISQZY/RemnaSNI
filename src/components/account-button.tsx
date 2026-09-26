@@ -1,6 +1,6 @@
 "use client";
 
-import { CloudCheck, CloudOff, HardDrive, LoaderCircle, LogOut, RefreshCw, RotateCcw, Send, Settings } from "lucide-react";
+import { CloudCheck, CloudOff, HardDrive, LoaderCircle, LogOut, MonitorX, RefreshCw, RotateCcw, Send, Settings } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useSync } from "@/components/game-runtime";
@@ -61,7 +61,7 @@ export function AccountButton({ signIn }: { signIn: boolean }) {
       <PopoverTrigger asChild>
         <button type="button" aria-label={t.account.account} className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
           <Avatar size="lg">
-            {s.account?.photoUrl && <AvatarImage src={s.account.photoUrl} alt="" />}
+            {s.account?.photoUrl && <AvatarImage src={s.account.photoUrl} alt="" referrerPolicy="no-referrer" />}
             <AvatarFallback>{initials(name)}</AvatarFallback>
             <AvatarBadge className={cn(s.status === "offline" && "bg-warning")} />
           </Avatar>
@@ -79,6 +79,17 @@ export function AccountButton({ signIn }: { signIn: boolean }) {
           </Button>
           <Button variant="ghost" size="sm" className="justify-start text-destructive hover:text-destructive" onClick={sync.signOut}>
             <LogOut /> {t.account.signOut}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="justify-start text-destructive hover:text-destructive"
+            onClick={async () => {
+              const { error } = await sync.signOutEverywhere();
+              if (error) toast.error(error);
+            }}
+          >
+            <MonitorX /> {t.account.signOutEverywhere}
           </Button>
         </div>
         <Separator />

@@ -1,4 +1,6 @@
-FROM node:24-alpine AS base
+# syntax=docker/dockerfile:1
+# Base image pinned by digest (node:24-alpine); Dependabot proposes updates.
+FROM node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS base
 
 FROM base AS deps
 WORKDIR /app
@@ -11,7 +13,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npx next build
+RUN --mount=type=cache,target=/app/.next/cache npx next build
 
 FROM base AS runner
 WORKDIR /app

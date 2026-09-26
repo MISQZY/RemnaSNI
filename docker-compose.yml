@@ -7,12 +7,25 @@ services:
     image: ghcr.io/misqzy/remnasni:latest
     container_name: remnasni
     restart: unless-stopped
-    # NODE_COUNTRY picks the flag, REMNAWEB_URL enables Telegram sign-in.
+    # NODE_COUNTRY picks the flag, REMNAWEB_URL enables Telegram sign-in, SITE_FOOTER adds a footer.
     environment:
       - NODE_COUNTRY=${NODE_COUNTRY:-}
       - REMNAWEB_URL=${REMNAWEB_URL:-}
+      - SITE_FOOTER=${SITE_FOOTER:-}
     ports:
       - "127.0.0.1:${PORT:-8080}:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/flag.svg"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    mem_limit: 512m
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
 
   caddy:
     # Caddy with the Cloudflare DNS module (caddy/Dockerfile).
@@ -30,6 +43,8 @@ services:
       # Certificates live here, so restarts do not re-issue them.
       - caddy_data:/data
       - caddy_config:/config
+    mem_limit: 256m
+    logging: *logging
     depends_on:
       - sni
 

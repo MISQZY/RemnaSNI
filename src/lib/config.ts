@@ -73,6 +73,31 @@ export type GameConfig = {
   prestige: PrestigeConfig;
 };
 
+const isText = (t: unknown) => !!t && typeof (t as Text).ru === "string" && typeof (t as Text).en === "string";
+const isNum = (n: unknown) => typeof n === "number" && Number.isFinite(n);
+const listOf = (v: unknown, ok: (item: Record<string, unknown>) => boolean) =>
+  Array.isArray(v) && v.every((item) => !!item && typeof item === "object" && ok(item as Record<string, unknown>));
+const named = (i: Record<string, unknown>) => typeof i.id === "string" && typeof i.icon === "string" && isText(i.name) && isText(i.description);
+
+/**
+ * Whether a config from RemnaWeb has the shape the game relies on. A broken one (a bug or a tampered
+ * response) is refused, and the last good config keeps serving, rather than breaking every page.
+ */
+export function isGameConfig(v: unknown): v is GameConfig {
+  if (!v || typeof v !== "object") return false;
+  const c = v as Record<string, unknown>;
+  return (
+    ["baseCritMultiplier", "frenzyWindowMs", "offlineRate", "offlineCapMs", "maxPinnedPets"].every((k) => isNum(c[k])) &&
+    listOf(c.upgrades, (u) => named(u) && isNum(u.baseCost) && isNum(u.growth) && isNum(u.amount)) &&
+    listOf(c.achievements, (a) => named(a) && !!a.rule && typeof a.rule === "object") &&
+    (c.ladders === undefined || listOf(c.ladders, (l) => named(l) && isNum(l.start) && isNum(l.factor))) &&
+    (c.prestige === undefined ||
+      (!!c.prestige &&
+        typeof c.prestige === "object" &&
+        listOf((c.prestige as Record<string, unknown>).perks, (p) => named(p) && isNum(p.baseCost) && isNum(p.growth))))
+  );
+}
+
 /** Fills in what an older RemnaWeb does not send yet: no ladders, no achievement bonus, no prestige. */
 export const withDefaults = (c: GameConfig): GameConfig => ({
   ...c,

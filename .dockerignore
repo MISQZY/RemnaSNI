@@ -5,6 +5,10 @@ node_modules
 .env.*
 !.env.example
 README.md
+.github
+Caddyfile
+caddy
+docker-compose.yml
 CLAUDE.md
 AGENTS.md
 .claude

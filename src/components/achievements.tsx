@@ -1,7 +1,7 @@
 "use client";
 
 import { CircleHelp, Lock } from "lucide-react";
-import { DynamicIcon, type IconName } from "lucide-react/dynamic";
+import { GameIcon } from "@/components/game-icon";
 import { useConfig } from "@/components/config-provider";
 import { useGame } from "@/components/game-runtime";
 import { useI18n } from "@/components/i18n-provider";
@@ -104,7 +104,7 @@ function AchievementCard({ state, achievement: a }: { state: GameState; achievem
             unlockedAt ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
           )}
         >
-          {hidden ? <CircleHelp className="size-5" /> : <DynamicIcon name={a.icon as IconName} className="size-5" />}
+          {hidden ? <CircleHelp className="size-5" /> : <GameIcon name={a.icon} className="size-5" />}
           {!unlockedAt && (
             <span className="absolute -right-1 -bottom-1 grid size-5 place-items-center rounded-full bg-card ring-1 ring-foreground/10">
               <Lock className="size-3" />
@@ -147,7 +147,7 @@ function LadderCard({ state, ladder: l }: { state: GameState; ladder: LadderDef 
             tier ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
           )}
         >
-          <DynamicIcon name={l.icon as IconName} className="size-5" />
+          <GameIcon name={l.icon} className="size-5" />
         </div>
         <div className="min-w-0 flex-1 space-y-1">
           <p className={cn("font-medium", !tier && "text-muted-foreground")}>

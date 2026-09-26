@@ -45,8 +45,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   await connection();
   const locale = await getLocale();
   const { code, name } = nodeCountry(locale);
-  const remnaweb = syncUrl();
+  const syncEnabled = syncUrl() !== null;
   const config = await loadConfig();
+  // Optional: the stub sites stay anonymous unless a footer is asked for.
+  const footer = process.env.SITE_FOOTER?.trim();
 
   return (
     <html lang={locale} className={inter.variable}>
@@ -54,9 +56,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <I18nProvider locale={locale}>
           {config ? (
             <ConfigProvider config={config}>
-              <SiteHeader code={code} name={name} account={!!remnaweb} />
+              <SiteHeader code={code} name={name} account={syncEnabled} />
               <main className="flex-1">{children}</main>
-              <GameRuntime syncUrl={remnaweb} country={code} />
+              <GameRuntime syncEnabled={syncEnabled} country={code} />
             </ConfigProvider>
           ) : (
             // The rules come from RemnaWeb; until it has been reached once there is no game to play.
@@ -66,7 +68,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <p className="max-w-sm text-sm text-muted-foreground">{dictionaries[locale].unavailable}</p>
             </main>
           )}
-          <footer className="px-4 pb-6 text-center text-xs text-muted-foreground">© {new Date().getFullYear()} MISQZY.net</footer>
+          {footer && <footer className="px-4 pb-6 text-center text-xs text-muted-foreground">© {new Date().getFullYear()} {footer}</footer>}
           <Toaster position="top-center" />
         </I18nProvider>
       </body>
