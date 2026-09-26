@@ -1,9 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
+import { HumanCheckOverlay } from "@/components/human-check";
 import { useSync } from "@/components/game-runtime";
 import { useI18n } from "@/components/i18n-provider";
 import { game } from "@/lib/game";
+import { human } from "@/lib/human";
 import { cn } from "@/lib/utils";
 
 type Pop = { id: number; x: number; y: number; value: number; crit: boolean; drift: number };
@@ -42,6 +44,7 @@ export function FlagButton({ code, name }: { code: string; name: string }) {
   const [bursts, setBursts] = useState<Burst[]>([]);
   const [tilt, setTilt] = useState<{ x: number; y: number } | null>(null);
   const nextId = useRef(0);
+  const checking = useSyncExternalStore(human.subscribe, human.getSnapshot, human.getServerSnapshot);
 
   function tap(x: number, y: number, rect: DOMRect) {
     const { gain, crit } = game.tap();
@@ -57,22 +60,25 @@ export function FlagButton({ code, name }: { code: string; name: string }) {
     <div className="relative mx-auto w-full max-w-lg select-none lg:max-w-[min(32rem,calc((100dvh-25rem)*4/3))]">
       {/* Soft glow in the flag's own colors. */}
       <div aria-hidden className={cn("fib pointer-events-none absolute inset-6 rounded-3xl blur-3xl animate-glow", `fi-${code}`)} />
+      {checking && <HumanCheckOverlay />}
 
       <button
         type="button"
         aria-label={t.clicker.tapFlag(name)}
         className="relative block w-full touch-manipulation rounded-2xl outline-none [perspective:800px] focus-visible:ring-3 focus-visible:ring-ring/50"
         onPointerDown={(e) => {
-          if (e.button !== 0) return;
+          if (e.button !== 0 || !human.allow(e)) return;
           const rect = e.currentTarget.getBoundingClientRect();
           tap(e.clientX - rect.left, e.clientY - rect.top, rect);
         }}
         onPointerUp={() => setTilt(null)}
         onPointerLeave={() => setTilt(null)}
         onPointerCancel={() => setTilt(null)}
+        // A held key repeats: only real presses count.
+        onKeyDown={(e) => e.repeat && e.preventDefault()}
         onClick={(e) => {
           // Pointer taps are handled on pointerdown; detail === 0 means Enter/Space.
-          if (e.detail !== 0) return;
+          if (e.detail !== 0 || !human.allow({ isTrusted: e.isTrusted, clientX: -1, clientY: -1 })) return;
           const rect = e.currentTarget.getBoundingClientRect();
           tap(rect.width / 2, rect.height / 2, rect);
           setTimeout(() => setTilt(null), 100);

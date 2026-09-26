@@ -45,6 +45,14 @@ RemnaWeb sums the player's traffic through the nodes of this country over the la
 `points per tap × boost` every second, half of that for the time the tab was closed (up to 8 hours), and refreshes the boost
 every 5 minutes. Signed-out players tap by hand only. The page itself calls it the turbo and never mentions traffic.
 
+### Human checks
+
+Every few thousand taps RemnaWeb stops saving progress until the player taps the named emoji among six
+(`components/human-check.tsx` over the flag, `/api/sni/challenge`); taps do not count meanwhile. `lib/tap-guard.ts`
+ignores scripted events and held keys and asks for a check at once on machine-like tapping (steady rhythm, touches on
+one pixel, 20 minutes without a pause). Signed out, the site gives the checks itself (`lib/human.ts`); the progress
+made meanwhile still meets RemnaWeb's check at the first save.
+
 ### Pets
 
 Signed-in players can adopt pets in the shop (`/pets`) with this country's points, any number of the same kind.

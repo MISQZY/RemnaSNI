@@ -1,5 +1,6 @@
 import { toast } from "sonner";
 import { game, isNewer, type GameState } from "@/lib/game";
+import { human, type HumanCheck } from "@/lib/human";
 import { t } from "@/lib/i18n";
 import type { OwnedPet, Pets } from "@/lib/pets";
 
@@ -190,7 +191,13 @@ async function push(keepalive = false) {
   try {
     const res = await api("PUT", current, keepalive);
     if (!res) return;
-    const { progress, rejected } = (await res.json()) as { progress: GameState; rejected?: boolean };
+    const { progress, rejected, challenge } = (await res.json()) as { progress: GameState; rejected?: boolean; challenge?: boolean };
+    if (challenge) {
+      // Not saved until a human check is passed; the local progress stays and goes up after it.
+      human.require();
+      set({ status: "synced", syncedAt: state.syncedAt });
+      return;
+    }
     if (rejected) {
       // RemnaWeb refused the progress as impossible: its copy is the game from now on.
       game.replace(progress);
@@ -305,8 +312,10 @@ export const sync = {
       pets?: Pets;
       progress?: GameState;
       rejected?: boolean;
+      challenge?: boolean;
       error?: string;
     };
+    if (body.challenge) human.require();
     if (body.rejected && body.progress) {
       game.replace(body.progress);
       synced = game.getSnapshot();
@@ -319,6 +328,44 @@ export const sync = {
     set({ pets: body.pets ?? state.pets });
     void push();
     return { pet: body.pet };
+  },
+
+  /** A human check from RemnaWeb for this country. */
+  async getCheck(): Promise<HumanCheck> {
+    const res = await fetch(`/api/sni/challenge?${new URLSearchParams({ country })}`, {
+      headers: { Authorization: `Bearer ${state.token}` },
+      cache: "no-store",
+    });
+    const body = (await res.json().catch(() => ({}))) as HumanCheck & { error?: string };
+    if (!res.ok) throw new Error(serverError(body.error) ?? t().human.failed);
+    return body;
+  },
+
+  async answerCheck(token: string, answer: number): Promise<{ passed: boolean; blockedUntil?: string }> {
+    const res = await fetch(`/api/sni/challenge?${new URLSearchParams({ country })}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${state.token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ token, answer }),
+      cache: "no-store",
+    });
+    const body = (await res.json().catch(() => ({}))) as { passed?: boolean; blockedUntil?: string; error?: string };
+    if (!res.ok || body.passed === undefined) throw new Error(serverError(body.error) ?? t().human.failed);
+    if (body.passed) void push();
+    return { passed: body.passed, blockedUntil: body.blockedUntil };
+  },
+
+  /** Machine-like tapping was seen: asks RemnaWeb to make the check due now. */
+  async requestCheck(): Promise<void> {
+    try {
+      await fetch(`/api/sni/challenge?${new URLSearchParams({ country })}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${state.token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ suspect: true }),
+        cache: "no-store",
+      });
+    } catch {
+      // The check is due on this site anyway.
+    }
   },
 
   /**

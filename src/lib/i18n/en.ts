@@ -147,6 +147,16 @@ export const en = {
     rarity: { common: "Common", rare: "Rare", epic: "Epic", legendary: "Legendary", mythic: "Mythic", cosmic: "Cosmic" },
   },
 
+  human: {
+    title: "Check: tap the",
+    missed: "Not that one, try again.",
+    notCounted: "Taps do not count until the check is passed.",
+    blocked: (time: string) => `Too many misses. Next check in ${time}`,
+    loading: "Loading the check…",
+    retry: "Retry",
+    failed: "Could not load the check",
+  },
+
   sync: {
     signInFailed: "Could not sign in",
     tryLater: "Please try again later.",
