@@ -418,3 +418,10 @@
     }
   }
 }
+
+/* The game page fills the window exactly on wide screens: its side panel scrolls inside itself, not the page. */
+@media (width >= 64rem) {
+  body:has([data-fit-screen]) {
+    height: 100dvh;
+  }
+}

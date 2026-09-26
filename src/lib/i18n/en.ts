@@ -95,7 +95,7 @@ export const en = {
     bonus: "Income bonus",
     nextKey: "Next key",
     move: (keys: string, n: number) => `Move: +${keys} ${n === 1 ? "key" : "keys"}`,
-    nothing: "No keys to earn yet",
+    nothing: "Not enough for a key yet",
     confirm: "Click again: points will be gone",
     done: "Moved!",
     doneHint: (keys: string, n: number, mult: string) => `+${keys} ${n === 1 ? "key" : "keys"}. Income is now ×${mult}.`,

@@ -53,7 +53,8 @@ export function FlagButton({ code, name }: { code: string; name: string }) {
   }
 
   return (
-    <div className="relative mx-auto w-full max-w-lg select-none">
+    // On wide screens the flag also shrinks with the window height, so the game fits without scrolling.
+    <div className="relative mx-auto w-full max-w-lg select-none lg:max-w-[min(32rem,calc((100dvh-25rem)*4/3))]">
       {/* Soft glow in the flag's own colors. */}
       <div aria-hidden className={cn("fib pointer-events-none absolute inset-6 rounded-3xl blur-3xl animate-glow", `fi-${code}`)} />
 

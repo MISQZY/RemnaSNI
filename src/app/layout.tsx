@@ -57,7 +57,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {config ? (
             <ConfigProvider config={config}>
               <SiteHeader code={code} name={name} account={syncEnabled} />
-              <main className="flex-1">{children}</main>
+              <main className="flex flex-1 flex-col lg:min-h-0">{children}</main>
               <GameRuntime syncEnabled={syncEnabled} country={code} />
             </ConfigProvider>
           ) : (

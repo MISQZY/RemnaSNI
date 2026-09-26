@@ -8,19 +8,25 @@ import { useConfig } from "@/components/config-provider";
 import { useI18n } from "@/components/i18n-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import type { PerkDef } from "@/lib/config";
+import type { GameConfig, PerkDef } from "@/lib/config";
 import { game, prestigeMultiplier, type GameState } from "@/lib/game";
 import { freeKeys, nextKeyAt, pendingKeys, perkCost, perkLevel } from "@/lib/rules";
 import { cn } from "@/lib/utils";
 
-// Prestige: moving to a new SNI trades points and upgrades for encryption keys. Mirrors
+// Prestige: moving to a new place trades points and upgrades for keys. Mirrors
 // components/clicker/prestige.tsx of the RemnaWeb Mini App.
 
 /** How long the move button waits for the confirming second click, ms. */
 const CONFIRM_MS = 3_000;
 
+/** Whether a move or a perk is available now, for the dot on the tab. */
+export const prestigeReady = (config: GameConfig, s: GameState) =>
+  pendingKeys(config, s) >= 1 ||
+  config.prestige.perks.some((p) => !(p.maxLevel && perkLevel(s, p.id) >= p.maxLevel) && freeKeys(config, s) >= perkCost(p, perkLevel(s, p.id)));
+
+/** The move to a new place and the perks bought with its keys; its title is the tab it sits in. */
 export function Prestige({ state }: { state: GameState }) {
   const config = useConfig();
   const { t, num, fixed } = useI18n();
@@ -51,9 +57,6 @@ export function Prestige({ state }: { state: GameState }) {
   return (
     <Card size="sm">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base font-semibold">
-          <KeyRound className="size-4 text-primary" /> {t.prestige.title}
-        </CardTitle>
         <CardDescription>{t.prestige.description(Math.round(config.prestige.keyBonus * 100))}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">

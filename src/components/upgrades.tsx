@@ -6,7 +6,7 @@ import { useConfig } from "@/components/config-provider";
 import { useI18n } from "@/components/i18n-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { config, type UpgradeDef as Upgrade, type UpgradeKind } from "@/lib/config";
@@ -26,13 +26,16 @@ const revealed = (s: GameState, u: Upgrade) => level(s, u.id) > 0 || s.totalEarn
 const affordable = (s: GameState, u: Upgrade) =>
   !(u.maxLevel && level(s, u.id) >= u.maxLevel) && s.points >= upgradePrice(config(), s, u);
 
+/** Whether any shown upgrade can be bought now, for the dot on the tab. */
+export const upgradeReady = (s: GameState, upgrades: Upgrade[]) => upgrades.some((u) => revealed(s, u) && affordable(s, u));
+
+/** The upgrade shop; its title is the tab it sits in. */
 export function Upgrades({ state }: { state: GameState }) {
   const { t } = useI18n();
   const { upgrades } = useConfig();
   return (
     <Card size="sm">
       <CardHeader>
-        <CardTitle className="text-base font-semibold">{t.upgrades.title}</CardTitle>
         <CardDescription>{t.upgrades.description}</CardDescription>
       </CardHeader>
       <CardContent>

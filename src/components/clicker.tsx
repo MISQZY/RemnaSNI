@@ -1,16 +1,18 @@
 "use client";
 
-import { Cloud, Coins, Gauge, Hand, MousePointerClick, Send, Sparkles, TrendingUp } from "lucide-react";
+import { ArrowUpCircle, Cloud, Coins, Gauge, Hand, KeyRound, MousePointerClick, Send, Sparkles, TrendingUp } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { FlagButton } from "@/components/flag-button";
 import { useGame, useSync } from "@/components/game-runtime";
 import { useI18n } from "@/components/i18n-provider";
-import { Prestige } from "@/components/prestige";
-import { Upgrades } from "@/components/upgrades";
+import { useConfig } from "@/components/config-provider";
+import { Prestige, prestigeReady } from "@/components/prestige";
+import { Upgrades, upgradeReady } from "@/components/upgrades";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { critChance, critMultiplier, incomeMultiplier, perSecond, perTap } from "@/lib/game";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { critChance, critMultiplier, incomeMultiplier, perSecond, perTap, type GameState } from "@/lib/game";
 import { sync as syncApi, type SyncState } from "@/lib/sync";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +25,11 @@ export function Clicker({ code, name }: { code: string; name: string }) {
   const { t, num, fixed } = useI18n();
 
   return (
-    <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+    // On wide screens the game fills the window exactly: the side panel scrolls inside itself, never the page.
+    <div
+      data-fit-screen
+      className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-6 px-4 py-6 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_380px] lg:grid-rows-[minmax(0,1fr)] lg:items-start"
+    >
       <section className="space-y-6">
         <Card size="sm" className="relative z-10">
           <CardContent className="flex-row flex-wrap items-center justify-between gap-x-6 gap-y-4 sm:flex-nowrap">
@@ -65,12 +71,41 @@ export function Clicker({ code, name }: { code: string; name: string }) {
         </div>
       </section>
 
-      <aside className="space-y-3 lg:sticky lg:top-6">
+      <aside className="flex flex-col gap-3 lg:min-h-0 lg:self-stretch">
         {sync.enabled && <TrafficHint name={name} sync={sync} />}
-        <Upgrades state={state} />
-        <Prestige state={state} />
+        <SidePanel state={state} />
       </aside>
     </div>
+  );
+}
+
+/** Upgrades and the move in tabs; a dot marks a tab with something to buy. */
+function SidePanel({ state }: { state: GameState }) {
+  const config = useConfig();
+  const { t } = useI18n();
+  // An older RemnaWeb sends no prestige: then there is only the upgrades.
+  if (!config.prestige.perks.length) return <Upgrades state={state} />;
+
+  const scroll = "min-h-0 overflow-y-auto overscroll-contain p-px [scrollbar-width:thin]";
+  return (
+    <Tabs defaultValue="upgrades" className="lg:min-h-0 lg:flex-1">
+      <TabsList className="w-full shrink-0">
+        <TabsTrigger value="upgrades">
+          <ArrowUpCircle /> {t.upgrades.title}
+          {upgradeReady(state, config.upgrades) && <span className="size-1.5 rounded-full bg-primary" />}
+        </TabsTrigger>
+        <TabsTrigger value="prestige">
+          <KeyRound /> {t.prestige.title}
+          {prestigeReady(config, state) && <span className="size-1.5 rounded-full bg-primary" />}
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="upgrades" className={scroll}>
+        <Upgrades state={state} />
+      </TabsContent>
+      <TabsContent value="prestige" className={scroll}>
+        <Prestige state={state} />
+      </TabsContent>
+    </Tabs>
   );
 }
 
