@@ -113,6 +113,27 @@ function consumeFragment() {
   if (error) toast.error(t().sync.signInFailed, { description: t().sync.signInErrors[error] ?? t().sync.tryLater });
 }
 
+/**
+ * Inside the RemnaWeb Mini App the site runs in a frame: it asks the parent for the Mini App user's
+ * session instead of a Telegram sign-in, which cannot run in a frame. Only RemnaWeb may frame the site
+ * (frame-ancestors in the Caddyfile), so a session from the parent is trusted. Returns a cleanup.
+ */
+function listenToParent(): () => void {
+  if (window.parent === window) return () => {};
+  const onMessage = (e: MessageEvent) => {
+    const data = e.data as { type?: unknown; token?: unknown } | null;
+    if (e.source !== window.parent || data?.type !== "sni:session" || typeof data.token !== "string") return;
+    if (data.token === state.token) return;
+    storeToken(data.token);
+    synced = null;
+    set({ token: data.token });
+    void pull();
+  };
+  window.addEventListener("message", onMessage);
+  window.parent.postMessage({ type: "sni:hello" }, "*");
+  return () => window.removeEventListener("message", onMessage);
+}
+
 function failed() {
   failures++;
   retryAt = Date.now() + Math.min(MAX_BACKOFF_MS, PUSH_EVERY_MS * 2 ** failures);
@@ -250,7 +271,9 @@ export const sync = {
     const pullTimer = setInterval(() => state.token && document.visibilityState === "visible" && void pull(), PULL_EVERY_MS);
     const onHide = () => document.visibilityState === "hidden" && void push(true);
     document.addEventListener("visibilitychange", onHide);
+    const stopParent = listenToParent();
     return () => {
+      stopParent();
       clearInterval(pushTimer);
       clearInterval(pullTimer);
       document.removeEventListener("visibilitychange", onHide);

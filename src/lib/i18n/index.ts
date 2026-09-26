@@ -32,6 +32,8 @@ export const t = () => dictionaries[current];
 
 /** Remembers the language for a year and returns; the caller refreshes the page data. */
 export function storeLocale(locale: Locale) {
-  document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=31536000; samesite=lax`;
+  // In a frame (the RemnaWeb Mini App) a lax cookie is never sent; a partitioned one stays with that embedding.
+  const attrs = window.parent === window ? "samesite=lax" : "samesite=none; secure; partitioned";
+  document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=31536000; ${attrs}`;
   setCurrentLocale(locale);
 }

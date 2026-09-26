@@ -38,6 +38,7 @@ services:
       - DOMAIN=${DOMAIN:?set DOMAIN in .env}
       - CF_API_TOKEN=${CF_API_TOKEN:?set CF_API_TOKEN in .env}
       - PORT=${PORT:-8080}
+      - FRAME_ANCESTORS=${FRAME_ANCESTORS:-'none'}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       # Certificates live here, so restarts do not re-issue them.

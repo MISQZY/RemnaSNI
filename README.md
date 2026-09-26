@@ -10,6 +10,7 @@ Progress lives in the visitor's `localStorage`; after signing in with Telegram i
 | `NODE_COUNTRY` | ISO 3166-1 alpha-2 code (`de`, `nl`, `fi`, …). Read at request time, so one image fits every node. Invalid or missing → neutral flag. |
 | `REMNAWEB_URL` | RemnaWeb URL (https; http only for localhost), required: the game rules come from it (see below). Also enables "Sign in with Telegram" and progress sync. Used by the server only: pages never see it. |
 | `SITE_FOOTER`  | Optional footer text (`© <year> <text>`). Empty by default, so nothing on the page ties the nodes together. |
+| `FRAME_ANCESTORS` | For Caddy: who may open the site in a frame, e.g. `https://app.example.com https://web.telegram.org https://*.telegram.org` (the RemnaWeb origin and Telegram's web clients that frame it). Enables "Играть" right in the Mini App: the site then gets the Mini App user's session from RemnaWeb by `postMessage`. Empty → nobody. |
 | `PORT`         | Host port for `docker-compose.yml` (bound to `127.0.0.1`). |
 
 ## Game rules
@@ -96,7 +97,8 @@ CI builds two images, the same for every node:
 
 A node needs only `docker-compose.yml`, `Caddyfile` and `.env`. Caddy gets the certificate through Cloudflare DNS
 (DNS-01), so port 80 stays closed, and listens on `127.0.0.1:8443` only. It compresses responses, sets the security
-headers (CSP, HSTS, `X-Frame-Options` and others) and drops its `Server` header. The Caddy images are pinned by digest
+headers (CSP, HSTS, `X-Frame-Options` and others) and drops its `Server` header. Only requests for a frame
+(`Sec-Fetch-Dest: iframe`) get `frame-ancestors` from `FRAME_ANCESTORS`; a direct visit sees `DENY` and no origins. The Caddy images are pinned by digest
 and the Cloudflare module by version (`caddy/Dockerfile`); Dependabot proposes image updates.
 
 1. **Cloudflare**: an `A` record for the node's domain → node IP, **DNS only** (grey cloud). An API token with
