@@ -1,6 +1,7 @@
 "use client";
 
-import { KeyRound } from "lucide-react";
+import { ChipIcon } from "@/components/chip-icon";
+import { QzrIcon } from "@/components/qzr-icon";
 import { GameIcon } from "@/components/game-icon";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -67,8 +68,8 @@ export function Prestige({ state }: { state: GameState }) {
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="rounded-lg bg-muted/60 px-2.5 py-2">
             <p className="text-xs text-muted-foreground">{t.prestige.keys}</p>
-            <p className="font-semibold tabular-nums">
-              {num(keys)}
+            <p className="flex flex-wrap items-center gap-x-1 font-semibold tabular-nums">
+              <ChipIcon className="size-4" /> {num(keys)}
               {keys > 0 && <span className="font-normal text-muted-foreground"> · {t.prestige.free(num(freeKeys(config, state)))}</span>}
             </p>
           </div>
@@ -81,15 +82,15 @@ export function Prestige({ state }: { state: GameState }) {
         <div className="space-y-1.5">
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>{t.prestige.nextKey}</span>
-            <span className="tabular-nums">
-              {num(state.totalEarned)} / {num(next)}
+            <span className="flex items-center gap-1 tabular-nums">
+              <QzrIcon className="size-3.5" /> {num(state.totalEarned)} / {num(next)}
             </span>
           </div>
           <Progress value={toNext} className="h-1" />
           </div>
 
         <Button className="w-full" variant={confirming ? "destructive" : "default"} disabled={pending < 1} onClick={move}>
-          <KeyRound />
+          {pending >= 1 && <ChipIcon mono />}
           {pending < 1 ? t.prestige.nothing : confirming ? t.prestige.confirm : t.prestige.move(num(pending), pending)}
         </Button>
 
@@ -140,7 +141,7 @@ function PerkRow({ state, perk: p }: { state: GameState; perk: PerkDef }) {
           t.upgrades.max
         ) : (
           <>
-            <KeyRound /> {num(cost)}
+            <ChipIcon /> {num(cost)}
           </>
         )}
       </Button>

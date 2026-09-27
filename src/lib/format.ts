@@ -13,9 +13,15 @@ function formatPlain(n: number, fraction: boolean): string {
   if (!Number.isFinite(n)) return "∞";
   if (n < 10 && fraction && !Number.isInteger(n)) return n.toFixed(1);
   if (n < 100_000) return Math.floor(n).toLocaleString("en-US").replaceAll(",", " ");
-  const tier = Math.min(Math.floor(Math.log10(n) / 3), SUFFIXES.length - 1);
-  const value = n / 10 ** (tier * 3);
-  return `${value.toFixed(value < 10 ? 2 : value < 100 ? 1 : 0)}${SUFFIXES[tier]}`;
+  let tier = Math.min(Math.floor(Math.log10(n) / 3), SUFFIXES.length - 1);
+  let value = n / 10 ** (tier * 3);
+  // Rounding may reach the next tier: 999 999 is 1M, not 1000K.
+  if (Math.round(value) >= 1000 && tier < SUFFIXES.length - 1) {
+    tier++;
+    value /= 1000;
+  }
+  // An all-zero fraction is dropped: 2M rather than 2.00M, while 2.50M keeps its digits.
+  return `${value.toFixed(value < 10 ? 2 : value < 100 ? 1 : 0).replace(/\.0+$/, "")}${SUFFIXES[tier]}`;
 }
 
 export function formatBytes(bytes: number, locale: Locale = "en"): string {

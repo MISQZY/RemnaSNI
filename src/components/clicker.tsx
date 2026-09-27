@@ -1,7 +1,8 @@
 "use client";
 
-import { ArrowUpCircle, Cloud, Gauge, Hand, KeyRound, MousePointerClick, Send, Sparkles, TrendingUp } from "lucide-react";
+import { ArrowUpCircle, Cloud, Gauge, Hand, MousePointerClick, Send, Sparkles, TrendingUp } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
+import { ChipIcon } from "@/components/chip-icon";
 import { FlagButton } from "@/components/flag-button";
 import { QzrIcon } from "@/components/qzr-icon";
 import { useGame, useSync } from "@/components/game-runtime";
@@ -101,7 +102,7 @@ function SidePanel({ state }: { state: GameState }) {
           {upgradeReady(state, config.upgrades) && <span className="size-1.5 rounded-full bg-primary" />}
         </TabsTrigger>
         <TabsTrigger value="prestige">
-          <KeyRound /> {t.prestige.title}
+          <ChipIcon mono /> {t.prestige.title}
           {prestigeReady(config, state) && <span className="size-1.5 rounded-full bg-primary" />}
         </TabsTrigger>
       </TabsList>

@@ -89,19 +89,19 @@ export const en = {
   },
 
   prestige: {
-    title: "Relocate",
+    title: "Prestige",
     description: (percent: number) =>
-      `Qzr and upgrades are reset, and you get keys in return: each one adds +${percent}% to income for good. Achievements, pets and cosmetics stay.`,
-    keys: "Keys",
+      `Qzr and upgrades are reset, and you get Qzr keys in return: each one adds +${percent}% to income for good. Achievements, pets and cosmetics stay.`,
+    keys: "Qzr keys",
     free: (n: string) => `${n} free`,
     bonus: "Income bonus",
-    nextKey: "Next key",
-    move: (keys: string, n: number) => `Move: +${keys} ${n === 1 ? "key" : "keys"}`,
-    nothing: "Not enough for a key yet",
+    nextKey: "Next Qzr key",
+    move: (keys: string, n: number) => `Prestige: +${keys} ${n === 1 ? "Qzr key" : "Qzr keys"}`,
+    nothing: "Not enough for a Qzr key yet",
     confirm: "Click again: Qzr will be gone",
-    done: "Moved!",
-    doneHint: (keys: string, n: number, mult: string) => `+${keys} ${n === 1 ? "key" : "keys"}. Income is now ×${mult}.`,
-    perks: "Key perks",
+    done: "Prestige done!",
+    doneHint: (keys: string, n: number, mult: string) => `+${keys} ${n === 1 ? "Qzr key" : "Qzr keys"}. Income is now ×${mult}.`,
+    perks: "Qzr key perks",
   },
 
   pets: {

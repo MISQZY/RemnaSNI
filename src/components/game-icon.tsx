@@ -1,3 +1,4 @@
+import { ChipIcon } from "@/components/chip-icon";
 import {
   Award,
   BadgePercent,
@@ -60,6 +61,8 @@ const ICONS: Record<string, LucideIcon> = {
 
 /** A game config icon by its kebab-case lucide name; unknown names get a sparkle. */
 export function GameIcon({ name, className }: { name: string; className?: string }) {
+  // Our own icon, in its brand colors.
+  if (name === "chip") return <ChipIcon className={className} />;
   const Icon = ICONS[name] ?? Sparkles;
   return <Icon className={className} />;
 }
