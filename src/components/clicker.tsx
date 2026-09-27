@@ -35,7 +35,7 @@ export function Clicker({ code, name }: { code: string; name: string }) {
         <Card size="sm" className="relative z-10">
           <CardContent className="flex-row flex-wrap items-center justify-between gap-x-6 gap-y-4 sm:flex-nowrap">
             <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <p className="flex items-center gap-1.5 font-heading text-sm text-muted-foreground">
                 <QzrIcon className="size-4" /> {t.clicker.points}
               </p>
               <PointsValue points={state.points} taps={state.taps} />
@@ -155,7 +155,7 @@ function PointsValue({ points, taps }: { points: number; taps: number }) {
   }, [points, taps, text]);
 
   return (
-    <p ref={ref} aria-label={text} className="text-4xl font-bold tracking-tight tabular-nums">
+    <p ref={ref} aria-label={text} className="font-heading text-4xl font-bold tracking-tight tabular-nums">
       {/* One span per character, keyed from the right so digits keep their node as the number grows. */}
       {[...text].map((ch, i) => (
         <span key={text.length - i} aria-hidden className="inline-block whitespace-pre">

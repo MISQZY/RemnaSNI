@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Science_Gothic } from "next/font/google";
 import { connection } from "next/server";
 import { ConfigProvider } from "@/components/config-provider";
 import { GameRuntime } from "@/components/game-runtime";
@@ -14,7 +14,9 @@ import { syncUrl } from "@/lib/sync-url";
 import "flag-icons/css/flag-icons.min.css";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter" });
+// Science Gothic: headings and brand texts (Qzr, site name); Inter for everything else. Both carry Cyrillic.
+const scienceGothic = Science_Gothic({ subsets: ["latin", "cyrillic"], variable: "--font-science-gothic" });
 
 export async function generateMetadata(): Promise<Metadata> {
   await connection();
@@ -51,13 +53,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const footer = process.env.SITE_FOOTER?.trim();
 
   return (
-    <html lang={locale} className={inter.variable}>
+    <html lang={locale} className={`${inter.variable} ${scienceGothic.variable}`}>
       <body className="flex min-h-dvh flex-col overflow-x-clip antialiased">
         <I18nProvider locale={locale}>
           {config ? (
             <ConfigProvider config={config}>
               <SiteHeader code={code} name={name} account={syncEnabled} />
-              <main className="flex flex-1 flex-col lg:min-h-0">{children}</main>
+              {/* Clipped, so tap particles flying off the flag do not stretch the page and make it scroll. */}
+              <main className="flex flex-1 flex-col overflow-clip lg:min-h-0">{children}</main>
               <GameRuntime syncEnabled={syncEnabled} country={code} />
             </ConfigProvider>
           ) : (

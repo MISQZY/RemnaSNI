@@ -41,7 +41,7 @@ export const ru: Dict = {
   },
 
   clicker: {
-    points: "Qzr",
+    points: "Qzyrium",
     perTap: "/ тап",
     perSec: "/ сек",
     hint: "Тапайте по флагу, чтобы зарабатывать Qzr",

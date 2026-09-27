@@ -14,6 +14,9 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.63 0.2 149);
+  /* The soft green glow of the Qzyrium crystal: around primary elements and behind the page. */
+  --glow: oklch(0.63 0.2 149 / 0.35);
+  --glow-bg: oklch(0.63 0.2 149 / 0.07);
   --primary-foreground: oklch(0.99 0 0);
   --secondary: oklch(0.955 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -39,6 +42,8 @@
     --popover: oklch(0.205 0 0);
     --popover-foreground: oklch(0.985 0 0);
     --primary: oklch(0.74 0.22 149);
+    --glow: oklch(0.74 0.22 149 / 0.45);
+    --glow-bg: oklch(0.74 0.22 149 / 0.13);
     --primary-foreground: oklch(0.17 0.04 149);
     --secondary: oklch(0.269 0 0);
     --secondary-foreground: oklch(0.985 0 0);
@@ -57,7 +62,7 @@
 
 @theme inline {
   --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-science-gothic), var(--font-sans);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -142,8 +147,19 @@
     @apply font-sans;
     -webkit-tap-highlight-color: transparent;
   }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+  }
   body {
     @apply bg-background text-foreground;
+    /* The crystal's halo, rising from the top of the screen. */
+    background-image: radial-gradient(ellipse 120% 55% at 50% -12%, var(--glow-bg), transparent 70%);
+    background-repeat: no-repeat;
     overscroll-behavior-y: none;
     min-height: 100dvh;
   }

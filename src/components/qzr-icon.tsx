@@ -20,6 +20,8 @@ export function QzrIcon({ mono = false, ...props }: SVGProps<SVGSVGElement> & { 
       fill={mono ? "currentColor" : "none"}
       aria-hidden="true"
       {...props}
+      // A faint halo, like the crystal on the avatar; the mono one stays flat.
+      style={mono ? props.style : { filter: "drop-shadow(0 0 3px oklch(0.74 0.22 149 / 0.55))", ...props.style }}
     >
       {!mono && (
         <defs>

@@ -37,7 +37,7 @@ export const en = {
   },
 
   clicker: {
-    points: "Qzr",
+    points: "Qzyrium",
     perTap: "/ tap",
     perSec: "/ sec",
     hint: "Tap the flag to earn Qzr",

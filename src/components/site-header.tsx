@@ -36,7 +36,7 @@ export function SiteHeader({ code, name, account }: { code: string; name: string
       <Link href="/" className="flex min-w-0 flex-1 items-center gap-3">
         <span className={cn("fi shrink-0 rounded-[3px] text-2xl shadow-xs", `fi-${code}`)} />
         <div className="min-w-0">
-          <p className="truncate text-xl font-semibold">{name}</p>
+          <p className="truncate font-heading text-xl font-semibold">{name}</p>
           <p className="text-sm text-muted-foreground">{t.header.subtitle}</p>
         </div>
       </Link>
