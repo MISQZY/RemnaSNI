@@ -2,21 +2,18 @@ import { toast } from "sonner";
 import { game, isNewer, type GameState } from "@/lib/game";
 import { human, type HumanCheck } from "@/lib/human";
 import { t } from "@/lib/i18n";
-import type { OwnedPet, Pets } from "@/lib/pets";
+import { session, type Account } from "@/lib/session";
 
-// Telegram sign-in through RemnaWeb and two-way progress sync with it, via this site's /api/sni proxy.
-// RemnaWeb runs the OAuth flow and hands the session token back in the URL fragment.
+// Two-way sync of the flag clicker's progress with RemnaWeb, via this site's /api/sni proxy. The Telegram
+// session is lib/session.ts, shared with the other games; its token and account are mirrored here.
 
-const TOKEN_KEY = "remnasni:token";
-/** Random value sent to the sign-in and expected back with the token, so a token planted in a link is refused. */
-const STATE_KEY = "remnasni:sign-in-state";
+export type { Account };
 const PUSH_EVERY_MS = 10_000;
 /** After failed syncs the pushes back off up to this interval. */
 const MAX_BACKOFF_MS = 5 * 60_000;
 /** Traffic changes slowly; refresh the boost (and other devices' progress) every few minutes. */
 const PULL_EVERY_MS = 5 * 60_000;
 
-export type Account = { name: string; photoUrl: string | null };
 export type SyncStatus = "idle" | "syncing" | "synced" | "offline";
 /**
  * Traffic through this country's nodes and the auto-tap rate RemnaWeb grants for it.
@@ -30,8 +27,6 @@ export type SyncState = {
   token: string | null;
   account: Account | null;
   traffic: Traffic | null;
-  /** Pet catalog and the pets this account owns; null until the first pull. */
-  pets: Pets | null;
   /** Particles of the tapped flag bought in the RemnaWeb Mini App shop; null for the default mini flags. */
   effect: string[] | null;
   status: SyncStatus;
@@ -43,7 +38,6 @@ const SIGNED_OUT: SyncState = {
   token: null,
   account: null,
   traffic: null,
-  pets: null,
   effect: null,
   status: "idle",
   syncedAt: null,
@@ -68,71 +62,11 @@ function set(patch: Partial<SyncState>) {
   listeners.forEach((l) => l());
 }
 
-function storeToken(token: string | null) {
-  try {
-    if (token) localStorage.setItem(TOKEN_KEY, token);
-    else localStorage.removeItem(TOKEN_KEY);
-  } catch {
-    // Without storage the session lasts until the tab closes.
-  }
-}
-
-function readToken(): string | null {
-  try {
-    return localStorage.getItem(TOKEN_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function takeSignInState(): string | null {
-  try {
-    const value = sessionStorage.getItem(STATE_KEY);
-    sessionStorage.removeItem(STATE_KEY);
-    return value;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Picks up `#sni_token` / `#sni_error` left by the RemnaWeb callback and cleans the URL. The token is
- * taken only with the `sni_state` this tab sent to the sign-in: someone else's token in a link is dropped.
- */
-function consumeFragment() {
-  const params = new URLSearchParams(location.hash.slice(1));
-  const token = params.get("sni_token");
-  const error = params.get("sni_error");
-  if (!token && !error) return;
-  history.replaceState(null, "", location.pathname + location.search);
-  const expected = takeSignInState();
-  if (!expected || params.get("sni_state") !== expected) {
-    toast.error(t().sync.signInFailed, { description: t().sync.tryLater });
-    return;
-  }
-  if (token) storeToken(token);
-  if (error) toast.error(t().sync.signInFailed, { description: t().sync.signInErrors[error] ?? t().sync.tryLater });
-}
-
-/**
- * Inside the RemnaWeb Mini App the site runs in a frame: it asks the parent for the Mini App user's
- * session instead of a Telegram sign-in, which cannot run in a frame. Only RemnaWeb may frame the site
- * (frame-ancestors in the Caddyfile), so a session from the parent is trusted. Returns a cleanup.
- */
-function listenToParent(onSession: () => void): () => void {
-  if (window.parent === window) return () => {};
-  const onMessage = (e: MessageEvent) => {
-    const data = e.data as { type?: unknown; token?: unknown } | null;
-    if (e.source !== window.parent || data?.type !== "sni:session" || typeof data.token !== "string") return;
-    if (data.token === state.token) return;
-    storeToken(data.token);
-    set({ token: data.token });
-    onSession();
-  };
-  window.addEventListener("message", onMessage);
-  window.parent.postMessage({ type: "sni:hello" }, "*");
-  return () => window.removeEventListener("message", onMessage);
-}
+// The session's token and account, kept in this state too, so the clicker's components read one place.
+session.subscribe(() => {
+  const { enabled, token, account } = session.getSnapshot();
+  if (enabled !== state.enabled || token !== state.token || account !== state.account) set({ enabled, token, account });
+});
 
 function failed() {
   failures++;
@@ -184,20 +118,17 @@ async function pull() {
   set({ status: "syncing" });
   const res = await api("GET");
   if (!res) return;
-  const { user, progress, traffic, pets, effect, session } = (await res.json()) as {
+  const { user, progress, traffic, effect, session: renewed } = (await res.json()) as {
     user: Account;
     progress: GameState | null;
     traffic?: Traffic;
-    pets?: Pets;
     effect?: string[] | null;
     /** A renewed token, sent when the current one is getting old. */
     session?: string | null;
   };
-  if (session) {
-    storeToken(session);
-    set({ token: session });
-  }
-  set({ account: user, traffic: traffic ?? null, pets: pets ?? null, effect: effect ?? null });
+  if (renewed) session.keep(renewed);
+  session.setAccount(user);
+  set({ traffic: traffic ?? null, effect: effect ?? null });
   adopt(progress);
   game.setBoost(traffic?.boost ?? 0);
   if (synced !== game.getSnapshot()) await push();
@@ -240,7 +171,7 @@ function scheduledPush() {
 }
 
 function signOut() {
-  storeToken(null);
+  session.signOut();
   synced = null;
   game.setBoost(0);
   set({ ...SIGNED_OUT, enabled: state.enabled });
@@ -259,65 +190,26 @@ export const sync = {
   /** Starts syncing this country's progress with RemnaWeb; call after the game is hydrated. Returns a cleanup. */
   start(nodeCountry: string) {
     country = nodeCountry;
-    set({ enabled: true });
-    consumeFragment();
-    const token = readToken();
-    if (token) {
-      set({ token });
+    const stopSession = session.start(() => {
+      synced = null;
       void pull();
-    }
+    });
+    if (session.getSnapshot().token) void pull();
 
     const pushTimer = setInterval(scheduledPush, PUSH_EVERY_MS);
     const pullTimer = setInterval(() => state.token && document.visibilityState === "visible" && void pull(), PULL_EVERY_MS);
     const onHide = () => document.visibilityState === "hidden" && void push(true);
     document.addEventListener("visibilitychange", onHide);
-    const stopParent = listenToParent(() => {
-      synced = null;
-      void pull();
-    });
     return () => {
-      stopParent();
+      stopSession();
       clearInterval(pushTimer);
       clearInterval(pullTimer);
       document.removeEventListener("visibilitychange", onHide);
     };
   },
 
-  /**
-   * Sign-in only, for games other than the flag clicker: takes the session from the sign-in or the parent
-   * frame and syncs no clicker progress. `onSession` runs when the parent frame hands over a new one.
-   */
-  startSession(onSession: () => void) {
-    set({ enabled: true });
-    consumeFragment();
-    const token = readToken();
-    if (token) set({ token });
-    return listenToParent(onSession);
-  },
-
-  /** Keeps a renewed session token handed back by RemnaWeb. */
-  keepToken(token: string) {
-    storeToken(token);
-    set({ token });
-  },
-
-  /** The signed-in account, for games that load it themselves. */
-  setAccount(account: Account) {
-    set({ account });
-  },
-
-  /** Where the sign-in starts; remembers the state it sends, so call it right before navigating. */
-  signInUrl() {
-    const back = `${location.origin}${location.pathname}`;
-    const bytes = crypto.getRandomValues(new Uint8Array(24));
-    const signInState = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-    try {
-      sessionStorage.setItem(STATE_KEY, signInState);
-    } catch {
-      // Without storage the token cannot be checked and is refused; nothing else to do.
-    }
-    return `/api/sni/auth/start?${new URLSearchParams({ return_to: back, state: signInState })}`;
-  },
+  /** Where the sign-in starts (lib/session.ts). */
+  signInUrl: () => session.signInUrl(),
 
   /** Signs out on every device and site: the sessions issued so far stop working. */
   async signOutEverywhere(): Promise<{ error?: string }> {
@@ -334,50 +226,6 @@ export const sync = {
 
   /** Pulls what other devices saved, then pushes local progress if it is further along. */
   syncNow: () => pull(),
-
-  /**
-   * Buys a pet with this country's points. RemnaWeb saves the local progress first (with its checks),
-   * then issues the serial number and deducts the price from the stored points.
-   */
-  async buyPet(kind: string): Promise<{ pet: OwnedPet } | { error: string }> {
-    if (!state.token) return { error: t().sync.signInToBuy };
-    let res: Response;
-    try {
-      res = await fetch(`/api/sni/pets?${new URLSearchParams({ country })}`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${state.token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ kind, progress: game.getSnapshot() }),
-        cache: "no-store",
-      });
-    } catch {
-      return { error: t().sync.offline };
-    }
-    if (res.status === 401) {
-      signOut();
-      return { error: t().sync.expired };
-    }
-    const body = (await res.json().catch(() => ({}))) as {
-      pet?: OwnedPet;
-      pets?: Pets;
-      progress?: GameState;
-      rejected?: boolean;
-      challenge?: boolean;
-      error?: string;
-    };
-    if (body.challenge) human.require();
-    if (body.rejected && body.progress) {
-      game.replace(body.progress);
-      synced = game.getSnapshot();
-    }
-    if (!res.ok || !body.pet) return { error: serverError(body.error) ?? t().sync.buyFailed };
-
-    // The stored progress has the price taken off and counted in shopSpent. Taps made while the request
-    // was in flight stay: then the local progress is further along, and the push takes the price off it.
-    if (body.progress) adopt(body.progress);
-    set({ pets: body.pets ?? state.pets });
-    void push();
-    return { pet: body.pet };
-  },
 
   /** A human check from RemnaWeb for this country. */
   async getCheck(): Promise<HumanCheck> {
@@ -415,62 +263,6 @@ export const sync = {
     } catch {
       // The check is due on this site anyway.
     }
-  },
-
-  /**
-   * The upgrader: tries to raise an owned pet's rarity by one. On failure the pet is gone and its number
-   * returns to the shop. Returns whether it worked and the pet after it.
-   */
-  async upgradePet(petId: number): Promise<{ success: boolean; pet: OwnedPet | null; pets: Pets | null } | { error: string }> {
-    if (!state.token) return { error: t().sync.signInToBuy };
-    let res: Response;
-    try {
-      res = await fetch("/api/sni/pets/upgrade", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${state.token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ pet: petId }),
-        cache: "no-store",
-      });
-    } catch {
-      return { error: t().sync.offline };
-    }
-    if (res.status === 401) {
-      signOut();
-      return { error: t().sync.expired };
-    }
-    const body = (await res.json().catch(() => ({}))) as { success?: boolean; pet?: OwnedPet | null; pets?: Pets; error?: string };
-    if (!res.ok || body.success === undefined) return { error: serverError(body.error) ?? t().pets.upgradeFailed };
-    // The caller shows the pets after its wheel stops (applyPets): a lost pet would vanish mid-spin.
-    return { success: body.success, pet: body.pet ?? null, pets: body.pets ?? null };
-  },
-
-  /** Takes the pets RemnaWeb returned, e.g. after the upgrader wheel has stopped. */
-  applyPets(pets: Pets | null) {
-    if (pets) set({ pets });
-  },
-
-  /** Pins an owned pet to the profile in the RemnaWeb Mini App, where it flies around the avatar, or unpins it. */
-  async pinPet(petId: number, pinned: boolean): Promise<{ error?: string }> {
-    if (!state.token) return { error: t().sync.signInToPin };
-    let res: Response;
-    try {
-      res = await fetch("/api/sni/pets", {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${state.token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ pet: petId, pinned }),
-        cache: "no-store",
-      });
-    } catch {
-      return { error: t().sync.offline };
-    }
-    if (res.status === 401) {
-      signOut();
-      return { error: t().sync.expired };
-    }
-    const body = (await res.json().catch(() => ({}))) as { pets?: Pets; error?: string };
-    if (!res.ok || !body.pets) return { error: serverError(body.error) ?? t().sync.pinFailed };
-    set({ pets: body.pets });
-    return {};
   },
 
   signOut,

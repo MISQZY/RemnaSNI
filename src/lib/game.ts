@@ -48,7 +48,6 @@ const INITIAL: GameState = {
 
 export const level = rules.level;
 
-export const unlockedCount = (s: GameState) => config().achievements.filter((a) => s.achievements[a.id]).length;
 export const incomeMultiplier = (s: GameState) => rules.incomeMultiplier(config(), s);
 export const perTap = (s: GameState) => rules.perTap(config(), s);
 export const critChance = (s: GameState) => rules.critChance(config(), s);
@@ -78,29 +77,13 @@ export function isNewer(a: GameState, b: GameState): boolean {
 let state = INITIAL;
 let hydrated = false;
 let lastSave = 0;
-let recentTaps: number[] = [];
 /** Auto-taps per second from the player's traffic through this country (set by sync). */
 let boost = 0;
 const listeners = new Set<() => void>();
-let unlockListener: ((ids: string[]) => void) | null = null;
 
-function set(next: GameState, tap?: rules.TapInfo) {
-  const unlocked = rules.newlyUnlocked(config(), next, tap);
-  if (unlocked.length) {
-    const now = Date.now();
-    next = { ...next, achievements: { ...next.achievements, ...Object.fromEntries(unlocked.map((id) => [id, now])) } };
-  }
-  const tiers = rules.newTiers(config(), next);
-  if (Object.keys(tiers).length) {
-    next = { ...next, ladders: { ...next.ladders, ...tiers } };
-    unlocked.push(...Object.entries(tiers).map(([id, n]) => rules.tierId(id, n)));
-  }
+function set(next: GameState) {
   state = next;
   listeners.forEach((l) => l());
-  if (unlocked.length) {
-    save();
-    unlockListener?.(unlocked);
-  }
 }
 
 function save() {
@@ -152,10 +135,6 @@ export const game = {
   getServerSnapshot: () => INITIAL,
   isHydrated: () => hydrated,
 
-  onUnlock(listener: ((ids: string[]) => void) | null) {
-    unlockListener = listener;
-  },
-
   /** Loads the saved game once per page load and credits traffic income earned while away. */
   hydrate(): { gain: number; seconds: number } {
     if (hydrated) return { gain: 0, seconds: 0 };
@@ -191,20 +170,16 @@ export const game = {
 
   tap(): { gain: number; crit: boolean } {
     const now = Date.now();
-    recentTaps = [...recentTaps.filter((t) => now - t < config().frenzyWindowMs), now];
     const crit = Math.random() < critChance(state);
     const gain = perTap(state) * (crit ? critMultiplier(state) : 1);
-    set(
-      {
+    set({
         ...state,
         points: state.points + gain,
         totalEarned: state.totalEarned + gain,
         taps: state.taps + 1,
         crits: state.crits + (crit ? 1 : 0),
         bestTap: Math.max(state.bestTap, gain),
-      },
-      { gain, crit, burst: recentTaps.length, hour: new Date(now).getHours() },
-    );
+      });
     if (now - lastSave > SAVE_EVERY_MS) save();
     return { gain, crit };
   },

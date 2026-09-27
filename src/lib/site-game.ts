@@ -1,5 +1,3 @@
-import "server-only";
-
 // A node runs one of the infrastructure games RemnaWeb knows, picked by GAME in its .env. RemnaWeb asks
 // every site which one it is (GET /api/sni/game) to list the node under that game in the Mini App.
 

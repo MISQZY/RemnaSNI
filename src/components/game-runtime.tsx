@@ -2,11 +2,9 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import { toast } from "sonner";
-import { config } from "@/lib/config";
 import { formatDuration, formatNumber } from "@/lib/format";
 import { game } from "@/lib/game";
 import { currentLocale, t } from "@/lib/i18n";
-import { unlockName } from "@/lib/rules";
 import { sync } from "@/lib/sync";
 
 /** How often passive income from the turbo is credited; it is counted by the time passed, so a second is enough. */
@@ -21,7 +19,7 @@ export function useSync() {
 }
 
 /**
- * Loads the saved game, persists it when the page hides and announces unlocked achievements.
+ * Loads the saved game and persists it when the page hides.
  * With `syncEnabled` (REMNAWEB_URL set on the server) it also keeps the progress of a signed-in player in sync.
  */
 export function GameRuntime({ syncEnabled, country }: { syncEnabled: boolean; country: string }) {
@@ -35,12 +33,6 @@ export function GameRuntime({ syncEnabled, country }: { syncEnabled: boolean; co
     }
     // Hidden tabs skip the ticks: the income is credited by the time passed once the tab is back.
     const ticker = setInterval(() => document.visibilityState === "visible" && game.tick(), TICK_MS);
-    game.onUnlock((ids) => {
-      for (const id of ids) {
-        const name = unlockName(config(), id);
-        if (name) toast.success(t().achievements.toast, { description: t().achievements.toastBonus(name[currentLocale()], Math.round(config().achievementBonus * 100)) });
-      }
-    });
     const stopSync = syncEnabled ? sync.start(country) : null;
 
     const onHide = () => document.visibilityState === "hidden" && game.save();
@@ -49,7 +41,6 @@ export function GameRuntime({ syncEnabled, country }: { syncEnabled: boolean; co
     return () => {
       clearInterval(ticker);
       stopSync?.();
-      game.onUnlock(null);
       document.removeEventListener("visibilitychange", onHide);
       window.removeEventListener("pagehide", game.save);
       game.save();

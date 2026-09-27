@@ -3,14 +3,13 @@
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Gamepad2, Gauge, Heart, LogOut, Pause, Play, RotateCcw, Send, Sparkles, Turtle } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
-import { useSync } from "@/components/game-runtime";
 import { ChipIcon } from "@/components/chip-icon";
 import { LanguageSwitch, useI18n } from "@/components/i18n-provider";
 import { QzrIcon } from "@/components/qzr-icon";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { sync } from "@/lib/sync";
+import { session, useSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 // Snake (a prototype), the game of nodes with GAME=snake. Every crystal eaten brings Qzr to the
@@ -265,7 +264,7 @@ function writePending(runs: Run[]) {
 
 /** RemnaWeb's snake API for the signed-in player; null when signed out (or signed out by a 401). */
 async function snakeApi<T>(country: string, body?: object, path = "snake"): Promise<T | null> {
-  const token = sync.getSnapshot().token;
+  const token = session.getSnapshot().token;
   if (!token) return null;
   const res = await fetch(`/api/sni/${path}?${new URLSearchParams({ country })}`, {
     method: body ? "POST" : "GET",
@@ -274,7 +273,7 @@ async function snakeApi<T>(country: string, body?: object, path = "snake"): Prom
     cache: "no-store",
   });
   if (res.status === 401) {
-    sync.signOut();
+    session.signOut();
     return null;
   }
   if (!res.ok) throw new Error(String(res.status));
@@ -304,7 +303,7 @@ const PERK_ICONS: Record<string, typeof Sparkles> = { golden: Sparkles, life: He
 
 export function SnakeSite({ code, name, signIn }: { code: string; name: string; signIn: boolean }) {
   const { t, num, fixed } = useI18n();
-  const account = useSync();
+  const account = useSession();
   // False while hydrating, so values kept in the browser do not differ from the server's markup.
   const hydrated = useSyncExternalStore(noop, () => true, () => false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -367,8 +366,8 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
     try {
       const res = await snakeApi<Status & { user: { name: string; photoUrl: string | null }; session: string | null }>(code);
       if (!res) return;
-      if (res.session) sync.keepToken(res.session);
-      sync.setAccount(res.user);
+      if (res.session) session.keep(res.session);
+      session.setAccount(res.user);
       setStatus({
         balance: res.balance,
         crystals: res.crystals,
@@ -387,7 +386,7 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
   });
 
   useEffect(() => {
-    const stop = sync.startSession(() => void loadStatus());
+    const stop = session.start(() => void loadStatus());
     // After the effect: the status arrives asynchronously anyway.
     void Promise.resolve().then(() => loadStatus());
     return stop;
@@ -418,7 +417,7 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
     const run = { score: chunk.score, durationMs: Math.round(now - chunk.since), golden: chunk.golden };
     chunkRef.current = { score: 0, golden: 0, qzr: 0, since: now };
     setUnsent({ crystals: 0, qzr: 0 });
-    if (!sync.getSnapshot().token) {
+    if (!session.getSnapshot().token) {
       const next = [...readPending(), run].slice(-MAX_PENDING);
       writePending(next);
       setPending(next);
@@ -452,9 +451,9 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
   /** A crystal eaten: counted at the price of its number right away, sent with the next chunk. */
   const ate = useEffectEvent((at: Cell, golden: boolean) => {
     const chunk = chunkRef.current;
-    const number = collected ?? (sync.getSnapshot().token ? (status?.crystals ?? 0) : pending.reduce((sum, r) => sum + r.score, 0));
+    const number = collected ?? (session.getSnapshot().token ? (status?.crystals ?? 0) : pending.reduce((sum, r) => sum + r.score, 0));
     // Turbo needs an account; the server applies it again when crediting.
-    const turbo = sync.getSnapshot().token ? (status?.multiplier ?? 1) : 1;
+    const turbo = session.getSnapshot().token ? (status?.multiplier ?? 1) : 1;
     const price = crystalValue(number, status?.value ?? DEFAULT_VALUE) * (golden ? GOLDEN_MULTIPLIER : 1);
     setCollected(number + 1);
     if (golden) chunk.golden++;
@@ -815,7 +814,7 @@ function SnakeAccount({ signIn, name, photoUrl, token }: { signIn: boolean; name
   const { t } = useI18n();
   if (!token) {
     return signIn ? (
-      <Button size="sm" onClick={() => location.assign(sync.signInUrl())}>
+      <Button size="sm" onClick={() => location.assign(session.signInUrl())}>
         <Send /> {t.account.signIn}
       </Button>
     ) : null;
@@ -833,7 +832,7 @@ function SnakeAccount({ signIn, name, photoUrl, token }: { signIn: boolean; name
       </PopoverTrigger>
       <PopoverContent align="end" className="w-56 p-1">
         <p className="truncate p-2 text-sm font-medium">{shown}</p>
-        <Button variant="ghost" size="sm" className="w-full justify-start text-destructive hover:text-destructive" onClick={sync.signOut}>
+        <Button variant="ghost" size="sm" className="w-full justify-start text-destructive hover:text-destructive" onClick={session.signOut}>
           <LogOut /> {t.snake.signOut}
         </Button>
       </PopoverContent>
