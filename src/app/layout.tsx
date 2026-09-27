@@ -5,11 +5,13 @@ import { ConfigProvider } from "@/components/config-provider";
 import { GameRuntime } from "@/components/game-runtime";
 import { I18nProvider } from "@/components/i18n-provider";
 import { SiteHeader } from "@/components/site-header";
+import { SnakeSite } from "@/components/snake";
 import { Toaster } from "@/components/ui/sonner";
 import { loadConfig } from "@/lib/config-server";
 import { nodeCountry } from "@/lib/country";
 import { dictionaries } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/server";
+import { siteGame } from "@/lib/site-game";
 import { syncUrl } from "@/lib/sync-url";
 import "flag-icons/css/flag-icons.min.css";
 import "./globals.css";
@@ -22,10 +24,12 @@ export async function generateMetadata(): Promise<Metadata> {
   await connection();
   const locale = await getLocale();
   const { name } = nodeCountry(locale);
-  const { meta } = dictionaries[locale];
+  const t = dictionaries[locale];
+  const snake = siteGame() === "snake";
+  const title = snake ? t.snake.title(name) : t.meta.title(name);
   return {
-    title: { default: meta.title(name), template: `%s · ${meta.title(name)}` },
-    description: meta.description(name),
+    title: { default: title, template: `%s · ${title}` },
+    description: snake ? t.snake.description(name) : t.meta.description(name),
     icons: { icon: "/flag.svg" },
   };
 }
@@ -48,7 +52,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const locale = await getLocale();
   const { code, name } = nodeCountry(locale);
   const syncEnabled = syncUrl() !== null;
-  const config = await loadConfig();
+  const game = siteGame();
+  // The clicker's rules come from RemnaWeb; other games do not need them.
+  const config = game === "clicker" ? await loadConfig() : null;
   // Optional: the stub sites stay anonymous unless a footer is asked for.
   const footer = process.env.SITE_FOOTER?.trim();
 
@@ -56,7 +62,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={locale} className={`${inter.variable} ${scienceGothic.variable}`}>
       <body className="flex min-h-dvh flex-col overflow-x-clip antialiased">
         <I18nProvider locale={locale}>
-          {config ? (
+          {/* One game per node, picked by GAME (lib/site-game.ts). */}
+          {game === "snake" ? (
+            <SnakeSite code={code} name={name} signIn={syncEnabled} />
+          ) : config ? (
             <ConfigProvider config={config}>
               <SiteHeader code={code} name={name} account={syncEnabled} />
               {/* Clipped, so tap particles flying off the flag do not stretch the page and make it scroll. */}

@@ -7,6 +7,7 @@ Progress lives in the visitor's `localStorage`; after signing in with Telegram i
 
 | Variable       | Description                                              |
 | -------------- | -------------------------------------------------------- |
+| `GAME`         | The game this node runs: `clicker` (the flag clicker, the default) or `snake` (a prototype: every crystal eaten brings Qzr to the country balance right away, each one worth more than the last — `50 + 25 × collected`, set in RemnaWeb, plus 50% per unit of the country's turbo; Qzr keys come harder and harder (the k-th at 100 × k² crystals in total), shared with the clicker, and which buys the snake's bonuses: golden crystals, a second life, a slower speed-up; without sign-in they are kept on the device and credited after it, via RemnaWeb `/api/sni/snake`). RemnaWeb asks every site `GET /api/sni/game` and lists the node under its game in the Mini App, where players pick the game they earn Qzr in. Unknown values fall back to `clicker`. |
 | `NODE_COUNTRY` | ISO 3166-1 alpha-2 code (`de`, `nl`, `fi`, …). Read at request time, so one image fits every node. Invalid or missing → neutral flag. |
 | `REMNAWEB_URL` | RemnaWeb URL (https; http only for localhost), required: the game rules come from it (see below). Also enables "Sign in with Telegram" and progress sync. Used by the server only: pages never see it. |
 | `SITE_FOOTER`  | Optional footer text (`© <year> <text>`). Empty by default, so nothing on the page ties the nodes together. |

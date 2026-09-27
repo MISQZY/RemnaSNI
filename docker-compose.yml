@@ -7,8 +7,9 @@ services:
     image: ghcr.io/misqzy/remnasni:latest
     container_name: remnasni
     restart: unless-stopped
-    # NODE_COUNTRY picks the flag, REMNAWEB_URL enables Telegram sign-in, SITE_FOOTER adds a footer.
+    # GAME picks the game, NODE_COUNTRY the flag; REMNAWEB_URL enables Telegram sign-in, SITE_FOOTER adds a footer.
     environment:
+      - GAME=${GAME:-clicker}
       - NODE_COUNTRY=${NODE_COUNTRY:-}
       - REMNAWEB_URL=${REMNAWEB_URL:-}
       - SITE_FOOTER=${SITE_FOOTER:-}

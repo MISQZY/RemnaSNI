@@ -119,16 +119,15 @@ function consumeFragment() {
  * session instead of a Telegram sign-in, which cannot run in a frame. Only RemnaWeb may frame the site
  * (frame-ancestors in the Caddyfile), so a session from the parent is trusted. Returns a cleanup.
  */
-function listenToParent(): () => void {
+function listenToParent(onSession: () => void): () => void {
   if (window.parent === window) return () => {};
   const onMessage = (e: MessageEvent) => {
     const data = e.data as { type?: unknown; token?: unknown } | null;
     if (e.source !== window.parent || data?.type !== "sni:session" || typeof data.token !== "string") return;
     if (data.token === state.token) return;
     storeToken(data.token);
-    synced = null;
     set({ token: data.token });
-    void pull();
+    onSession();
   };
   window.addEventListener("message", onMessage);
   window.parent.postMessage({ type: "sni:hello" }, "*");
@@ -272,13 +271,39 @@ export const sync = {
     const pullTimer = setInterval(() => state.token && document.visibilityState === "visible" && void pull(), PULL_EVERY_MS);
     const onHide = () => document.visibilityState === "hidden" && void push(true);
     document.addEventListener("visibilitychange", onHide);
-    const stopParent = listenToParent();
+    const stopParent = listenToParent(() => {
+      synced = null;
+      void pull();
+    });
     return () => {
       stopParent();
       clearInterval(pushTimer);
       clearInterval(pullTimer);
       document.removeEventListener("visibilitychange", onHide);
     };
+  },
+
+  /**
+   * Sign-in only, for games other than the flag clicker: takes the session from the sign-in or the parent
+   * frame and syncs no clicker progress. `onSession` runs when the parent frame hands over a new one.
+   */
+  startSession(onSession: () => void) {
+    set({ enabled: true });
+    consumeFragment();
+    const token = readToken();
+    if (token) set({ token });
+    return listenToParent(onSession);
+  },
+
+  /** Keeps a renewed session token handed back by RemnaWeb. */
+  keepToken(token: string) {
+    storeToken(token);
+    set({ token });
+  },
+
+  /** The signed-in account, for games that load it themselves. */
+  setAccount(account: Account) {
+    set({ account });
   },
 
   /** Where the sign-in starts; remembers the state it sends, so call it right before navigating. */

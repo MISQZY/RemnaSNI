@@ -22,6 +22,10 @@ export type GameState = {
   /** Points RemnaWeb took for Mini App purchases and credited for market sales; kept as is and sent back. */
   shopSpent?: number;
   shopEarned?: number;
+  /** Qzr keys RemnaWeb credited from other games and those spent there, and the snake's bonuses; kept as is. */
+  keysShopEarned?: number;
+  keysShopSpent?: number;
+  snakePerks?: Record<string, number>;
   /** Encryption keys received for all moves (prestige); they survive them. */
   keys?: number;
   prestiges?: number;
@@ -54,7 +58,7 @@ export const prestigeMultiplier = (s: GameState) => rules.prestigeMultiplier(con
 export const perSecond = (s: GameState, boost: number) => perTap(s) * boost;
 
 /** Points RemnaWeb has moved in or out of this progress; only ever grows until a reset. */
-const shopActivity = (s: GameState) => (s.shopSpent ?? 0) + (s.shopEarned ?? 0);
+const shopActivity = (s: GameState) => (s.shopSpent ?? 0) + (s.shopEarned ?? 0) + (s.keysShopEarned ?? 0) + (s.keysShopSpent ?? 0);
 
 /**
  * Whether `a` is further along than `b`: a later reset (or move) wins, then more points earned,

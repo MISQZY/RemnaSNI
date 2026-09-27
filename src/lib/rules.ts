@@ -74,7 +74,9 @@ const keysSpent = (c: GameConfig, s: Progress) =>
     for (let l = 0; l < perkLevel(s, p.id); l++) spent += perkCost(p, l);
     return acc + spent;
   }, 0);
-export const freeKeys = (c: GameConfig, s: Progress) => Math.max(0, (s.keys ?? 0) - keysSpent(c, s));
+/** Keys to spend: those of prestiges and those other games credited, less what perks here and bonuses there took. */
+export const freeKeys = (c: GameConfig, s: Progress) =>
+  Math.max(0, (s.keys ?? 0) + (s.keysShopEarned ?? 0) - keysSpent(c, s) - (s.keysShopSpent ?? 0));
 
 /** The state with one more level of perk `id`, or null when it is maxed out or not affordable. */
 export function buyPerk(c: GameConfig, s: Progress, id: string): Progress | null {
