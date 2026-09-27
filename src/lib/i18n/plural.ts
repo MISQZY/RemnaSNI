@@ -1,4 +1,4 @@
-/** Russian plural form: 1 очко, 2 очка, 5 очков. */
+/** Russian plural form: 1 день, 2 дня, 5 дней. */
 export function plural(n: number, [one, few, many]: [string, string, string]): string {
   const abs = Math.abs(Math.floor(n));
   const mod10 = abs % 10;

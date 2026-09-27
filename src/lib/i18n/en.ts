@@ -4,7 +4,7 @@
 export const en = {
   meta: {
     title: (country: string) => `${country} Flag Clicker`,
-    description: (country: string) => `Tap the flag of ${country}, earn points, buy upgrades and collect achievements.`,
+    description: (country: string) => `Tap the flag of ${country}, earn Qzr, buy upgrades and collect achievements.`,
     achievements: "Achievements",
     pets: "Pets",
   },
@@ -37,15 +37,15 @@ export const en = {
   },
 
   clicker: {
-    points: "Points",
+    points: "Qzr",
     perTap: "/ tap",
     perSec: "/ sec",
-    hint: "Tap the flag to earn points",
+    hint: "Tap the flag to earn Qzr",
     tapFlag: (country: string) => `Tap the flag of ${country}`,
     totalTaps: "Total taps",
     totalEarned: "Total earned",
     welcomeBack: "Welcome back!",
-    awayIncome: (points: string, time: string) => `The turbo auto-tapped ${points} points in ${time}.`,
+    awayIncome: (points: string, time: string) => `The turbo auto-tapped ${points} Qzr in ${time}.`,
   },
 
   traffic: {
@@ -56,15 +56,15 @@ export const en = {
     /** `boost` goes in between, highlighted. */
     active: (_bytes: string, country: string, days: number) =>
       [`Your activity in ${country} over ${days} days taps the flag `, " per second, at half speed while the page is closed (up to 8 h)."] as [string, string],
-    /** The turbo bought for points is the one at work; `boost` goes in between, highlighted. */
-    bought: () => ["The turbo bought for points taps the flag ", " per second, at half speed while the page is closed (up to 8 h)."] as [string, string],
+    /** The turbo bought for Qzr is the one at work; `boost` goes in between, highlighted. */
+    bought: () => ["The turbo bought for Qzr taps the flag ", " per second, at half speed while the page is closed (up to 8 h)."] as [string, string],
   },
 
   upgrades: {
     title: "Upgrades",
-    description: "Spend points to earn them faster.",
+    description: "Spend Qzr to earn it faster.",
     tabs: { tap: "Tap", luck: "Luck", boost: "Boost" },
-    reveal: (points: string) => `Earn ${points} points to reveal`,
+    reveal: (points: string) => `Earn ${points} Qzr to reveal`,
     level: (n: number) => `Lv ${n}`,
     maxBadge: "MAX",
     max: "Max",
@@ -81,7 +81,7 @@ export const en = {
     unlockedAt: (date: string) => `Unlocked ${date}`,
     toast: "Achievement unlocked",
     toastBonus: (name: string, percent: number) => `${name} · +${percent}% income`,
-    bonus: (percent: number) => `Every achievement and every endless tier adds +${percent}% to all points.`,
+    bonus: (percent: number) => `Every achievement and every endless tier adds +${percent}% to all Qzr.`,
     endless: "Endless",
     tier: (n: string) => `Tier ${n}`,
     notYet: "Not reached yet",
@@ -91,14 +91,14 @@ export const en = {
   prestige: {
     title: "Relocate",
     description: (percent: number) =>
-      `Points and upgrades are reset, and you get keys in return: each one adds +${percent}% to income for good. Achievements, pets and cosmetics stay.`,
+      `Qzr and upgrades are reset, and you get keys in return: each one adds +${percent}% to income for good. Achievements, pets and cosmetics stay.`,
     keys: "Keys",
     free: (n: string) => `${n} free`,
     bonus: "Income bonus",
     nextKey: "Next key",
     move: (keys: string, n: number) => `Move: +${keys} ${n === 1 ? "key" : "keys"}`,
     nothing: "Not enough for a key yet",
-    confirm: "Click again: points will be gone",
+    confirm: "Click again: Qzr will be gone",
     done: "Moved!",
     doneHint: (keys: string, n: number, mult: string) => `+${keys} ${n === 1 ? "key" : "keys"}. Income is now ×${mult}.`,
     perks: "Key perks",
@@ -111,7 +111,7 @@ export const en = {
     introSignIn: "Sign in with Telegram to adopt one.",
     introDisabled: "The shop opens once sign-in is set up.",
     loading: "Loading the shop…",
-    paidWith: "Paid with this country's points. Pets are yours for good: they stay even if you reset progress.",
+    paidWith: "Paid with this country's Qzr. Pets are yours for good: they stay even if you reset progress.",
     shop: "Shop",
     mine: "My pets",
     noneYet: "No pets yet, they are waiting in the shop.",

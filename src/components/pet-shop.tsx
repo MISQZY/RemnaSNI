@@ -1,12 +1,13 @@
 "use client";
 
-import { ArrowUp, Coins, PawPrint, Pin, PinOff, Send, Sparkles, Zap } from "lucide-react";
+import { ArrowUp, PawPrint, Pin, PinOff, Send, Sparkles, Zap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useConfig } from "@/components/config-provider";
 import { useGame, useSync } from "@/components/game-runtime";
 import { useI18n } from "@/components/i18n-provider";
 import { PetSprite } from "@/components/pet-sprite";
+import { QzrIcon } from "@/components/qzr-icon";
 import { UpgradeWheel, landingAngle, spinTo } from "@/components/upgrade-wheel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -77,7 +78,7 @@ export function PetShop() {
           </CardTitle>
           <CardAction>
             <Badge variant="secondary" className="tabular-nums">
-              <Coins /> {num(state.points)}
+              <QzrIcon /> {num(state.points)}
             </Badge>
           </CardAction>
         </CardHeader>
@@ -185,7 +186,7 @@ function ShopCard({ kind: k, points, owned }: { kind: PetKind; points: number; o
 
   let label: React.ReactNode = (
     <>
-      <Coins /> {num(k.price)}
+      <QzrIcon /> {num(k.price)}
     </>
   );
   if (gone) label = t.pets.soldOut;

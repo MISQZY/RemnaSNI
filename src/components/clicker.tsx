@@ -1,8 +1,9 @@
 "use client";
 
-import { ArrowUpCircle, Cloud, Coins, Gauge, Hand, KeyRound, MousePointerClick, Send, Sparkles, TrendingUp } from "lucide-react";
+import { ArrowUpCircle, Cloud, Gauge, Hand, KeyRound, MousePointerClick, Send, Sparkles, TrendingUp } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { FlagButton } from "@/components/flag-button";
+import { QzrIcon } from "@/components/qzr-icon";
 import { useGame, useSync } from "@/components/game-runtime";
 import { useI18n } from "@/components/i18n-provider";
 import { useConfig } from "@/components/config-provider";
@@ -35,7 +36,7 @@ export function Clicker({ code, name }: { code: string; name: string }) {
           <CardContent className="flex-row flex-wrap items-center justify-between gap-x-6 gap-y-4 sm:flex-nowrap">
             <div className="min-w-0 flex-1">
               <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Coins className="size-4" /> {t.clicker.points}
+                <QzrIcon className="size-4" /> {t.clicker.points}
               </p>
               <PointsValue points={state.points} taps={state.taps} />
               {/* Upgrades first, bonuses (turbo, income multiplier) on a line of their own. */}

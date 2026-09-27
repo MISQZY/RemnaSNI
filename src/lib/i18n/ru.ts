@@ -3,13 +3,12 @@ import { plural } from "./plural";
 
 // Country names do not decline in Russian, so phrases avoid putting them after prepositions.
 
-/** "очко / очка / очков" after an already formatted number; compact ones like 1,2M take "очков". */
-const points = (n: string) => (/[^\d\s]/.test(n) ? "очков" : plural(Number(n.replace(/\D/g, "")), ["очко", "очка", "очков"]));
+// The currency, Qzr, does not decline either: "1 Qzr", "5 Qzr", "за Qzr".
 
 export const ru: Dict = {
   meta: {
     title: (country) => `Кликер флага: ${country}`,
-    description: (country) => `${country}: тапайте по флагу, зарабатывайте очки, покупайте улучшения и собирайте достижения.`,
+    description: (country) => `${country}: тапайте по флагу, зарабатывайте Qzr, покупайте улучшения и собирайте достижения.`,
     achievements: "Достижения",
     pets: "Питомцы",
   },
@@ -42,15 +41,15 @@ export const ru: Dict = {
   },
 
   clicker: {
-    points: "Очки",
+    points: "Qzr",
     perTap: "/ тап",
     perSec: "/ сек",
-    hint: "Тапайте по флагу, чтобы зарабатывать очки",
+    hint: "Тапайте по флагу, чтобы зарабатывать Qzr",
     tapFlag: (country) => `Тапнуть по флагу: ${country}`,
     totalTaps: "Всего тапов",
     totalEarned: "Всего заработано",
     welcomeBack: "С возвращением!",
-    awayIncome: (n, time) => `Турбо натапало ${n} ${points(n)} за ${time}.`,
+    awayIncome: (n, time) => `Турбо натапало ${n} Qzr за ${time}.`,
   },
 
   traffic: {
@@ -63,14 +62,14 @@ export const ru: Dict = {
         `Ваша активность за ${days} ${plural(days, ["день", "дня", "дней"])} тапает флаг `,
         " в секунду, а пока страница закрыта — вполовину медленнее (до 8 ч).",
       ] as [string, string],
-    bought: () => ["Купленное за очки турбо тапает флаг ", " в секунду, а пока страница закрыта — вполовину медленнее (до 8 ч)."] as [string, string],
+    bought: () => ["Купленное за Qzr турбо тапает флаг ", " в секунду, а пока страница закрыта — вполовину медленнее (до 8 ч)."] as [string, string],
   },
 
   upgrades: {
     title: "Улучшения",
-    description: "Тратьте очки, чтобы зарабатывать быстрее.",
+    description: "Тратьте Qzr, чтобы зарабатывать быстрее.",
     tabs: { tap: "Тап", luck: "Удача", boost: "Бонус" },
-    reveal: (n) => `Заработайте ${n} ${points(n)}, чтобы открыть`,
+    reveal: (n) => `Заработайте ${n} Qzr, чтобы открыть`,
     level: (n) => `Ур. ${n}`,
     maxBadge: "МАКС",
     max: "Макс",
@@ -87,7 +86,7 @@ export const ru: Dict = {
     unlockedAt: (date) => `Открыто ${date}`,
     toast: "Достижение открыто",
     toastBonus: (name, percent) => `${name} · +${percent}% к доходу`,
-    bonus: (percent) => `Каждое достижение и каждый уровень бесконечных дают +${percent}% ко всем очкам.`,
+    bonus: (percent) => `Каждое достижение и каждый уровень бесконечных дают +${percent}% ко всем Qzr.`,
     endless: "Бесконечные",
     tier: (n) => `Уровень ${n}`,
     notYet: "Ещё не открыто",
@@ -97,14 +96,14 @@ export const ru: Dict = {
   prestige: {
     title: "Переезд",
     description: (percent) =>
-      `Очки и улучшения сбросятся, а взамен вы получите ключи: каждый навсегда даёт +${percent}% к доходу. Достижения, питомцы и косметика остаются.`,
+      `Qzr и улучшения сбросятся, а взамен вы получите ключи: каждый навсегда даёт +${percent}% к доходу. Достижения, питомцы и косметика остаются.`,
     keys: "Ключи",
     free: (n) => `свободно ${n}`,
     bonus: "Бонус к доходу",
     nextKey: "До следующего ключа",
     move: (keys, n) => `Переехать: +${keys} ${plural(n, ["ключ", "ключа", "ключей"])}`,
     nothing: "Пока не хватает на ключ",
-    confirm: "Нажмите ещё раз — очки сгорят",
+    confirm: "Нажмите ещё раз — Qzr сгорят",
     done: "Переезд завершён",
     doneHint: (keys, n, mult) => `+${keys} ${plural(n, ["ключ", "ключа", "ключей"])}. Доход теперь ×${mult}.`,
     perks: "Перки за ключи",
@@ -117,7 +116,7 @@ export const ru: Dict = {
     introSignIn: "Войдите через Telegram, чтобы завести питомца.",
     introDisabled: "Магазин откроется, когда настроят вход.",
     loading: "Загружаем магазин…",
-    paidWith: "Оплата очками этой страны. Питомцы остаются с вами навсегда, даже после сброса прогресса.",
+    paidWith: "Оплата Qzr этой страны. Питомцы остаются с вами навсегда, даже после сброса прогресса.",
     shop: "Магазин",
     mine: "Мои питомцы",
     noneYet: "Питомцев пока нет — они ждут в магазине.",
@@ -189,7 +188,7 @@ export const ru: Dict = {
       "Too many answers": "Слишком много ответов, подождите минуту.",
       "Busy, try again": "Сервер занят, попробуйте ещё раз.",
       "No such pet": "Такого питомца нет.",
-      "Not enough points": "Не хватает очков.",
+      "Not enough points": "Не хватает Qzr.",
       "Progress is too large": "Прогресс слишком большой.",
       "Sold out": "Распроданы.",
       "Highest rarity already": "Выше этой редкости уже некуда.",
