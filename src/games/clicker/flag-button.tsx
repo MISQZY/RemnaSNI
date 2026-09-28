@@ -19,6 +19,12 @@ const MAX_POPS = 40;
 const MAX_BURSTS = 12;
 
 /**
+ * A crit in a bought color: its hue turned half the wheel, brighter, with a light halo, so it stands out from the
+ * usual taps whatever the color (a gradient too). Without a bought color crits keep their own `text-warning`.
+ */
+const CRIT_SHIFT = "hue-rotate(180deg) saturate(1.5) brightness(1.2) drop-shadow(0 0 6px rgb(255 255 255 / 0.55))";
+
+/**
  * A few tiny flags thrown far from the tapped spot, evenly around it; crits throw one more and further.
  * With a tap effect bought in the RemnaWeb shop, its emoji fly instead of the flags.
  */
@@ -53,6 +59,9 @@ export function FlagButton({ code, name }: { code: string; name: string }) {
   const numberStyle = tapColor?.background
     ? { ...lookStyle(tapColor, true), textShadow: "none", filter: "drop-shadow(0 2px 6px rgb(0 0 0 / 0.35))" }
     : lookStyle(tapColor ?? undefined, true);
+  const critStyle = tapColor
+    ? { ...numberStyle, filter: [CRIT_SHIFT, numberStyle?.filter].filter(Boolean).join(" ") }
+    : numberStyle;
 
   function tap(x: number, y: number, rect: DOMRect) {
     const { gain, crit } = game.tap();
@@ -157,7 +166,7 @@ export function FlagButton({ code, name }: { code: string; name: string }) {
             onAnimationEnd={() => setPops((all) => all.filter((x) => x.id !== p.id))}
           >
             {/* The bought color inside: its own animation must not replace the float. */}
-            <span style={numberStyle}>
+            <span style={p.crit ? critStyle : numberStyle}>
               +{num(p.value, true)}
               {p.crit && "!"}
             </span>
