@@ -6,7 +6,7 @@ export type Country = { code: string; name: string };
 
 const FALLBACK: Country = { code: "xx", name: "Nowhere" };
 
-/** Country of this node as RemnaWeb tells (lib/site-game.ts), named in `locale`. */
+/** Country of this node as RemnaWeb tells (core/site.ts), named in `locale`. */
 export async function siteCountry(locale: Locale = "en"): Promise<Country> {
   const { country: code } = await loadSite();
   if (code === "xx") return FALLBACK;

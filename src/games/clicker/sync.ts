@@ -1,14 +1,13 @@
-import { toast } from "sonner";
+import { api } from "@/core/api";
+import { tr } from "@/core/i18n/client";
+import type { Look } from "@/core/look";
+import { session, type Account } from "@/core/session";
 import { game, isNewer, type GameState } from "@/games/clicker/game";
 import { human, type HumanCheck } from "@/games/clicker/human";
-import type { Look } from "@/core/look";
-import { tr } from "@/core/i18n/client";
-import { session, type Account } from "@/core/session";
 
-// Two-way sync of the flag clicker's progress with RemnaWeb, via this site's /api/sni proxy. The Telegram
-// session is lib/session.ts, shared with the other games; its token and account are mirrored here.
+// Two-way sync of the flag clicker's progress with RemnaWeb (core/api.ts). The Telegram session is the core's
+// (core/session.ts), shared with the other games; its token and account are mirrored here.
 
-export type { Account };
 const PUSH_EVERY_MS = 10_000;
 /** After failed syncs the pushes back off up to this interval. */
 const MAX_BACKOFF_MS = 5 * 60_000;
@@ -30,7 +29,7 @@ export type SyncState = {
   traffic: Traffic | null;
   /** Particles of the tapped flag bought in the RemnaWeb Mini App shop; null for the default mini flags. */
   effect: string[] | null;
-  /** The color of the tap numbers bought there, as CSS (lib/look.ts); null for white. */
+  /** The color of the tap numbers bought there, as CSS (core/look.ts); null for white. */
   tapColor: Look | null;
   status: SyncStatus;
   syncedAt: number | null;
@@ -64,42 +63,30 @@ function set(patch: Partial<SyncState>) {
 }
 
 // The session's token and account, kept in this state too, so the clicker's components read one place.
+// Signed out (here, by an expired session or in the account menu), the account's boost and looks go.
 session.subscribe(() => {
   const { enabled, token, account } = session.getSnapshot();
-  if (enabled !== state.enabled || token !== state.token || account !== state.account) set({ enabled, token, account });
+  if (enabled === state.enabled && token === state.token && account === state.account) return;
+  if (!token && state.token) {
+    synced = null;
+    game.setBoost(0);
+    set({ ...SIGNED_OUT, enabled });
+  } else {
+    set({ enabled, token, account });
+  }
 });
 
-function failed() {
-  failures++;
-  retryAt = Date.now() + Math.min(MAX_BACKOFF_MS, PUSH_EVERY_MS * 2 ** failures);
-  set({ status: "offline" });
-}
-
-function succeeded() {
-  failures = 0;
-  retryAt = 0;
-}
-
-async function api(method: "GET" | "PUT", body?: GameState, keepalive = false): Promise<Response | null> {
-  if (!state.token) return null;
+/** The progress call; null when signed out or failed (then the pushes back off). */
+async function progress<T>(method: "GET" | "PUT", body?: GameState, keepalive = false): Promise<T | null> {
   try {
-    const res = await fetch(`/api/sni/progress?${new URLSearchParams({ country })}`, {
-      method,
-      headers: { Authorization: `Bearer ${state.token}`, ...(body ? { "Content-Type": "application/json" } : {}) },
-      body: body ? JSON.stringify(body) : undefined,
-      keepalive,
-      cache: "no-store",
-    });
-    if (res.status === 401) {
-      signOut();
-      toast(tr()("sync.signedOut"), { description: tr()("sync.expiredSync") });
-      return null;
-    }
-    if (!res.ok) throw new Error(String(res.status));
-    succeeded();
+    const res = await api<T>("progress", { method, body, country, keepalive });
+    failures = 0;
+    retryAt = 0;
     return res;
   } catch {
-    failed();
+    failures++;
+    retryAt = Date.now() + Math.min(MAX_BACKOFF_MS, PUSH_EVERY_MS * 2 ** failures);
+    set({ status: "offline" });
     return null;
   }
 }
@@ -117,9 +104,7 @@ function adopt(server: GameState | null) {
 
 async function pull() {
   set({ status: "syncing" });
-  const res = await api("GET");
-  if (!res) return;
-  const { user, progress, traffic, effect, tapColor, session: renewed } = (await res.json()) as {
+  const res = await progress<{
     user: Account;
     progress: GameState | null;
     traffic?: Traffic;
@@ -127,12 +112,13 @@ async function pull() {
     tapColor?: Look | null;
     /** A renewed token, sent when the current one is getting old. */
     session?: string | null;
-  };
-  if (renewed) session.keep(renewed);
-  session.setAccount(user);
-  set({ traffic: traffic ?? null, effect: effect ?? null, tapColor: tapColor ?? null });
-  adopt(progress);
-  game.setBoost(traffic?.boost ?? 0);
+  }>("GET");
+  if (!res) return;
+  if (res.session) session.keep(res.session);
+  session.setAccount(res.user);
+  set({ traffic: res.traffic ?? null, effect: res.effect ?? null, tapColor: res.tapColor ?? null });
+  adopt(res.progress);
+  game.setBoost(res.traffic?.boost ?? 0);
   if (synced !== game.getSnapshot()) await push();
   else set({ status: "synced", syncedAt: Date.now() });
 }
@@ -143,22 +129,21 @@ async function push(keepalive = false) {
   inFlight = true;
   set({ status: "syncing" });
   try {
-    const res = await api("PUT", current, keepalive);
+    const res = await progress<{ progress: GameState; rejected?: boolean; challenge?: boolean }>("PUT", current, keepalive);
     if (!res) return;
-    const { progress, rejected, challenge } = (await res.json()) as { progress: GameState; rejected?: boolean; challenge?: boolean };
-    if (challenge) {
+    if (res.challenge) {
       // Not saved until a human check is passed; the local progress stays and goes up after it.
       human.require();
       set({ status: "synced", syncedAt: state.syncedAt });
       return;
     }
-    if (rejected) {
+    if (res.rejected) {
       // RemnaWeb refused the progress as impossible: its copy is the game from now on.
-      game.replace(progress);
+      game.replace(res.progress);
       synced = game.getSnapshot();
     } else {
       synced = current;
-      adopt(progress);
+      adopt(res.progress);
     }
     set({ status: "synced", syncedAt: Date.now() });
   } finally {
@@ -170,13 +155,6 @@ async function push(keepalive = false) {
 function scheduledPush() {
   if (document.visibilityState === "hidden" || Date.now() < retryAt) return;
   void push();
-}
-
-function signOut() {
-  session.signOut();
-  synced = null;
-  game.setBoost(0);
-  set({ ...SIGNED_OUT, enabled: state.enabled });
 }
 
 export const sync = {
@@ -210,62 +188,29 @@ export const sync = {
     };
   },
 
-  /** Where the sign-in starts (lib/session.ts). */
-  signInUrl: () => session.signInUrl(),
-
-  /** Signs out on every device and site: the sessions issued so far stop working. */
-  async signOutEverywhere(): Promise<{ error?: string }> {
-    if (!state.token) return {};
-    try {
-      const res = await fetch("/api/sni/auth/logout", { method: "POST", headers: { Authorization: `Bearer ${state.token}` }, cache: "no-store" });
-      if (!res.ok && res.status !== 401) return { error: tr()("sync.tryLater") };
-    } catch {
-      return { error: tr()("sync.offline") };
-    }
-    signOut();
-    return {};
-  },
-
   /** Pulls what other devices saved, then pushes local progress if it is further along. */
   syncNow: () => pull(),
 
   /** A human check from RemnaWeb for this country. */
   async getCheck(): Promise<HumanCheck> {
-    const res = await fetch(`/api/sni/challenge?${new URLSearchParams({ country })}`, {
-      headers: { Authorization: `Bearer ${state.token}` },
-      cache: "no-store",
-    });
-    const body = (await res.json().catch(() => ({}))) as HumanCheck & { error?: string };
-    if (!res.ok) throw new Error(body.error ?? tr()("human.failed"));
-    return body;
+    const check = await api<HumanCheck>("challenge", { country });
+    if (!check) throw new Error(tr()("human.failed"));
+    return check;
   },
 
   async answerCheck(token: string, answer: number): Promise<{ passed: boolean; blockedUntil?: string }> {
-    const res = await fetch(`/api/sni/challenge?${new URLSearchParams({ country })}`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${state.token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ token, answer }),
-      cache: "no-store",
-    });
-    const body = (await res.json().catch(() => ({}))) as { passed?: boolean; blockedUntil?: string; error?: string };
-    if (!res.ok || body.passed === undefined) throw new Error(body.error ?? tr()("human.failed"));
-    if (body.passed) void push();
-    return { passed: body.passed, blockedUntil: body.blockedUntil };
+    const res = await api<{ passed?: boolean; blockedUntil?: string }>("challenge", { method: "POST", body: { token, answer }, country });
+    if (res?.passed === undefined) throw new Error(tr()("human.failed"));
+    if (res.passed) void push();
+    return { passed: res.passed, blockedUntil: res.blockedUntil };
   },
 
   /** Machine-like tapping was seen: asks RemnaWeb to make the check due now. */
   async requestCheck(): Promise<void> {
     try {
-      await fetch(`/api/sni/challenge?${new URLSearchParams({ country })}`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${state.token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ suspect: true }),
-        cache: "no-store",
-      });
+      await api("challenge", { method: "POST", body: { suspect: true }, country });
     } catch {
       // The check is due on this site anyway.
     }
   },
-
-  signOut,
 };

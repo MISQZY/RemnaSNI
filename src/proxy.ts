@@ -1,15 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { LOCALE_COOKIE, isLocale } from "@/core/i18n/locales";
-import { siteGame, type GameId } from "@/core/site";
-
-/** Public paths of each game; the pages live under app/games/<id>. */
-const ROUTES: Record<GameId, string[]> = {
-  clicker: ["/"],
-  snake: ["/"],
-};
+import { GAMES } from "@/core/games";
+import { siteGame } from "@/core/site";
 
 /**
- * Serves the node's game (picked in RemnaWeb, lib/site-game.ts) at its public paths by rewriting them to
+ * Serves the node's game (picked in RemnaWeb, core/site.ts) at its public paths by rewriting them to
  * app/games/<id>, so each node loads the code of its own game only; paths of other games are 404.
  *
  * `?lang=ru` picks the language, used by the RemnaWeb Mini App that opens the site in a frame: there the
@@ -23,7 +18,7 @@ export async function proxy(req: NextRequest) {
   if (isLocale(lang)) req.cookies.set(LOCALE_COOKIE, lang);
 
   let res: NextResponse;
-  if (ROUTES[game].includes(pathname)) {
+  if ((GAMES[game].routes as readonly string[]).includes(pathname)) {
     const url = req.nextUrl.clone();
     url.pathname = `/games/${game}${pathname === "/" ? "" : pathname}`;
     res = NextResponse.rewrite(url, { request: { headers: req.headers } });

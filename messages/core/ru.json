@@ -1,0 +1,30 @@
+{
+  "unavailable": "Игра временно недоступна. Загляните чуть позже.",
+  "header": {
+    "language": "Язык"
+  },
+  "account": {
+    "signIn": "Войти",
+    "settings": "Настройки",
+    "account": "Аккаунт",
+    "signOut": "Выйти",
+    "signOutEverywhere": "Выйти на всех устройствах"
+  },
+  "session": {
+    "signInFailed": "Не удалось войти",
+    "tryLater": "Попробуйте позже.",
+    "signInErrors": {
+      "disabled": "Вход ещё не настроен.",
+      "cancelled": "Вход отменён.",
+      "access_denied": "Вход отменён.",
+      "blocked": "Этот аккаунт заблокирован."
+    },
+    "signedOut": "Вы вышли",
+    "expired": "Сессия истекла, войдите снова.",
+    "offline": "Нет связи, попробуйте ещё раз."
+  },
+  "units": {
+    "hoursMinutes": "{h} ч {m} мин",
+    "minutes": "{m} мин"
+  }
+}

@@ -1,8 +1,7 @@
 import type { Locale } from "@/core/i18n/locales";
 
-// Rules and texts of the games. RemnaWeb is the source of truth (lib/clicker/config.ts and lib/snake-rules.ts
-// there): the server loads them from GET /api/sni/config (lib/config-server.ts) and hands them to the page.
-// These types mirror it.
+// Rules and texts of the clicker. RemnaWeb is the source of truth (lib/clicker/config.ts there): the server
+// loads them from GET /api/sni/config (config-server.ts) and hands them to the page. These types mirror it.
 
 export type Text = { ru: string; en: string };
 
@@ -61,20 +60,6 @@ export type LadderStat = "taps" | "totalEarned" | "crits" | "bestTap" | "upgrade
 /** An endless achievement: tier n at `start × factor^(n-1)`; `{n}` in the description is the target. */
 export type LadderDef = { id: string; icon: string; stat: LadderStat; start: number; factor: number; name: Text; description: Text };
 
-/** Price of crystal number `n` (from 0): base + step × n. */
-export type ValueRule = { base: number; step: number };
-
-/** How the snake plays: the board is `grid` × `grid`, a step gets `speedupMs` shorter per crystal down to `minStepMs`. */
-export type SnakeRules = {
-  grid: number;
-  startStepMs: number;
-  minStepMs: number;
-  speedupMs: number;
-  /** A golden crystal is worth this many regular ones. */
-  goldenMultiplier: number;
-  value: ValueRule;
-};
-
 export type GameConfig = {
   baseCritMultiplier: number;
   frenzyWindowMs: number;
@@ -86,8 +71,6 @@ export type GameConfig = {
   achievementBonus: number;
   ladders: LadderDef[];
   prestige: PrestigeConfig;
-  /** The snake's rules; an older RemnaWeb does not send them, and the snake is unavailable then. */
-  snake?: SnakeRules;
 };
 
 const isText = (t: unknown) => !!t && typeof (t as Text).ru === "string" && typeof (t as Text).en === "string";
@@ -95,21 +78,6 @@ const isNum = (n: unknown) => typeof n === "number" && Number.isFinite(n);
 const listOf = (v: unknown, ok: (item: Record<string, unknown>) => boolean) =>
   Array.isArray(v) && v.every((item) => !!item && typeof item === "object" && ok(item as Record<string, unknown>));
 const named = (i: Record<string, unknown>) => typeof i.id === "string" && typeof i.icon === "string" && isText(i.name) && isText(i.description);
-
-const isSnakeRules = (v: unknown) => {
-  const r = v as Record<string, unknown> | null;
-  return (
-    !!r &&
-    typeof r === "object" &&
-    ["grid", "startStepMs", "minStepMs", "speedupMs", "goldenMultiplier"].every((k) => isNum(r[k])) &&
-    Number.isInteger(r.grid) &&
-    (r.grid as number) >= 4 &&
-    (r.minStepMs as number) > 0 &&
-    !!r.value &&
-    isNum((r.value as ValueRule).base) &&
-    isNum((r.value as ValueRule).step)
-  );
-};
 
 /**
  * Whether a config from RemnaWeb has the shape the game relies on. A broken one (a bug or a tampered
@@ -126,8 +94,7 @@ export function isGameConfig(v: unknown): v is GameConfig {
     (c.prestige === undefined ||
       (!!c.prestige &&
         typeof c.prestige === "object" &&
-        listOf((c.prestige as Record<string, unknown>).perks, (p) => named(p) && isNum(p.baseCost) && isNum(p.growth)))) &&
-    (c.snake === undefined || isSnakeRules(c.snake))
+        listOf((c.prestige as Record<string, unknown>).perks, (p) => named(p) && isNum(p.baseCost) && isNum(p.growth))))
   );
 }
 

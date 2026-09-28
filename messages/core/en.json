@@ -1,0 +1,30 @@
+{
+  "unavailable": "The game is temporarily unavailable. Please come back a bit later.",
+  "header": {
+    "language": "Language"
+  },
+  "account": {
+    "signIn": "Sign in",
+    "settings": "Settings",
+    "account": "Account",
+    "signOut": "Sign out",
+    "signOutEverywhere": "Sign out on all devices"
+  },
+  "session": {
+    "signInFailed": "Could not sign in",
+    "tryLater": "Please try again later.",
+    "signInErrors": {
+      "disabled": "Sign-in is not configured yet.",
+      "cancelled": "Sign-in was cancelled.",
+      "access_denied": "Sign-in was cancelled.",
+      "blocked": "This account is blocked."
+    },
+    "signedOut": "Signed out",
+    "expired": "Your session has expired, sign in again.",
+    "offline": "No connection, try again."
+  },
+  "units": {
+    "hoursMinutes": "{h}h {m}m",
+    "minutes": "{m}m"
+  }
+}

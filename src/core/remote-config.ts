@@ -1,46 +1,30 @@
 import "server-only";
-import { isGameConfig, withDefaults, type GameConfig } from "@/games/clicker/config";
-import { syncUrl } from "@/core/remnaweb";
-
-/** Short: an admin may tune the numbers in RemnaWeb, and its progress checks follow them at once. */
-const TTL_MS = 60_000;
-const TIMEOUT_MS = 5_000;
-
-/** After a failed fetch with nothing cached, pages do not wait on RemnaWeb again for this long. */
-const RETRY_MS = 30_000;
-
-let cached: { at: number; config: GameConfig } | null = null;
-let failedAt = 0;
-let loading: Promise<GameConfig | null> | null = null;
+import { connection } from "next/server";
+import { REMNAWEB_TIMEOUT_MS, remnaWebUrl, remoteValue } from "@/core/remnaweb";
 
 /**
- * The game config from RemnaWeb, refreshed every minute. While RemnaWeb is unreachable the last one
- * received keeps serving; null only when there has never been one (or REMNAWEB_URL is not set).
+ * A loader of a game's rules from RemnaWeb's GET /api/sni/config (one answer holds the rules of every game):
+ * `parse` takes the game's part out of it, or returns null when it does not have the shape the game relies on.
+ * Refreshed every minute, so an admin's tuning reaches the node within a minute; a broken answer (a bug or
+ * a tampered response) is refused and the last good rules keep serving, like while RemnaWeb is down. Null
+ * only when there have never been any (or REMNAWEB_URL is not set): the game shows the Unavailable stub then.
+ * Read at request time, never at build.
  */
-export async function loadConfig(): Promise<GameConfig | null> {
-  if (cached && Date.now() - cached.at < TTL_MS) return cached.config;
-  const base = syncUrl();
-  if (!base) return null;
-  if (!cached && Date.now() - failedAt < RETRY_MS) return null;
-
-  loading ??= (async () => {
-    try {
-      const res = await fetch(`${base}/api/sni/config`, { cache: "no-store", signal: AbortSignal.timeout(TIMEOUT_MS) });
+export function remoteConfig<T>(name: string, parse: (body: unknown) => T | null): () => Promise<T | null> {
+  const get = remoteValue<T | null>({
+    async load() {
+      const base = remnaWebUrl();
+      if (!base) return null;
+      const res = await fetch(`${base}/api/sni/config`, { cache: "no-store", signal: AbortSignal.timeout(REMNAWEB_TIMEOUT_MS) });
       if (!res.ok) throw new Error(`RemnaWeb config: ${res.status}`);
-      const body: unknown = await res.json();
-      if (!isGameConfig(body)) throw new Error("RemnaWeb config: unexpected shape");
-      const config = withDefaults(body);
-      cached = { at: Date.now(), config };
-      return config;
-    } catch (err) {
-      console.error(err);
-      // Keep serving the last config and retry after the TTL, so pages do not wait on every request.
-      if (cached) cached = { ...cached, at: Date.now() };
-      else failedAt = Date.now();
-      return cached?.config ?? null;
-    } finally {
-      loading = null;
-    }
-  })();
-  return loading;
+      const rules = parse(await res.json());
+      if (rules === null) throw new Error(`RemnaWeb config: unexpected shape of the ${name} rules`);
+      return rules;
+    },
+    fallback: () => null,
+  });
+  return async () => {
+    await connection();
+    return get();
+  };
 }

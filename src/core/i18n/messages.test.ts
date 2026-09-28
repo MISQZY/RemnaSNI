@@ -1,7 +1,7 @@
 import { IntlMessageFormat } from "intl-messageformat";
 import { describe, expect, it } from "vitest";
 import { LOCALES } from "./locales";
-import { MESSAGES } from "./messages";
+import { CATALOGS, MESSAGES } from "./messages";
 
 type Tree = { [key: string]: string | Tree };
 type Element = { type: number; value?: string; options?: Record<string, { value: Element[] }>; children?: Element[] };
@@ -23,6 +23,18 @@ function args(message: string, locale: string): string[] {
   walk(new IntlMessageFormat(message, locale).getAst() as Element[]);
   return [...names].sort();
 }
+
+describe("catalog scopes", () => {
+  it("never share a top-level namespace", () => {
+    const owners = new Map<string, string>();
+    for (const [scope, catalogs] of Object.entries(CATALOGS)) {
+      for (const key of Object.keys(catalogs.en)) {
+        expect(owners.get(key), `"${key}" of ${scope}`).toBeUndefined();
+        owners.set(key, scope);
+      }
+    }
+  });
+});
 
 describe("message catalogs", () => {
   const reference = new Map(leaves(MESSAGES.en as unknown as Tree));

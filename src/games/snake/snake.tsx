@@ -1,247 +1,41 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Gamepad2, Gauge, Heart, LogOut, Pause, Play, RotateCcw, Send, Sparkles, Turtle } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Gamepad2, Gauge, Heart, Pause, Play, RotateCcw, Sparkles, Turtle } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
-import { ChipIcon } from "@/core/ui/chip-icon";
-import { LanguageSwitch, useFormat } from "@/core/i18n/provider";
-import { ProfileAvatar, ProfileName } from "@/core/ui/profile-avatar";
-import { QzrIcon } from "@/core/ui/qzr-icon";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
-import type { SnakeRules, ValueRule } from "@/games/clicker/config";
-import type { SnakeLook, SnakeSkin } from "@/core/look";
+import { ApiError, api } from "@/core/api";
+import { useFormat } from "@/core/i18n/provider";
 import { session, useSession, type Account } from "@/core/session";
+import { storage } from "@/core/storage";
+import { AccountMenu } from "@/core/ui/account-menu";
+import { ChipIcon } from "@/core/ui/chip-icon";
+import { QzrIcon } from "@/core/ui/qzr-icon";
+import { SiteHeader } from "@/core/ui/site-header";
 import { cn } from "@/lib/utils";
+import { KEYS, draw, newGame, noBoosts, step, turn, type Boosts, type Cell, type Dir, type Game, type Phase } from "./board";
+import { crystalValue, crystalsValue, type SnakeLook, type SnakeRules, type SnakeSkin } from "./rules";
 
 // Snake (a prototype), the game of nodes RemnaWeb has picked it for. Every crystal eaten brings Qzr to the
 // country's balance in RemnaWeb (POST /api/sni/snake in chunks while playing). The board, the speeds and the
 // crystal prices are RemnaWeb's (SnakeRules, from GET /api/sni/config): a crystal is worth more the more the
 // player has collected (lib/snake-rules.ts there).
 
-const BEST_KEY = "remnasni:snake-best";
+const BEST_KEY = "snake-best";
 /** Crystals are sent to RemnaWeb in chunks this often while playing, and when a run ends. */
 const CHUNK_MS = 5_000;
 /** Chunks played without sign-in, credited to the account once the player signs in. */
-const PENDING_KEY = "remnasni:snake-pending";
+const PENDING_KEY = "snake-pending";
 const MAX_PENDING = 100;
 /** Pending runs sent per status load; RemnaWeb takes a dozen runs a minute. */
 const FLUSH_PER_LOAD = 10;
-/** Price of crystal number `n` (from 0), as RemnaWeb computes it. */
-const crystalValue = (n: number, v: ValueRule) => v.base + v.step * n;
-
-/** Qzr for `count` crystals starting at number `from`. */
-function crystalsValue(from: number, count: number, v: ValueRule): number {
-  let sum = 0;
-  for (let n = from; n < from + count; n++) sum += crystalValue(n, v);
-  return sum;
-}
 /** Whether the phone control pad is shown; off by default, swipes are enough. */
-const PAD_KEY = "remnasni:snake-pad";
+const PAD_KEY = "snake-pad";
 /** A swipe turns once the finger has moved this far, px. */
 const SWIPE_PX = 18;
 
-type Cell = { x: number; y: number };
-type Dir = "up" | "down" | "left" | "right";
-type Phase = "ready" | "playing" | "paused" | "over";
-
-const VEC: Record<Dir, Cell> = { up: { x: 0, y: -1 }, down: { x: 0, y: 1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 } };
-const OPPOSITE: Record<Dir, Dir> = { up: "down", down: "up", left: "right", right: "left" };
-const KEYS: Record<string, Dir> = {
-  ArrowUp: "up",
-  ArrowDown: "down",
-  ArrowLeft: "left",
-  ArrowRight: "right",
-  KeyW: "up",
-  KeyS: "down",
-  KeyA: "left",
-  KeyD: "right",
-};
-
-/** A crystal on the board; a golden one (the golden bonus) is worth five. */
-type Food = Cell & { golden: boolean };
-
-/** What the bonuses bought give a run (see SNAKE_PERKS in RemnaWeb lib/snake.ts). */
-type Boosts = { goldenChance: number; lives: number; speedup: number };
-const noBoosts = (rules: SnakeRules): Boosts => ({ goldenChance: 0, lives: 0, speedup: rules.speedupMs });
-
-type Game = {
-  snake: Cell[];
-  dir: Dir;
-  /** Turns pressed faster than the snake moves, applied one per step. */
-  queue: Dir[];
-  food: Food;
-  score: number;
-  /** Golden crystals eaten this run. */
-  golden: number;
-  /** Collisions with itself the snake survives this run (the second-life bonus). */
-  lives: number;
-  boosts: Boosts;
-  rules: SnakeRules;
-  stepMs: number;
-  startedAt: number;
-  pausedAt: number | null;
-  pausedMs: number;
-};
-
-function freeCell(snake: Cell[], grid: number): Cell {
-  const taken = new Set(snake.map((c) => c.y * grid + c.x));
-  const free = Array.from({ length: grid * grid }, (_, i) => i).filter((i) => !taken.has(i));
-  const i = free[Math.floor(Math.random() * free.length)] ?? 0;
-  return { x: i % grid, y: Math.floor(i / grid) };
-}
-
-function newFood(snake: Cell[], boosts: Boosts, grid: number): Food {
-  return { ...freeCell(snake, grid), golden: Math.random() < boosts.goldenChance };
-}
-
-function newGame(boosts: Boosts, rules: SnakeRules): Game {
-  const mid = rules.grid >> 1;
-  const snake = [
-    { x: mid, y: mid },
-    { x: mid - 1, y: mid },
-    { x: mid - 2, y: mid },
-  ];
-  return {
-    snake,
-    dir: "right",
-    queue: [],
-    food: newFood(snake, boosts, rules.grid),
-    score: 0,
-    golden: 0,
-    lives: boosts.lives,
-    boosts,
-    rules,
-    stepMs: rules.startStepMs,
-    startedAt: performance.now(),
-    pausedAt: null,
-    pausedMs: 0,
-  };
-}
-
-/**
- * Moves the snake one cell, through an edge to the opposite one: "ate" on a crystal, "dead" on its own body,
- * or "saved" when a spare life lets it bite its tail off there instead.
- */
-function step(g: Game): "ok" | "ate" | "dead" | "saved" {
-  const next = g.queue.shift();
-  if (next && next !== OPPOSITE[g.dir]) g.dir = next;
-  const head = g.snake[0];
-  const { grid } = g.rules;
-  // The edges wrap around: the snake never hits a wall.
-  const to = { x: (head.x + VEC[g.dir].x + grid) % grid, y: (head.y + VEC[g.dir].y + grid) % grid };
-  const eats = to.x === g.food.x && to.y === g.food.y;
-  // The tail moves away this step unless the snake grows.
-  const body = eats ? g.snake : g.snake.slice(0, -1);
-  const hit = body.findIndex((c) => c.x === to.x && c.y === to.y);
-  if (hit >= 0) {
-    if (g.lives <= 0) return "dead";
-    // A spare life: the part from the bitten segment on falls off, and the snake moves on.
-    g.lives--;
-    g.snake = g.snake.slice(0, hit);
-    g.snake.unshift(to);
-    return "saved";
-  }
-  g.snake.unshift(to);
-  if (!eats) {
-    g.snake.pop();
-    return "ok";
-  }
-  g.score++;
-  if (g.food.golden) g.golden++;
-  g.stepMs = Math.max(g.rules.minStepMs, g.stepMs - g.boosts.speedup);
-  g.food = newFood(g.snake, g.boosts, grid);
-  return "ate";
-}
-
-/** Queues a turn; at most two ahead, never straight back. */
-function turn(g: Game, d: Dir) {
-  const last = g.queue.at(-1) ?? g.dir;
-  if (g.queue.length < 2 && d !== last && d !== OPPOSITE[last]) g.queue.push(d);
-}
-
-/** The skin of a snake without a bought one: green, like the Qzr crystal. */
-const DEFAULT_SKIN: SnakeSkin = { head: "#5cf08e", body: "#2ee06a", tail: "#139a45", glow: "#2ee06a" };
-
-/** A "#rrggbb" color; black for anything else, so a bad skin only looks wrong. */
-function rgbOf(hex: string): [number, number, number] {
-  const m = /^#([0-9a-f]{6})$/i.exec(hex);
-  const n = m ? parseInt(m[1], 16) : 0;
-  return [n >> 16, (n >> 8) & 255, n & 255];
-}
-
-/** The color of segment `i` of `n` in a skin: the head's, then from the body color to the tail's. */
-function segmentColor(skin: SnakeSkin, i: number, n: number): string {
-  if (skin.rainbow) {
-    // The hues run along the body and move on with every step drawn.
-    const hue = (((i * 24 - performance.now() / 12) % 360) + 360) % 360;
-    return `hsl(${Math.round(hue)} 85% ${i === 0 ? 70 : 58}%)`;
-  }
-  if (i === 0) return skin.head;
-  const at = n > 2 ? (i - 1) / (n - 2) : 0;
-  const [a, b] = [rgbOf(skin.body), rgbOf(skin.tail)];
-  return `rgb(${a.map((v, k) => Math.round(v + (b[k] - v) * at)).join(", ")})`;
-}
-
-function draw(canvas: HTMLCanvasElement, g: Game | null, grid: number, skin: SnakeSkin | null) {
-  const dpr = window.devicePixelRatio || 1;
-  const size = canvas.clientWidth;
-  if (canvas.width !== Math.round(size * dpr)) {
-    canvas.width = Math.round(size * dpr);
-    canvas.height = Math.round(size * dpr);
-  }
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, size, size);
-  const cell = size / grid;
-
-  // A faint checkerboard, readable on both themes.
-  ctx.fillStyle = "rgba(127, 127, 127, 0.07)";
-  for (let y = 0; y < grid; y++) for (let x = (y % 2); x < grid; x += 2) ctx.fillRect(x * cell, y * cell, cell, cell);
-  if (!g) return;
-
-  // The crystal: a glowing green rhombus, like the Qzr icon; a golden one shines gold.
-  const fx = (g.food.x + 0.5) * cell;
-  const fy = (g.food.y + 0.5) * cell;
-  const gem = ctx.createLinearGradient(fx - cell / 2, fy - cell / 2, fx + cell / 2, fy + cell / 2);
-  gem.addColorStop(0, g.food.golden ? "#fff4b8" : "#b8ffd0");
-  gem.addColorStop(1, g.food.golden ? "#d49a0b" : "#139a45");
-  ctx.save();
-  ctx.shadowColor = g.food.golden ? "rgba(255, 196, 40, 0.9)" : "rgba(46, 224, 106, 0.8)";
-  ctx.shadowBlur = cell * 0.6;
-  ctx.fillStyle = gem;
-  ctx.beginPath();
-  ctx.moveTo(fx, fy - cell * 0.42);
-  ctx.lineTo(fx + cell * 0.26, fy);
-  ctx.lineTo(fx, fy + cell * 0.42);
-  ctx.lineTo(fx - cell * 0.26, fy);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-
-  // The snake in its skin (the one bought in RemnaWeb, or green), lighter at the head, which glows.
-  const s = skin ?? DEFAULT_SKIN;
-  const n = g.snake.length;
-  g.snake.forEach((c, i) => {
-    const pad = i === 0 ? cell * 0.06 : cell * 0.12;
-    const color = segmentColor(s, i, n);
-    ctx.save();
-    if (i === 0) {
-      ctx.shadowColor = s.rainbow ? color : s.glow;
-      ctx.shadowBlur = cell * 0.5;
-    }
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.roundRect(c.x * cell + pad, c.y * cell + pad, cell - pad * 2, cell - pad * 2, cell * 0.28);
-    ctx.fill();
-    ctx.restore();
-  });
-}
-
-/** A snake bonus as RemnaWeb reports it: level bought, the next level's price in Qzr keys (null when maxed). */
 /** A bonus as RemnaWeb sends it, named in the page's language; `{n}` in the description is the effect of the level. */
 type Perk = { id: string; name: string; description: string; perLevel: number; level: number; maxLevel: number; cost: number | null };
 /**
@@ -292,57 +86,18 @@ function particlesOf(effect: string[] | null): Particle[] {
 const POPUP_MS = 900;
 
 function readPending(): Run[] {
-  try {
-    const raw = typeof window === "undefined" ? null : localStorage.getItem(PENDING_KEY);
-    const runs = raw ? (JSON.parse(raw) as unknown) : [];
-    return Array.isArray(runs) ? runs.filter((r): r is Run => Number.isInteger(r?.score) && Number.isInteger(r?.durationMs)) : [];
-  } catch {
-    return [];
-  }
+  const runs = storage.getJSON(PENDING_KEY);
+  return Array.isArray(runs) ? runs.filter((r): r is Run => Number.isInteger(r?.score) && Number.isInteger(r?.durationMs)) : [];
 }
 
-function writePending(runs: Run[]) {
-  try {
-    if (runs.length) localStorage.setItem(PENDING_KEY, JSON.stringify(runs));
-    else localStorage.removeItem(PENDING_KEY);
-  } catch {
-    // Without storage the runs last until the page closes.
-  }
-}
+/** Without storage the runs last until the page closes. */
+const writePending = (runs: Run[]) => storage.setJSON(PENDING_KEY, runs.length ? runs : null);
 
-/** RemnaWeb's snake API for the signed-in player; null when signed out (or signed out by a 401). */
-async function snakeApi<T>(country: string, body?: object, path = "snake"): Promise<T | null> {
-  const token = session.getSnapshot().token;
-  if (!token) return null;
-  const res = await fetch(`/api/sni/${path}?${new URLSearchParams({ country })}`, {
-    method: body ? "POST" : "GET",
-    headers: { Authorization: `Bearer ${token}`, ...(body ? { "Content-Type": "application/json" } : {}) },
-    body: body ? JSON.stringify(body) : undefined,
-    cache: "no-store",
-  });
-  if (res.status === 401) {
-    session.signOut();
-    return null;
-  }
-  if (!res.ok) throw new Error(String(res.status));
-  return (await res.json()) as T;
-}
+/** RemnaWeb's snake API (core/api.ts): the status with a GET, a run or a purchase with a POST. */
+const snakeApi = <T,>(country: string, body?: object, path = "snake") => api<T>(path, { method: body ? "POST" : "GET", body, country });
 
-function readPad(): boolean {
-  try {
-    return typeof window !== "undefined" && localStorage.getItem(PAD_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function readBest(): number {
-  try {
-    return typeof window === "undefined" ? 0 : Number(localStorage.getItem(BEST_KEY)) || 0;
-  } catch {
-    return 0;
-  }
-}
+const readPad = () => storage.get(PAD_KEY) === "1";
+const readBest = () => Number(storage.get(BEST_KEY)) || 0;
 
 const noop = () => () => {};
 
@@ -383,11 +138,7 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
   const togglePad = () => {
     const next = !pad;
     setPad(next);
-    try {
-      localStorage.setItem(PAD_KEY, next ? "1" : "0");
-    } catch {
-      // The choice lasts until the page closes.
-    }
+    storage.set(PAD_KEY, next ? "1" : "0");
   };
 
   /** Sends runs played without sign-in; the server checks and caps them like any other. */
@@ -405,7 +156,7 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
         setCollected(res.crystals + chunkRef.current.score);
       } catch (err) {
         // A refused run is dropped; any other failure leaves the rest for later.
-        if ((err as Error).message !== "400") break;
+        if (!(err instanceof ApiError) || err.status !== 400) break;
       }
       left.shift();
     }
@@ -416,7 +167,7 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
 
   const loadStatus = useEffectEvent(async () => {
     try {
-      const res = await snakeApi<Status & { user: { name: string; photoUrl: string | null }; snake?: SnakeLook; session: string | null }>(code);
+      const res = await snakeApi<Status & { user: Account; snake?: SnakeLook; session: string | null }>(code);
       if (!res) {
         // Signed out: the bought looks are the account's.
         setLook({ skin: null, effect: null });
@@ -501,11 +252,7 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
     setPhase("over");
     if (g.score > best) {
       setBest(g.score);
-      try {
-        localStorage.setItem(BEST_KEY, String(g.score));
-      } catch {
-        // The record lasts until the page closes.
-      }
+      storage.set(BEST_KEY, String(g.score));
     }
     await sendChunk();
   });
@@ -640,15 +387,7 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
 
   return (
     <>
-      <header className="mx-auto flex w-full max-w-md items-center gap-3 px-4 pt-6 lg:pt-10">
-        <span className={cn("fi shrink-0 rounded-[3px] text-2xl shadow-xs", `fi-${code}`)} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-heading text-xl font-semibold">{name}</p>
-          <p className="text-sm text-muted-foreground">{t("snake.subtitle")}</p>
-        </div>
-        <LanguageSwitch />
-        <SnakeAccount signIn={signIn} account={account.account} token={account.token} />
-      </header>
+      <SiteHeader code={code} name={name} subtitle={t("snake.subtitle")} account={<AccountMenu signIn={signIn} />} className="max-w-md" />
 
       {/* The whole play area takes swipes, so a thumb below the board steers too; it does not scroll while playing. */}
       <main
@@ -891,34 +630,5 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
       <p className="truncate text-[11px] text-muted-foreground">{label}</p>
       <p className="truncate font-heading text-sm font-semibold tabular-nums">{value}</p>
     </div>
-  );
-}
-
-/** Telegram sign-in, or the signed-in account with a sign-out. */
-function SnakeAccount({ signIn, account, token }: { signIn: boolean; account: Account | null; token: string | null }) {
-  const t = useTranslations();
-  if (!token) {
-    return signIn ? (
-      <Button size="sm" onClick={() => location.assign(session.signInUrl())}>
-        <Send /> {t("account.signIn")}
-      </Button>
-    ) : null;
-  }
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button type="button" aria-label={t("account.account")} className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
-          <ProfileAvatar account={account} />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-56 p-1">
-        <div className="p-2">
-          <ProfileName account={account} className="truncate text-sm font-medium" />
-        </div>
-        <Button variant="ghost" size="sm" className="w-full justify-start text-destructive hover:text-destructive" onClick={session.signOut}>
-          <LogOut /> {t("snake.signOut")}
-        </Button>
-      </PopoverContent>
-    </Popover>
   );
 }

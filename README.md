@@ -18,7 +18,7 @@ Achievements and pets are not here: both are the profile's, in the RemnaWeb Mini
 ## Game and country
 
 RemnaWeb decides what the node runs. The server asks `REMNAWEB_URL/api/sni/site` with `x-sni-site: <DOMAIN>` and gets
-`{ game, country }` (`lib/site-game.ts`): the game an admin picked for this site in RemnaWeb (Админка → Игра → Игровые
+`{ game, country }` (`src/core/site.ts`): the game an admin picked for this site in RemnaWeb (Админка → Игра → Игровые
 сайты; the flag clicker until one is picked) and the country of the panel host with this domain as its SNI. The answer
 is kept for a minute, so a switch in RemnaWeb reaches the node without a redeploy; while RemnaWeb is down the last one
 keeps serving. The API proxy passes `x-sni-site` with every call, so RemnaWeb keeps progress in that country whatever
@@ -32,20 +32,48 @@ credited after it, via RemnaWeb `/api/sni/snake`.
 
 ## Games and routes
 
-Every game lives in its own route subtree, `src/app/games/<id>`, with its own layout; the root layout holds only what all
-share (fonts, language, footer, toasts). `src/proxy.ts` gets the game at request time and rewrites the public paths to the
-node's game (`/` → `/games/clicker` or `/games/snake`); the `/games/...` paths themselves are 404. So a node loads the JS
-of its own game only. The Telegram session (`lib/session.ts`) is shared and imports no game; a game must not import
-another one. A new game: its folder under `src/app/games`, its id in `lib/site-game.ts` and `ROUTES` in the proxy.
+Every game lives in its own route subtree, `src/app/games/<id>`, with its own layout and title; the root layout holds
+only what all share (fonts, language, footer, toasts). `src/proxy.ts` gets the game at request time and rewrites the
+public paths to the node's game (`/` → `/games/clicker` or `/games/snake`); the `/games/...` paths themselves are
+404, and the API proxy passes only the node's game calls. So a node loads the JS of its own game only.
+
+## Code layout
+
+```
+src/core/           what every game uses; knows no game
+  games.ts          the registry: ids, public routes and RemnaWeb API calls of each game
+  site.ts           the node's game and country from RemnaWeb
+  country.ts        the node's country named in a language
+  remnaweb.ts       REMNAWEB_URL and remoteValue(), the cache of what the server asks RemnaWeb for
+  remote-config.ts  remoteConfig(): a game's rules from GET /api/sni/config, refreshed every minute
+  page.ts           nodePage() for a game's layout/page, gameMetadata() for its title
+  session.ts        the Telegram session: sign-in, the Mini App frame, sign-out here and everywhere
+  api.ts            RemnaWeb's /api/sni/* as the player: token, country, a 401 signs out, ApiError
+  storage.ts        localStorage/sessionStorage that never throws, under the `remnasni:` prefix
+  look.ts           profile cosmetics as CSS
+  format.ts         numbers, bytes, durations
+  i18n/             next-intl: locales, catalogs, request config, provider, useFormat, LanguageSwitch, tr()
+  ui/               SiteHeader, AccountMenu (+ SignInButton, MenuButton), ProfileAvatar, Unavailable, Qzr and key icons
+src/games/<id>/     one game: its rules, state and components
+src/app/            routes only: app/games/<id>, the API proxy, the favicon
+messages/<scope>/   catalogs: core/ and one per game, each with its own top-level namespaces
+```
+
+ESLint enforces the boundaries: `src/core` imports no game, a game imports no other game.
+
+A new game: its code in `src/games/<id>` (rules loaded with `remoteConfig`, the page built from `nodePage`,
+`SiteHeader` and `AccountMenu`, calls through `api`, storage through `storage`), its pages in `src/app/games/<id>`,
+its texts in `messages/<id>/{en,ru}.json` listed in `src/core/i18n/messages.ts`, and its entry in `src/core/games.ts`
+(and RemnaWeb's `lib/games.ts`).
 
 ## Game rules
 
 RemnaWeb is the source of truth for the clicker: upgrades (prices, effects, icons), prestige perks, their names and
 descriptions in both languages, crit and offline-income constants all live in
 `RemnaWeb/src/lib/clicker/config.ts`. The server fetches them from `REMNAWEB_URL/api/sni/config`
-(`lib/config-server.ts`), refreshes them every minute and keeps serving the last ones while RemnaWeb is down; until
+(`src/games/clicker/config-server.ts`), refreshes them every minute and keeps serving the last ones while RemnaWeb is down; until
 they have been fetched once the site shows a "temporarily unavailable" stub. So a balance or text change in RemnaWeb
-(an admin tunes the numbers in Админка → Игра → Настройки) reaches every node within a minute, without a redeploy. What stays here is code: `lib/rules.ts` applies the config and mirrors
+(an admin tunes the numbers in Админка → Игра → Настройки) reaches every node within a minute, without a redeploy. What stays here is code: `src/games/clicker/rules.ts` applies the config and mirrors
 `RemnaWeb/src/lib/clicker/rules.ts` — a new rule type or formula has to be added to both.
 
 The snake's rules come with them, under `snake` (`RemnaWeb/src/lib/snake-rules.ts`): the board size, the start and
@@ -78,23 +106,23 @@ every 5 minutes. Signed-out players tap by hand only. The page itself calls it t
 ### Human checks
 
 Every few thousand taps RemnaWeb stops saving progress until the player taps the named emoji among six
-(`components/human-check.tsx` over the flag, `/api/sni/challenge`); taps do not count meanwhile. `lib/tap-guard.ts`
+(`src/games/clicker/human-check.tsx` over the flag, `/api/sni/challenge`); taps do not count meanwhile. `tap-guard.ts`
 ignores scripted events and held keys and asks for a check at once on machine-like tapping (steady rhythm, touches on
-one pixel, 20 minutes without a pause). Signed out, the site gives the checks itself (`lib/human.ts`); the progress
+one pixel, 20 minutes without a pause). Signed out, the site gives the checks itself (`human.ts`); the progress
 made meanwhile still meets RemnaWeb's check at the first save.
 
 ### Prestige
 
-Prestige (`components/prestige.tsx`) trades Qzr and upgrade levels for Qzr keys; each key adds income for good and free
+Prestige (`src/games/clicker/prestige.tsx`) trades Qzr and upgrade levels for Qzr keys; each key adds income for good and free
 keys buy perks. Keys are shared with the other games: RemnaWeb counts those they brought and spent (`keysShopEarned`,
-`keysShopSpent` in the progress), and the free ones are the same everywhere. Formulas are in `lib/rules.ts`, mirroring RemnaWeb. A tap effect bought
+`keysShopSpent` in the progress), and the free ones are the same everywhere. Formulas are in `rules.ts`, mirroring RemnaWeb. A tap effect bought
 in the RemnaWeb Mini App shop comes with `/api/sni/progress` as `effect` and replaces the mini flags thrown by a tap;
-the color of the tap numbers comes as `tapColor` (CSS, `lib/look.ts`). The snake gets its bought skin (canvas colors)
+the color of the tap numbers comes as `tapColor` (CSS, `src/core/look.ts`). The snake gets its bought skin (canvas colors)
 and the particles of an eaten crystal with `GET /api/sni/snake` as `snake.skin` and `snake.effect`.
 
 The profile's other cosmetics from that shop — the title, the avatar frame, the name color and the glow — come with
 the player (`user.look` of `/api/sni/progress` and `/api/sni/snake`) as plain CSS, so a new look needs no redeploy here;
-`components/profile-avatar.tsx` draws them with `lib/look.ts`, and the look-* keyframes of `globals.css` animate them.
+`src/core/ui/profile-avatar.tsx` draws them with `src/core/look.ts`, and the look-* keyframes of `globals.css` animate them.
 
 On the RemnaWeb side set `TELEGRAM_LOGIN_CLIENT_SECRET` and add this site's origin to `SNI_ORIGINS`.
 
@@ -103,9 +131,9 @@ On the RemnaWeb side set `TELEGRAM_LOGIN_CLIENT_SECRET` and add this site's orig
 English by default, Russian as well, through `next-intl` (ICU MessageFormat: plurals, placeholders, tags). The language
 button in the header switches between them and the choice is kept in the `lang` cookie, so the server renders the page
 in it; the RemnaWeb Mini App passes its language as `?lang=` (`src/proxy.ts`). Interface strings are in
-`messages/en.json` and `messages/ru.json`: the English catalog types the keys and arguments (`src/global.d.ts`), and
-`npm test` checks that both catalogs have the same keys, parse as ICU and take the same arguments. Code outside React
-(sync, toasts of the game loop) translates through `src/i18n/client.ts`.
+`messages/<scope>/en.json` and `ru.json` (`core` and one per game, merged in `src/core/i18n/messages.ts`): the English catalogs type the keys and arguments (`src/global.d.ts`), and
+`npm test` checks that both languages have the same keys, parse as ICU and take the same arguments, and that scopes share no namespace. Code outside React
+(sync, toasts of the game loop) translates through `src/core/i18n/client.ts`.
 
 The API proxy (`app/api/sni/[...path]`) passes the page's language to RemnaWeb as `x-locale`, so its answers and errors
 come in it. Country names come from `Intl.DisplayNames`; upgrade and perk names and descriptions arrive from RemnaWeb

@@ -1,35 +1,23 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Science_Gothic } from "next/font/google";
 import { connection } from "next/server";
-import { getLocale, getMessages, getTranslations } from "next-intl/server";
+import { getLocale, getMessages } from "next-intl/server";
 import { I18nProvider } from "@/core/i18n/provider";
 import { Toaster } from "@/components/ui/sonner";
-import { siteCountry } from "@/core/country";
 import type { Messages } from "@/core/i18n/messages";
-import { siteGame } from "@/core/site";
 import "flag-icons/css/flag-icons.min.css";
 import "./globals.css";
 
 // Only what every game shares: fonts, language, footer and toasts. Each game has its own layout under
-// app/games/<id>, which src/proxy.ts serves by the game RemnaWeb picked, so a node loads the code of its own game only.
+// app/games/<id> (with its title), which src/proxy.ts serves by the game RemnaWeb picked, so a node loads the
+// code of its own game only.
 
 const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter" });
 // Science Gothic: headings and brand texts (Qzr, site name); Inter for everything else. Both carry Cyrillic.
 // next/font has no metrics to fit a fallback to it, so none is adjusted.
 const scienceGothic = Science_Gothic({ subsets: ["latin", "cyrillic"], variable: "--font-science-gothic", adjustFontFallback: false });
 
-export async function generateMetadata(): Promise<Metadata> {
-  await connection();
-  const locale = await getLocale();
-  const [{ name }, game, t] = await Promise.all([siteCountry(locale), siteGame(), getTranslations()]);
-  const snake = game === "snake";
-  const title = snake ? t("snake.title", { country: name }) : t("meta.title", { country: name });
-  return {
-    title: { default: title, template: `%s · ${title}` },
-    description: snake ? t("snake.description", { country: name }) : t("meta.description", { country: name }),
-    icons: { icon: "/flag.svg" },
-  };
-}
+export const metadata: Metadata = { icons: { icon: "/flag.svg" } };
 
 export const viewport: Viewport = {
   width: "device-width",

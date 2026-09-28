@@ -1,9 +1,10 @@
 import { config } from "@/games/clicker/config";
 import * as rules from "@/games/clicker/rules";
+import { storage } from "@/core/storage";
 
-const STORAGE_KEY = "remnasni:v2";
+const STORAGE_KEY = "v2";
 /** Last traffic boost received from RemnaWeb, so income while away can be credited before the next sync. */
-const BOOST_KEY = "remnasni:boost";
+const BOOST_KEY = "boost";
 const SAVE_EVERY_MS = 2_000;
 
 export type GameState = {
@@ -89,31 +90,19 @@ function set(next: GameState) {
 function save() {
   if (!hydrated) return;
   lastSave = Date.now();
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    // Private mode or full storage: the game still works, it just won't persist.
-  }
+  // Private mode or full storage: the game still works, it just won't persist.
+  storage.setJSON(STORAGE_KEY, state);
 }
 
 function load(): GameState | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? (JSON.parse(raw) as Partial<GameState>) : null;
-    if (!parsed || typeof parsed.points !== "number") return null;
-    return { ...INITIAL, ...parsed, levels: { ...parsed.levels }, achievements: { ...parsed.achievements } };
-  } catch {
-    return null;
-  }
+  const parsed = storage.getJSON(STORAGE_KEY) as Partial<GameState> | null;
+  if (!parsed || typeof parsed !== "object" || typeof parsed.points !== "number") return null;
+  return { ...INITIAL, ...parsed, levels: { ...parsed.levels }, achievements: { ...parsed.achievements } };
 }
 
 function loadBoost(): number {
-  try {
-    const n = Number(localStorage.getItem(BOOST_KEY));
-    return Number.isFinite(n) && n > 0 ? n : 0;
-  } catch {
-    return 0;
-  }
+  const n = Number(storage.get(BOOST_KEY));
+  return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
 /** Passive income accrued since `s.lastSeen` (capped) at `rate` of the full speed, and the state with it credited. */
@@ -160,11 +149,8 @@ export const game = {
     if (next === boost) return;
     if (hydrated) set(accrue(state, Date.now()).next);
     boost = next;
-    try {
-      localStorage.setItem(BOOST_KEY, String(boost));
-    } catch {
-      // Not persisted: offline income just starts after the next sync.
-    }
+    // Without storage offline income just starts after the next sync.
+    storage.set(BOOST_KEY, String(boost));
     save();
   },
 

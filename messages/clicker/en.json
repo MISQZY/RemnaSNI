@@ -1,0 +1,75 @@
+{
+  "clicker": {
+    "subtitle": "Flag Clicker",
+    "meta": {
+      "title": "{country} Flag Clicker",
+      "description": "Tap the flag of {country}, earn Qzr, buy upgrades and climb through prestiges."
+    },
+    "points": "Qzyrium",
+    "perTap": "/ tap",
+    "perSec": "/ sec",
+    "hint": "Tap the flag to earn Qzr",
+    "tapFlag": "Tap the flag of {country}",
+    "totalTaps": "Total taps",
+    "totalEarned": "Total earned",
+    "welcomeBack": "Welcome back!",
+    "awayIncome": "The turbo auto-tapped {points} Qzr in {time}.",
+    "sync": {
+      "now": "Sync now",
+      "local": "Progress is saved in this browser",
+      "idle": "Progress is synced to your account",
+      "syncing": "Syncing…",
+      "synced": "Synced at {time}",
+      "offline": "Offline, will retry"
+    },
+    "reset": {
+      "label": "Reset progress",
+      "confirm": "Click again to reset",
+      "done": "Progress reset"
+    }
+  },
+  "traffic": {
+    "signIn": "Sign in with Telegram to sync progress.",
+    "checking": "Checking your turbo…",
+    "unavailable": "The turbo is not available to this account in {country}. Everything else works without it.",
+    "none": "{days, plural, one {No turbo activity in {country} in the last day.} other {No turbo activity in {country} in the last # days.}}",
+    "active": "{days, plural, one {Your activity in {country} over # day taps the flag <boost></boost> per second, at half speed while the page is closed (up to 8 h).} other {Your activity in {country} over # days taps the flag <boost></boost> per second, at half speed while the page is closed (up to 8 h).}}",
+    "bought": "The turbo bought for Qzr taps the flag <boost></boost> per second, at half speed while the page is closed (up to 8 h)."
+  },
+  "upgrades": {
+    "title": "Upgrades",
+    "description": "Spend Qzr to earn it faster.",
+    "tabs": {
+      "tap": "Tap",
+      "luck": "Luck",
+      "boost": "Boost"
+    },
+    "reveal": "Earn {points} Qzr to reveal",
+    "level": "Lv {n}",
+    "maxBadge": "MAX",
+    "max": "Max"
+  },
+  "prestige": {
+    "title": "Prestige",
+    "description": "Qzr and upgrades are reset, and you get Qzr keys in return: each one adds +{percent}% to income for good. Everything else stays.",
+    "keys": "Qzr keys",
+    "free": "{n} free",
+    "bonus": "Income bonus",
+    "nextKey": "Next Qzr key",
+    "move": "Prestige: +{keys} {n, plural, one {Qzr key} other {Qzr keys}}",
+    "nothing": "Not enough for a Qzr key yet",
+    "confirm": "Click again: Qzr will be gone",
+    "done": "Prestige done!",
+    "doneHint": "+{keys} {n, plural, one {Qzr key} other {Qzr keys}}. Income is now ×{mult}.",
+    "perks": "Qzr key perks"
+  },
+  "human": {
+    "title": "Check: tap the",
+    "missed": "Not that one, try again.",
+    "notCounted": "Taps do not count until the check is passed.",
+    "blocked": "Too many misses. Next check in {time}",
+    "loading": "Loading the check…",
+    "retry": "Retry",
+    "failed": "Could not load the check"
+  }
+}

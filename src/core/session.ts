@@ -2,14 +2,15 @@ import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { tr } from "@/core/i18n/client";
 import type { SiteLook } from "@/core/look";
+import { storage, tabStorage } from "@/core/storage";
 
 // The Telegram session every game shares: sign-in through RemnaWeb, which runs the OAuth flow and hands the
 // token back in the URL fragment, or the session of the RemnaWeb Mini App when the site runs in its frame.
 // Knows nothing of any game, so a game importing it pulls in no other game's code.
 
-const TOKEN_KEY = "remnasni:token";
+const TOKEN_KEY = "token";
 /** Random value sent to the sign-in and expected back with the token, so a token planted in a link is refused. */
-const STATE_KEY = "remnasni:sign-in-state";
+const STATE_KEY = "sign-in-state";
 
 /** The player as RemnaWeb tells, with the cosmetics bought there (missing from older RemnaWeb versions). */
 export type Account = { name: string; photoUrl: string | null; look?: SiteLook };
@@ -31,32 +32,8 @@ function set(patch: Partial<SessionState>) {
   listeners.forEach((l) => l());
 }
 
-function storeToken(token: string | null) {
-  try {
-    if (token) localStorage.setItem(TOKEN_KEY, token);
-    else localStorage.removeItem(TOKEN_KEY);
-  } catch {
-    // Without storage the session lasts until the tab closes.
-  }
-}
-
-function readToken(): string | null {
-  try {
-    return localStorage.getItem(TOKEN_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function takeSignInState(): string | null {
-  try {
-    const value = sessionStorage.getItem(STATE_KEY);
-    sessionStorage.removeItem(STATE_KEY);
-    return value;
-  } catch {
-    return null;
-  }
-}
+/** Without storage the session lasts until the tab closes. */
+const storeToken = (token: string | null) => storage.set(TOKEN_KEY, token);
 
 /**
  * Picks up `#sni_token` / `#sni_error` left by the RemnaWeb callback and cleans the URL. The token is
@@ -68,16 +45,16 @@ function consumeFragment() {
   const error = params.get("sni_error");
   if (!token && !error) return;
   history.replaceState(null, "", location.pathname + location.search);
-  const expected = takeSignInState();
+  const expected = tabStorage.take(STATE_KEY);
   const t = tr();
   if (!expected || params.get("sni_state") !== expected) {
-    toast.error(t("sync.signInFailed"), { description: t("sync.tryLater") });
+    toast.error(t("session.signInFailed"), { description: t("session.tryLater") });
     return;
   }
   if (token) storeToken(token);
   if (error) {
-    const known = `sync.signInErrors.${error}` as "sync.signInErrors.disabled";
-    toast.error(t("sync.signInFailed"), { description: t.has(known) ? t(known) : t("sync.tryLater") });
+    const known = `session.signInErrors.${error}` as "session.signInErrors.disabled";
+    toast.error(t("session.signInFailed"), { description: t.has(known) ? t(known) : t("session.tryLater") });
   }
 }
 
@@ -118,7 +95,7 @@ export const session = {
   start(onSession: () => void) {
     set({ enabled: true });
     consumeFragment();
-    const token = readToken();
+    const token = storage.get(TOKEN_KEY);
     if (token) set({ token });
     return listenToParent(onSession);
   },
@@ -138,11 +115,8 @@ export const session = {
     const back = `${location.origin}${location.pathname}`;
     const bytes = crypto.getRandomValues(new Uint8Array(24));
     const signInState = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-    try {
-      sessionStorage.setItem(STATE_KEY, signInState);
-    } catch {
-      // Without storage the token cannot be checked and is refused; nothing else to do.
-    }
+    // Without storage the token cannot be checked and is refused; nothing else to do.
+    tabStorage.set(STATE_KEY, signInState);
     return `/api/sni/auth/start?${new URLSearchParams({ return_to: back, state: signInState })}`;
   },
 
@@ -150,6 +124,21 @@ export const session = {
   signOut() {
     storeToken(null);
     set({ token: null, account: null });
+  },
+
+  /** Signs out on every device and site: the sessions issued so far stop working. Returns an error to show. */
+  async signOutEverywhere(): Promise<{ error?: string }> {
+    const token = state.token;
+    if (!token) return {};
+    try {
+      const res = await fetch("/api/sni/auth/logout", { method: "POST", headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+      // 401: that session is over already.
+      if (!res.ok && res.status !== 401) return { error: tr()("session.tryLater") };
+    } catch {
+      return { error: tr()("session.offline") };
+    }
+    session.signOut();
+    return {};
   },
 };
 

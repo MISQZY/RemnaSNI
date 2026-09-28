@@ -1,0 +1,34 @@
+{
+  "snake": {
+    "meta": {
+      "title": "{country} Snake",
+      "description": "Snake on the {country} node: eat crystals, grow and earn Qzr."
+    },
+    "subtitle": "Snake",
+    "score": "Score",
+    "best": "Best",
+    "balance": "Qzr balance",
+    "play": "Play",
+    "again": "Play again",
+    "resume": "Resume",
+    "paused": "Paused",
+    "over": "Game over",
+    "hint": "Arrows or WASD · Space pauses",
+    "swipe": "Swipe to turn",
+    "pad": "Buttons",
+    "signIn": "sign in to keep Qzr",
+    "synced": "+{n} Qzr from runs played without sign-in",
+    "up": "Up",
+    "down": "Down",
+    "left": "Left",
+    "right": "Right",
+    "price": "{qzr} per crystal, growing",
+    "turbo": "turbo ×{boost} · +{percent}%",
+    "bonuses": "Bonuses",
+    "nextKey": "Next Qzr key",
+    "max": "Max",
+    "buyFailed": "Could not buy the bonus",
+    "earned": "+{n} Qzr",
+    "failed": "The run was not saved"
+  }
+}
