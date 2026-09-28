@@ -11,6 +11,7 @@ import { QzrIcon } from "@/components/qzr-icon";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { SnakeRules, ValueRule } from "@/lib/config";
+import type { SnakeLook, SnakeSkin } from "@/lib/look";
 import { session, useSession, type Account } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
@@ -160,7 +161,30 @@ function turn(g: Game, d: Dir) {
   if (g.queue.length < 2 && d !== last && d !== OPPOSITE[last]) g.queue.push(d);
 }
 
-function draw(canvas: HTMLCanvasElement, g: Game | null, grid: number) {
+/** The skin of a snake without a bought one: green, like the Qzr crystal. */
+const DEFAULT_SKIN: SnakeSkin = { head: "#5cf08e", body: "#2ee06a", tail: "#139a45", glow: "#2ee06a" };
+
+/** A "#rrggbb" color; black for anything else, so a bad skin only looks wrong. */
+function rgbOf(hex: string): [number, number, number] {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex);
+  const n = m ? parseInt(m[1], 16) : 0;
+  return [n >> 16, (n >> 8) & 255, n & 255];
+}
+
+/** The color of segment `i` of `n` in a skin: the head's, then from the body color to the tail's. */
+function segmentColor(skin: SnakeSkin, i: number, n: number): string {
+  if (skin.rainbow) {
+    // The hues run along the body and move on with every step drawn.
+    const hue = (((i * 24 - performance.now() / 12) % 360) + 360) % 360;
+    return `hsl(${Math.round(hue)} 85% ${i === 0 ? 70 : 58}%)`;
+  }
+  if (i === 0) return skin.head;
+  const at = n > 2 ? (i - 1) / (n - 2) : 0;
+  const [a, b] = [rgbOf(skin.body), rgbOf(skin.tail)];
+  return `rgb(${a.map((v, k) => Math.round(v + (b[k] - v) * at)).join(", ")})`;
+}
+
+function draw(canvas: HTMLCanvasElement, g: Game | null, grid: number, skin: SnakeSkin | null) {
   const dpr = window.devicePixelRatio || 1;
   const size = canvas.clientWidth;
   if (canvas.width !== Math.round(size * dpr)) {
@@ -197,17 +221,18 @@ function draw(canvas: HTMLCanvasElement, g: Game | null, grid: number) {
   ctx.fill();
   ctx.restore();
 
-  // The snake, lighter at the head, which glows.
+  // The snake in its skin (the one bought in RemnaWeb, or green), lighter at the head, which glows.
+  const s = skin ?? DEFAULT_SKIN;
   const n = g.snake.length;
   g.snake.forEach((c, i) => {
     const pad = i === 0 ? cell * 0.06 : cell * 0.12;
-    const shade = n > 1 ? i / (n - 1) : 0;
+    const color = segmentColor(s, i, n);
     ctx.save();
     if (i === 0) {
-      ctx.shadowColor = "rgba(46, 224, 106, 0.7)";
+      ctx.shadowColor = s.rainbow ? color : s.glow;
       ctx.shadowBlur = cell * 0.5;
     }
-    ctx.fillStyle = i === 0 ? "#5cf08e" : `rgb(${Math.round(46 - 27 * shade)}, ${Math.round(224 - 70 * shade)}, ${Math.round(106 - 37 * shade)})`;
+    ctx.fillStyle = color;
     ctx.beginPath();
     ctx.roundRect(c.x * cell + pad, c.y * cell + pad, cell - pad * 2, cell - pad * 2, cell * 0.28);
     ctx.fill();
@@ -232,8 +257,29 @@ function boostsOf(perks: Perk[] | undefined, rules: SnakeRules): Boosts {
   return { goldenChance: effect("golden"), lives: effect("life"), speedup: rules.speedupMs * Math.max(0, 1 - effect("slow")) };
 }
 type Run = { score: number; durationMs: number; golden?: number };
-/** A floating "+N Qzr" over an eaten crystal: `bonus` is the part the turbo added. */
-type Popup = { id: number; x: number; y: number; qzr: number; bonus: number; golden: boolean };
+/**
+ * A floating "+N Qzr" over an eaten crystal: `bonus` is the part the turbo added. `particles` fly off it with a
+ * crystal effect bought in RemnaWeb.
+ */
+type Popup = { id: number; x: number; y: number; qzr: number; bonus: number; golden: boolean; particles: Particle[] };
+type Particle = { emoji: string; dx: number; dy: number; rot: number; size: number };
+
+/** A few particles of an effect thrown evenly around an eaten crystal; none without one. */
+function particlesOf(effect: string[] | null): Particle[] {
+  if (!effect?.length) return [];
+  const start = Math.random() * Math.PI * 2;
+  return Array.from({ length: 4 }, (_, i) => {
+    const angle = start + ((i + (Math.random() - 0.5) * 0.3) / 4) * Math.PI * 2;
+    const dist = 36 + Math.random() * 16;
+    return {
+      emoji: effect[Math.floor(Math.random() * effect.length)],
+      dx: Math.cos(angle) * dist,
+      dy: Math.sin(angle) * dist,
+      rot: (Math.random() - 0.5) * 360,
+      size: 12 + Math.random() * 6,
+    };
+  });
+}
 /** How long a popup floats, ms: the float-up animation in globals.css. */
 const POPUP_MS = 900;
 
@@ -322,6 +368,9 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
    */
   const [collected, setCollected] = useState<number | null>(null);
   const [popups, setPopups] = useState<Popup[]>([]);
+  /** The skin and crystal effect bought in RemnaWeb; a ref too, for the canvas drawn outside renders. */
+  const [look, setLook] = useState<SnakeLook>({ skin: null, effect: null });
+  const skinRef = useRef<SnakeSkin | null>(null);
   const popupId = useRef(0);
   const togglePad = () => {
     const next = !pad;
@@ -359,8 +408,18 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
 
   const loadStatus = useEffectEvent(async () => {
     try {
-      const res = await snakeApi<Status & { user: { name: string; photoUrl: string | null }; session: string | null }>(code);
-      if (!res) return;
+      const res = await snakeApi<Status & { user: { name: string; photoUrl: string | null }; snake?: SnakeLook; session: string | null }>(code);
+      if (!res) {
+        // Signed out: the bought looks are the account's.
+        setLook({ skin: null, effect: null });
+        skinRef.current = null;
+        return;
+      }
+      // Missing from older RemnaWeb versions.
+      const bought = { skin: res.snake?.skin ?? null, effect: res.snake?.effect ?? null };
+      setLook(bought);
+      skinRef.current = bought.skin;
+      if (canvasRef.current) draw(canvasRef.current, gameRef.current, rules.grid, bought.skin);
       if (res.session) session.keep(res.session);
       session.setAccount(res.user);
       setStatus({
@@ -387,14 +446,14 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
   }, []);
 
   const redraw = () => {
-    if (canvasRef.current) draw(canvasRef.current, gameRef.current, rules.grid);
+    if (canvasRef.current) draw(canvasRef.current, gameRef.current, rules.grid, skinRef.current);
   };
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    draw(canvas, gameRef.current, rules.grid);
-    const observer = new ResizeObserver(() => draw(canvas, gameRef.current, rules.grid));
+    draw(canvas, gameRef.current, rules.grid, skinRef.current);
+    const observer = new ResizeObserver(() => draw(canvas, gameRef.current, rules.grid, skinRef.current));
     observer.observe(canvas);
     return () => observer.disconnect();
   }, [rules.grid]);
@@ -455,7 +514,7 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
     chunk.score++;
     chunk.qzr += qzr;
     setUnsent({ crystals: chunk.score, qzr: chunk.qzr });
-    const popup = { id: ++popupId.current, x: ((at.x + 0.5) / rules.grid) * 100, y: ((at.y + 0.5) / rules.grid) * 100, qzr, bonus: qzr - price, golden };
+    const popup = { id: ++popupId.current, x: ((at.x + 0.5) / rules.grid) * 100, y: ((at.y + 0.5) / rules.grid) * 100, qzr, bonus: qzr - price, golden, particles: particlesOf(look.effect) };
     setPopups((list) => [...list, popup]);
     setTimeout(() => setPopups((list) => list.filter((p) => p.id !== popup.id)), POPUP_MS);
   });
@@ -476,7 +535,7 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
       // Whether the crystal ahead is golden, before the step replaces it.
       const golden = g.food.golden;
       const result = step(g);
-      if (canvasRef.current) draw(canvasRef.current, g, g.rules.grid);
+      if (canvasRef.current) draw(canvasRef.current, g, g.rules.grid, skinRef.current);
       if (result === "dead") {
         void finish(g);
         return;
@@ -673,6 +732,17 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
           <canvas ref={canvasRef} className="size-full rounded-xl bg-muted/40 ring-1 ring-foreground/5" />
           {/* What each crystal brought, the turbo's share in green, floating up from where it lay. */}
           <div aria-hidden className="pointer-events-none absolute inset-3 motion-reduce:hidden">
+            {popups.map((p) =>
+              p.particles.map((f, i) => (
+                <span
+                  key={`${p.id}-${i}`}
+                  className="absolute leading-none animate-flag-burst"
+                  style={{ left: `${p.x}%`, top: `${p.y}%`, fontSize: f.size, "--dx": `${f.dx}px`, "--dy": `${f.dy}px`, "--rot": `${f.rot}deg` } as React.CSSProperties}
+                >
+                  {f.emoji}
+                </span>
+              )),
+            )}
             {popups.map((p) => (
               <span
                 key={p.id}

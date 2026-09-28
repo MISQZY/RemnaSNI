@@ -7,6 +7,7 @@ import { useSync } from "@/components/game-runtime";
 import { useFormat } from "@/components/i18n-provider";
 import { game } from "@/lib/game";
 import { human } from "@/lib/human";
+import { lookStyle } from "@/lib/look";
 import { cn } from "@/lib/utils";
 
 type Pop = { id: number; x: number; y: number; value: number; crit: boolean; drift: number };
@@ -41,12 +42,17 @@ function burst(id: number, x: number, y: number, crit: boolean, effect: string[]
 export function FlagButton({ code, name }: { code: string; name: string }) {
   const t = useTranslations();
   const { num } = useFormat();
-  const { effect } = useSync();
+  const { effect, tapColor } = useSync();
   const [pops, setPops] = useState<Pop[]>([]);
   const [bursts, setBursts] = useState<Burst[]>([]);
   const [tilt, setTilt] = useState<{ x: number; y: number } | null>(null);
   const nextId = useRef(0);
   const checking = useSyncExternalStore(human.subscribe, human.getSnapshot, human.getServerSnapshot);
+
+  // A text shadow would cover a background shown through the digits: a gradient casts a drop shadow instead.
+  const numberStyle = tapColor?.background
+    ? { ...lookStyle(tapColor, true), textShadow: "none", filter: "drop-shadow(0 2px 6px rgb(0 0 0 / 0.35))" }
+    : lookStyle(tapColor ?? undefined, true);
 
   function tap(x: number, y: number, rect: DOMRect) {
     const { gain, crit } = game.tap();
@@ -150,8 +156,11 @@ export function FlagButton({ code, name }: { code: string; name: string }) {
             style={{ left: p.x, top: p.y, "--drift": `${p.drift}px` } as React.CSSProperties}
             onAnimationEnd={() => setPops((all) => all.filter((x) => x.id !== p.id))}
           >
-            +{num(p.value, true)}
-            {p.crit && "!"}
+            {/* The bought color inside: its own animation must not replace the float. */}
+            <span style={numberStyle}>
+              +{num(p.value, true)}
+              {p.crit && "!"}
+            </span>
           </span>
         ))}
       </div>

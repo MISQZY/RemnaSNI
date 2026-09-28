@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 import { game, isNewer, type GameState } from "@/lib/game";
 import { human, type HumanCheck } from "@/lib/human";
+import type { Look } from "@/lib/look";
 import { tr } from "@/i18n/client";
 import { session, type Account } from "@/lib/session";
 
@@ -29,6 +30,8 @@ export type SyncState = {
   traffic: Traffic | null;
   /** Particles of the tapped flag bought in the RemnaWeb Mini App shop; null for the default mini flags. */
   effect: string[] | null;
+  /** The color of the tap numbers bought there, as CSS (lib/look.ts); null for white. */
+  tapColor: Look | null;
   status: SyncStatus;
   syncedAt: number | null;
 };
@@ -39,6 +42,7 @@ const SIGNED_OUT: SyncState = {
   account: null,
   traffic: null,
   effect: null,
+  tapColor: null,
   status: "idle",
   syncedAt: null,
 };
@@ -115,17 +119,18 @@ async function pull() {
   set({ status: "syncing" });
   const res = await api("GET");
   if (!res) return;
-  const { user, progress, traffic, effect, session: renewed } = (await res.json()) as {
+  const { user, progress, traffic, effect, tapColor, session: renewed } = (await res.json()) as {
     user: Account;
     progress: GameState | null;
     traffic?: Traffic;
     effect?: string[] | null;
+    tapColor?: Look | null;
     /** A renewed token, sent when the current one is getting old. */
     session?: string | null;
   };
   if (renewed) session.keep(renewed);
   session.setAccount(user);
-  set({ traffic: traffic ?? null, effect: effect ?? null });
+  set({ traffic: traffic ?? null, effect: effect ?? null, tapColor: tapColor ?? null });
   adopt(progress);
   game.setBoost(traffic?.boost ?? 0);
   if (synced !== game.getSnapshot()) await push();

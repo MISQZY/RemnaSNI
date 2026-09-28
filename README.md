@@ -88,7 +88,9 @@ made meanwhile still meets RemnaWeb's check at the first save.
 Prestige (`components/prestige.tsx`) trades Qzr and upgrade levels for Qzr keys; each key adds income for good and free
 keys buy perks. Keys are shared with the other games: RemnaWeb counts those they brought and spent (`keysShopEarned`,
 `keysShopSpent` in the progress), and the free ones are the same everywhere. Formulas are in `lib/rules.ts`, mirroring RemnaWeb. A tap effect bought
-in the RemnaWeb Mini App shop comes with `/api/sni/progress` as `effect` and replaces the mini flags thrown by a tap.
+in the RemnaWeb Mini App shop comes with `/api/sni/progress` as `effect` and replaces the mini flags thrown by a tap;
+the color of the tap numbers comes as `tapColor` (CSS, `lib/look.ts`). The snake gets its bought skin (canvas colors)
+and the particles of an eaten crystal with `GET /api/sni/snake` as `snake.skin` and `snake.effect`.
 
 The profile's other cosmetics from that shop — the title, the avatar frame, the name color and the glow — come with
 the player (`user.look` of `/api/sni/progress` and `/api/sni/snake`) as plain CSS, so a new look needs no redeploy here;
