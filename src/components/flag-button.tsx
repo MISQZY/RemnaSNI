@@ -1,9 +1,10 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useRef, useState, useSyncExternalStore } from "react";
 import { HumanCheckOverlay } from "@/components/human-check";
 import { useSync } from "@/components/game-runtime";
-import { useI18n } from "@/components/i18n-provider";
+import { useFormat } from "@/components/i18n-provider";
 import { game } from "@/lib/game";
 import { human } from "@/lib/human";
 import { cn } from "@/lib/utils";
@@ -38,7 +39,8 @@ function burst(id: number, x: number, y: number, crit: boolean, effect: string[]
 }
 
 export function FlagButton({ code, name }: { code: string; name: string }) {
-  const { t, num } = useI18n();
+  const t = useTranslations();
+  const { num } = useFormat();
   const { effect } = useSync();
   const [pops, setPops] = useState<Pop[]>([]);
   const [bursts, setBursts] = useState<Burst[]>([]);
@@ -64,7 +66,7 @@ export function FlagButton({ code, name }: { code: string; name: string }) {
 
       <button
         type="button"
-        aria-label={t.clicker.tapFlag(name)}
+        aria-label={t("clicker.tapFlag", { country: name })}
         className="relative block w-full touch-manipulation rounded-2xl outline-none [perspective:800px] focus-visible:ring-3 focus-visible:ring-ring/50"
         onPointerDown={(e) => {
           if (e.button !== 0 || !human.allow(e)) return;

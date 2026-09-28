@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
 
 const nextConfig: NextConfig = {
   output: "standalone",
@@ -9,4 +10,4 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: { "/flag.svg": ["./node_modules/flag-icons/flags/1x1/*.svg"] },
 };
 
-export default nextConfig;
+export default createNextIntlPlugin("./src/i18n/request.ts")(nextConfig);

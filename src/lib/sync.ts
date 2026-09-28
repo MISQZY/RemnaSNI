@@ -1,7 +1,7 @@
 import { toast } from "sonner";
 import { game, isNewer, type GameState } from "@/lib/game";
 import { human, type HumanCheck } from "@/lib/human";
-import { t } from "@/lib/i18n";
+import { tr } from "@/i18n/client";
 import { session, type Account } from "@/lib/session";
 
 // Two-way sync of the flag clicker's progress with RemnaWeb, via this site's /api/sni proxy. The Telegram
@@ -54,9 +54,6 @@ let failures = 0;
 let retryAt = 0;
 const listeners = new Set<() => void>();
 
-/** RemnaWeb's error message in the current language, when the dictionary knows it. */
-const serverError = (message?: string) => message && (t().sync.serverErrors[message] ?? message);
-
 function set(patch: Partial<SyncState>) {
   state = { ...state, ...patch };
   listeners.forEach((l) => l());
@@ -91,7 +88,7 @@ async function api(method: "GET" | "PUT", body?: GameState, keepalive = false): 
     });
     if (res.status === 401) {
       signOut();
-      toast(t().sync.signedOut, { description: t().sync.expiredSync });
+      toast(tr()("sync.signedOut"), { description: tr()("sync.expiredSync") });
       return null;
     }
     if (!res.ok) throw new Error(String(res.status));
@@ -216,9 +213,9 @@ export const sync = {
     if (!state.token) return {};
     try {
       const res = await fetch("/api/sni/auth/logout", { method: "POST", headers: { Authorization: `Bearer ${state.token}` }, cache: "no-store" });
-      if (!res.ok && res.status !== 401) return { error: t().sync.tryLater };
+      if (!res.ok && res.status !== 401) return { error: tr()("sync.tryLater") };
     } catch {
-      return { error: t().sync.offline };
+      return { error: tr()("sync.offline") };
     }
     signOut();
     return {};
@@ -234,7 +231,7 @@ export const sync = {
       cache: "no-store",
     });
     const body = (await res.json().catch(() => ({}))) as HumanCheck & { error?: string };
-    if (!res.ok) throw new Error(serverError(body.error) ?? t().human.failed);
+    if (!res.ok) throw new Error(body.error ?? tr()("human.failed"));
     return body;
   },
 
@@ -246,7 +243,7 @@ export const sync = {
       cache: "no-store",
     });
     const body = (await res.json().catch(() => ({}))) as { passed?: boolean; blockedUntil?: string; error?: string };
-    if (!res.ok || body.passed === undefined) throw new Error(serverError(body.error) ?? t().human.failed);
+    if (!res.ok || body.passed === undefined) throw new Error(body.error ?? tr()("human.failed"));
     if (body.passed) void push();
     return { passed: body.passed, blockedUntil: body.blockedUntil };
   },

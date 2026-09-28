@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
-import { t } from "@/lib/i18n";
+import { tr } from "@/i18n/client";
 
 // The Telegram session every game shares: sign-in through RemnaWeb, which runs the OAuth flow and hands the
 // token back in the URL fragment, or the session of the RemnaWeb Mini App when the site runs in its frame.
@@ -67,12 +67,16 @@ function consumeFragment() {
   if (!token && !error) return;
   history.replaceState(null, "", location.pathname + location.search);
   const expected = takeSignInState();
+  const t = tr();
   if (!expected || params.get("sni_state") !== expected) {
-    toast.error(t().sync.signInFailed, { description: t().sync.tryLater });
+    toast.error(t("sync.signInFailed"), { description: t("sync.tryLater") });
     return;
   }
   if (token) storeToken(token);
-  if (error) toast.error(t().sync.signInFailed, { description: t().sync.signInErrors[error] ?? t().sync.tryLater });
+  if (error) {
+    const known = `sync.signInErrors.${error}` as "sync.signInErrors.disabled";
+    toast.error(t("sync.signInFailed"), { description: t.has(known) ? t(known) : t("sync.tryLater") });
+  }
 }
 
 /**

@@ -1,5 +1,5 @@
 import "server-only";
-import type { Locale } from "@/lib/i18n";
+import type { Locale } from "@/i18n/locales";
 
 export type Country = { code: string; name: string };
 

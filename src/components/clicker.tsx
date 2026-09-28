@@ -1,12 +1,13 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { ArrowUpCircle, Cloud, Gauge, Hand, MousePointerClick, Send, Sparkles, TrendingUp } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { ChipIcon } from "@/components/chip-icon";
 import { FlagButton } from "@/components/flag-button";
 import { QzrIcon } from "@/components/qzr-icon";
 import { useGame, useSync } from "@/components/game-runtime";
-import { useI18n } from "@/components/i18n-provider";
+import { useFormat } from "@/components/i18n-provider";
 import { useConfig } from "@/components/config-provider";
 import { Prestige, prestigeReady } from "@/components/prestige";
 import { Upgrades, upgradeReady } from "@/components/upgrades";
@@ -24,7 +25,8 @@ export function Clicker({ code, name }: { code: string; name: string }) {
   const crit = critChance(state);
   const mult = incomeMultiplier(state);
   const boost = sync.traffic?.boost ?? 0;
-  const { t, num, fixed } = useI18n();
+  const t = useTranslations();
+  const { num, fixed } = useFormat();
 
   return (
     // On wide screens the game fills the window exactly: the side panel scrolls inside itself, never the page.
@@ -37,13 +39,13 @@ export function Clicker({ code, name }: { code: string; name: string }) {
           <CardContent className="flex-row flex-wrap items-center justify-between gap-x-6 gap-y-4 sm:flex-nowrap">
             <div className="min-w-0 flex-1">
               <p className="flex items-center gap-1.5 font-heading text-sm text-muted-foreground">
-                <QzrIcon className="size-4" /> {t.clicker.points}
+                <QzrIcon className="size-4" /> {t("clicker.points")}
               </p>
               <PointsValue points={state.points} taps={state.taps} />
               {/* Upgrades first, bonuses (turbo, income multiplier) on a line of their own. */}
               <div className="mt-2 flex flex-wrap gap-1.5">
                 <Badge variant="secondary" className="tabular-nums">
-                  <Hand /> {num(perTap(state), true)} {t.clicker.perTap}
+                  <Hand /> {num(perTap(state), true)} {t("clicker.perTap")}
                 </Badge>
                 {crit > 0 && (
                   <Badge variant="secondary" className="tabular-nums">
@@ -55,7 +57,7 @@ export function Clicker({ code, name }: { code: string; name: string }) {
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {boost > 0 && (
                     <Badge className="tabular-nums">
-                      <Gauge /> {num(perSecond(state, boost), true)} {t.clicker.perSec}
+                      <Gauge /> {num(perSecond(state, boost), true)} {t("clicker.perSec")}
                     </Badge>
                   )}
                   {mult > 1 && (
@@ -73,7 +75,7 @@ export function Clicker({ code, name }: { code: string; name: string }) {
         <div className="pt-6">
           <FlagButton code={code} name={name} />
           <p className="mt-4 flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
-            <MousePointerClick className="size-4" /> {t.clicker.hint}
+            <MousePointerClick className="size-4" /> {t("clicker.hint")}
           </p>
         </div>
       </section>
@@ -89,7 +91,7 @@ export function Clicker({ code, name }: { code: string; name: string }) {
 /** Upgrades and the move in tabs; a dot marks a tab with something to buy. */
 function SidePanel({ state }: { state: GameState }) {
   const config = useConfig();
-  const { t } = useI18n();
+  const t = useTranslations();
   // An older RemnaWeb sends no prestige: then there is only the upgrades.
   if (!config.prestige.perks.length) return <Upgrades state={state} />;
 
@@ -98,11 +100,11 @@ function SidePanel({ state }: { state: GameState }) {
     <Tabs defaultValue="upgrades" className="lg:min-h-0 lg:flex-1">
       <TabsList className="w-full shrink-0">
         <TabsTrigger value="upgrades">
-          <ArrowUpCircle /> {t.upgrades.title}
+          <ArrowUpCircle /> {t("upgrades.title")}
           {upgradeReady(state, config.upgrades) && <span className="size-1.5 rounded-full bg-primary" />}
         </TabsTrigger>
         <TabsTrigger value="prestige">
-          <ChipIcon mono /> {t.prestige.title}
+          <ChipIcon mono /> {t("prestige.title")}
           {prestigeReady(config, state) && <span className="size-1.5 rounded-full bg-primary" />}
         </TabsTrigger>
       </TabsList>
@@ -121,7 +123,7 @@ const PASSIVE_BUMP_MS = 1000;
 
 /** The points counter; its changed digits bounce on every tap and, more calmly, as passive income comes in. */
 function PointsValue({ points, taps }: { points: number; taps: number }) {
-  const text = useI18n().num(points);
+  const text = useFormat().num(points);
   const ref = useRef<HTMLParagraphElement>(null);
   const last = useRef({ points, taps, text, bumpedAt: 0 });
 
@@ -182,33 +184,17 @@ function changedRange(prev: string, next: string): [number, number] {
 
 /** Signed out: a sign-in prompt without a word about the turbo. Signed in: that the turbo is not open to the account, how to unlock it, or its rate. */
 function TrafficHint({ name, sync: s }: { name: string; sync: SyncState }) {
-  const { t, bytes } = useI18n();
+  const t = useTranslations();
   const traffic = s.traffic;
+  const boost = () => <span className="font-medium text-foreground">{traffic?.boost}×</span>;
 
   let text: ReactNode;
-  if (!s.token) text = t.traffic.signIn;
-  else if (!traffic) text = t.traffic.checking;
-  else if (traffic.boost > 0 && traffic.boost === traffic.bought) {
-    const [before, after] = t.traffic.bought();
-    text = (
-      <>
-        {before}
-        <span className="font-medium text-foreground">{traffic.boost}×</span>
-        {after}
-      </>
-    );
-  } else if (traffic.eligible === false) text = t.traffic.unavailable(name);
-  else if (traffic.boost <= 0) text = t.traffic.none(name, traffic.windowDays);
-  else {
-    const [before, after] = t.traffic.active(bytes(traffic.bytes), name, traffic.windowDays);
-    text = (
-      <>
-        {before}
-        <span className="font-medium text-foreground">{traffic.boost}×</span>
-        {after}
-      </>
-    );
-  }
+  if (!s.token) text = t("traffic.signIn");
+  else if (!traffic) text = t("traffic.checking");
+  else if (traffic.boost > 0 && traffic.boost === traffic.bought) text = t.rich("traffic.bought", { boost });
+  else if (traffic.eligible === false) text = t("traffic.unavailable", { country: name });
+  else if (traffic.boost <= 0) text = t("traffic.none", { country: name, days: traffic.windowDays });
+  else text = t.rich("traffic.active", { country: name, days: traffic.windowDays, boost });
 
   return (
     <div
@@ -221,7 +207,7 @@ function TrafficHint({ name, sync: s }: { name: string; sync: SyncState }) {
       <p className="flex-1">{text}</p>
       {!s.token && (
         <Button size="xs" variant="outline" onClick={() => location.assign(syncApi.signInUrl())}>
-          <Send /> {t.account.signIn}
+          <Send /> {t("account.signIn")}
         </Button>
       )}
     </div>
@@ -229,15 +215,16 @@ function TrafficHint({ name, sync: s }: { name: string; sync: SyncState }) {
 }
 
 function Stats({ taps, total }: { taps: number; total: number }) {
-  const { t, num } = useI18n();
+  const t = useTranslations();
+  const { num } = useFormat();
   return (
     <div className="grid w-full gap-1.5 border-t pt-3 text-xs sm:flex sm:w-auto sm:shrink-0 sm:items-center sm:gap-4 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-6">
       <div className="flex items-baseline justify-between gap-3 sm:block">
-        <p className="text-muted-foreground">{t.clicker.totalTaps}</p>
+        <p className="text-muted-foreground">{t("clicker.totalTaps")}</p>
         <p className="text-sm font-semibold tabular-nums">{num(taps)}</p>
       </div>
       <div className="flex items-baseline justify-between gap-3 sm:block">
-        <p className="text-muted-foreground">{t.clicker.totalEarned}</p>
+        <p className="text-muted-foreground">{t("clicker.totalEarned")}</p>
         <p className="text-sm font-semibold tabular-nums">{num(total)}</p>
       </div>
     </div>

@@ -1,11 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Science_Gothic } from "next/font/google";
 import { connection } from "next/server";
+import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { I18nProvider } from "@/components/i18n-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { nodeCountry } from "@/lib/country";
-import { dictionaries } from "@/lib/i18n";
-import { getLocale } from "@/lib/i18n/server";
+import type { Messages } from "@/i18n/messages";
 import { siteGame } from "@/lib/site-game";
 import "flag-icons/css/flag-icons.min.css";
 import "./globals.css";
@@ -22,12 +22,12 @@ export async function generateMetadata(): Promise<Metadata> {
   await connection();
   const locale = await getLocale();
   const { name } = nodeCountry(locale);
-  const t = dictionaries[locale];
+  const t = await getTranslations();
   const snake = siteGame() === "snake";
-  const title = snake ? t.snake.title(name) : t.meta.title(name);
+  const title = snake ? t("snake.title", { country: name }) : t("meta.title", { country: name });
   return {
     title: { default: title, template: `%s · ${title}` },
-    description: snake ? t.snake.description(name) : t.meta.description(name),
+    description: snake ? t("snake.description", { country: name }) : t("meta.description", { country: name }),
     icons: { icon: "/flag.svg" },
   };
 }
@@ -46,14 +46,14 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   await connection();
-  const locale = await getLocale();
+  const [locale, messages] = await Promise.all([getLocale(), getMessages()]);
   // Optional: the stub sites stay anonymous unless a footer is asked for.
   const footer = process.env.SITE_FOOTER?.trim();
 
   return (
     <html lang={locale} className={`${inter.variable} ${scienceGothic.variable}`}>
       <body className="flex min-h-dvh flex-col overflow-x-clip antialiased">
-        <I18nProvider locale={locale}>
+        <I18nProvider locale={locale} messages={messages as Messages}>
           {children}
           {footer && <footer className="px-4 pb-6 text-center text-xs text-muted-foreground">© {new Date().getFullYear()} {footer}</footer>}
           <Toaster position="top-center" />

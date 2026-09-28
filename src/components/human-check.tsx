@@ -1,8 +1,9 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useI18n } from "@/components/i18n-provider";
+
 import { Button } from "@/components/ui/button";
 import { human, type HumanCheck } from "@/lib/human";
 import { cn } from "@/lib/utils";
@@ -12,7 +13,7 @@ import { cn } from "@/lib/utils";
  * it is passed; after three misses checks pause for a few minutes. Mirrors the RemnaWeb Mini App's.
  */
 export function HumanCheckOverlay() {
-  const { t } = useI18n();
+  const t = useTranslations();
   const [check, setCheck] = useState<HumanCheck | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [missed, setMissed] = useState(false);
@@ -74,9 +75,9 @@ export function HumanCheckOverlay() {
       {check && "token" in check ? (
         <>
           <p className="text-sm font-semibold">
-            {t.human.title} <span className="align-middle text-2xl">{check.target}</span>
+            {t("human.title")} <span className="align-middle text-2xl">{check.target}</span>
           </p>
-          {missed && <p className="text-xs text-destructive">{t.human.missed}</p>}
+          {missed && <p className="text-xs text-destructive">{t("human.missed")}</p>}
           <div className="grid grid-cols-3 gap-2">
             {check.options.map((emoji, i) => (
               <button
@@ -90,19 +91,19 @@ export function HumanCheckOverlay() {
               </button>
             ))}
           </div>
-          <p className="text-[11px] text-muted-foreground">{t.human.notCounted}</p>
+          <p className="text-[11px] text-muted-foreground">{t("human.notCounted")}</p>
         </>
       ) : check ? (
-        <p className="text-sm tabular-nums">{t.human.blocked(`${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`)}</p>
+        <p className="text-sm tabular-nums">{t("human.blocked", { time: `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` })}</p>
       ) : error ? (
         <>
           <p className="text-sm text-destructive">{error}</p>
           <Button size="sm" variant="outline" onClick={reload}>
-            {t.human.retry}
+            {t("human.retry")}
           </Button>
         </>
       ) : (
-        <p className="text-sm text-muted-foreground">{t.human.loading}</p>
+        <p className="text-sm text-muted-foreground">{t("human.loading")}</p>
       )}
     </div>
   );

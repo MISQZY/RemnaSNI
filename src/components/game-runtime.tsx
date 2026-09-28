@@ -4,7 +4,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { formatDuration, formatNumber } from "@/lib/format";
 import { game } from "@/lib/game";
-import { currentLocale, t } from "@/lib/i18n";
+import { currentLocale, tr } from "@/i18n/client";
 import { sync } from "@/lib/sync";
 
 /** How often passive income from the turbo is credited; it is counted by the time passed, so a second is enough. */
@@ -27,8 +27,9 @@ export function GameRuntime({ syncEnabled, country }: { syncEnabled: boolean; co
     const away = game.hydrate();
     if (away.gain >= 1 && away.seconds >= 60) {
       const locale = currentLocale();
-      toast.success(t().clicker.welcomeBack, {
-        description: t().clicker.awayIncome(formatNumber(away.gain, false, locale), formatDuration(away.seconds, locale)),
+      const t = tr();
+      toast.success(t("clicker.welcomeBack"), {
+        description: t("clicker.awayIncome", { points: formatNumber(away.gain, false, locale), time: formatDuration(away.seconds, locale) }),
       });
     }
     // Hidden tabs skip the ticks: the income is credited by the time passed once the tab is back.

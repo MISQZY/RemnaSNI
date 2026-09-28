@@ -39,6 +39,8 @@ jobs:
 
       - run: npx eslint .
 
+      - run: npx vitest run
+
   image:
     name: Build & Push Image
     runs-on: ubuntu-latest

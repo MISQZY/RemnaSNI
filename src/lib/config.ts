@@ -1,4 +1,4 @@
-import type { Locale } from "@/lib/i18n";
+import type { Locale } from "@/i18n/locales";
 
 // Rules and texts of the game. RemnaWeb is the source of truth (lib/clicker/config.ts there): the server loads
 // them from GET /api/sni/config (lib/config-server.ts) and hands them to the page. These types mirror it.

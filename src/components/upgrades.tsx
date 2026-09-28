@@ -1,9 +1,10 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Lock } from "lucide-react";
 import { GameIcon } from "@/components/game-icon";
 import { useConfig } from "@/components/config-provider";
-import { useI18n } from "@/components/i18n-provider";
+import { useFormat } from "@/components/i18n-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
@@ -31,12 +32,12 @@ export const upgradeReady = (s: GameState, upgrades: Upgrade[]) => upgrades.some
 
 /** The upgrade shop; its title is the tab it sits in. */
 export function Upgrades({ state }: { state: GameState }) {
-  const { t } = useI18n();
+  const t = useTranslations();
   const { upgrades } = useConfig();
   return (
     <Card size="sm">
       <CardHeader>
-        <CardDescription>{t.upgrades.description}</CardDescription>
+        <CardDescription>{t("upgrades.description")}</CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="tap">
@@ -45,7 +46,7 @@ export function Upgrades({ state }: { state: GameState }) {
               const ready = upgrades.some((u) => tab.kinds.includes(u.kind) && revealed(state, u) && affordable(state, u));
               return (
                 <TabsTrigger key={tab.value} value={tab.value}>
-                  {t.upgrades.tabs[tab.value]}
+                  {t(`upgrades.tabs.${tab.value}`)}
                   {ready && <span className="size-1.5 rounded-full bg-primary" />}
                 </TabsTrigger>
               );
@@ -66,7 +67,8 @@ function UpgradeList({ state, upgrades }: { state: GameState; upgrades: Upgrade[
   // The first upgrade of each tab is always on display so a fresh game has something to aim for.
   const visible = upgrades.filter((u, i) => i === 0 || revealed(state, u));
   const teaser = upgrades.find((u) => !visible.includes(u));
-  const { t, num } = useI18n();
+  const t = useTranslations();
+  const { num } = useFormat();
   return (
     <>
       {visible.map((u) => (
@@ -79,7 +81,7 @@ function UpgradeList({ state, upgrades }: { state: GameState; upgrades: Upgrade[
           </div>
           <div className="min-w-0 flex-1">
             <p className="font-medium">???</p>
-            <p className="text-xs">{t.upgrades.reveal(num(teaser.baseCost / 2))}</p>
+            <p className="text-xs">{t("upgrades.reveal", { points: num(teaser.baseCost / 2) })}</p>
           </div>
         </div>
       )}
@@ -92,7 +94,8 @@ function UpgradeRow({ state, upgrade: u }: { state: GameState; upgrade: Upgrade 
   const maxed = !!u.maxLevel && lvl >= u.maxLevel;
   const cost = upgradePrice(config(), state, u);
   const canBuy = affordable(state, u);
-  const { t, num, locale } = useI18n();
+  const t = useTranslations();
+  const { num, locale } = useFormat();
 
   return (
     <div className={cn("flex items-center gap-3 rounded-lg p-3 ring-1 ring-foreground/10 transition-colors", canBuy && "bg-accent/50")}>
@@ -109,7 +112,7 @@ function UpgradeRow({ state, upgrade: u }: { state: GameState; upgrade: Upgrade 
           <p className="truncate font-medium">{u.name[locale]}</p>
           {lvl > 0 && (
             <Badge variant="secondary" className="tabular-nums">
-              {maxed ? t.upgrades.maxBadge : t.upgrades.level(lvl)}
+              {maxed ? t("upgrades.maxBadge") : t("upgrades.level", { n: lvl })}
             </Badge>
           )}
         </div>
@@ -117,7 +120,7 @@ function UpgradeRow({ state, upgrade: u }: { state: GameState; upgrade: Upgrade 
         {!canBuy && !maxed && <Progress value={Math.min(100, (state.points / cost) * 100)} className="mt-2 h-1" />}
       </div>
       <Button size="sm" className="min-w-16 tabular-nums" disabled={!canBuy} onClick={() => game.buy(u.id)}>
-        {maxed ? t.upgrades.max : num(cost)}
+        {maxed ? t("upgrades.max") : num(cost)}
       </Button>
     </div>
   );

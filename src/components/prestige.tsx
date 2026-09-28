@@ -1,12 +1,13 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { ChipIcon } from "@/components/chip-icon";
 import { QzrIcon } from "@/components/qzr-icon";
 import { GameIcon } from "@/components/game-icon";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useConfig } from "@/components/config-provider";
-import { useI18n } from "@/components/i18n-provider";
+import { useFormat } from "@/components/i18n-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
@@ -30,7 +31,8 @@ export const prestigeReady = (config: GameConfig, s: GameState) =>
 /** The move to a new place and the perks bought with its keys; its title is the tab it sits in. */
 export function Prestige({ state }: { state: GameState }) {
   const config = useConfig();
-  const { t, num, fixed } = useI18n();
+  const t = useTranslations();
+  const { num, fixed } = useFormat();
   const [confirming, setConfirming] = useState(false);
   const keys = state.keys ?? 0;
   const pending = pendingKeys(config, state);
@@ -56,32 +58,32 @@ export function Prestige({ state }: { state: GameState }) {
     }
     setConfirming(false);
     const gain = game.prestige();
-    if (gain) toast.success(t.prestige.done, { description: t.prestige.doneHint(num(gain), gain, fixed(prestigeMultiplier(game.getSnapshot()), 2)) });
+    if (gain) toast.success(t("prestige.done"), { description: t("prestige.doneHint", { keys: num(gain), n: gain, mult: fixed(prestigeMultiplier(game.getSnapshot()), 2) }) });
   }
 
   return (
     <Card size="sm">
       <CardHeader>
-        <CardDescription>{t.prestige.description(Math.round(config.prestige.keyBonus * 100))}</CardDescription>
+        <CardDescription>{t("prestige.description", { percent: Math.round(config.prestige.keyBonus * 100) })}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="rounded-lg bg-muted/60 px-2.5 py-2">
-            <p className="text-xs text-muted-foreground">{t.prestige.keys}</p>
+            <p className="text-xs text-muted-foreground">{t("prestige.keys")}</p>
             <p className="flex flex-wrap items-center gap-x-1 font-semibold tabular-nums">
               <ChipIcon className="size-4" /> {num(keys)}
-              {keys > 0 && <span className="font-normal text-muted-foreground"> · {t.prestige.free(num(freeKeys(config, state)))}</span>}
+              {keys > 0 && <span className="font-normal text-muted-foreground"> · {t("prestige.free", { n: num(freeKeys(config, state)) })}</span>}
             </p>
           </div>
           <div className="rounded-lg bg-muted/60 px-2.5 py-2">
-            <p className="text-xs text-muted-foreground">{t.prestige.bonus}</p>
+            <p className="text-xs text-muted-foreground">{t("prestige.bonus")}</p>
             <p className="font-semibold tabular-nums">×{fixed(prestigeMultiplier(state), 2)}</p>
           </div>
         </div>
 
         <div className="space-y-1.5">
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{t.prestige.nextKey}</span>
+            <span>{t("prestige.nextKey")}</span>
             <span className="flex items-center gap-1 tabular-nums">
               <QzrIcon className="size-3.5" /> {num(state.totalEarned)} / {num(next)}
             </span>
@@ -91,12 +93,12 @@ export function Prestige({ state }: { state: GameState }) {
 
         <Button className="w-full" variant={confirming ? "destructive" : "default"} disabled={pending < 1} onClick={move}>
           {pending >= 1 && <ChipIcon mono />}
-          {pending < 1 ? t.prestige.nothing : confirming ? t.prestige.confirm : t.prestige.move(num(pending), pending)}
+          {pending < 1 ? t("prestige.nothing") : confirming ? t("prestige.confirm") : t("prestige.move", { keys: num(pending), n: pending })}
         </Button>
 
         {keys > 0 && (
           <div className="space-y-2 pt-1">
-            <p className="text-sm font-medium">{t.prestige.perks}</p>
+            <p className="text-sm font-medium">{t("prestige.perks")}</p>
             {config.prestige.perks.map((p) => (
               <PerkRow key={p.id} state={state} perk={p} />
             ))}
@@ -109,7 +111,8 @@ export function Prestige({ state }: { state: GameState }) {
 
 function PerkRow({ state, perk: p }: { state: GameState; perk: PerkDef }) {
   const config = useConfig();
-  const { t, num, locale } = useI18n();
+  const t = useTranslations();
+  const { num, locale } = useFormat();
   const lvl = perkLevel(state, p.id);
   const maxed = !!p.maxLevel && lvl >= p.maxLevel;
   const cost = perkCost(p, lvl);
@@ -130,7 +133,7 @@ function PerkRow({ state, perk: p }: { state: GameState; perk: PerkDef }) {
           <p className="truncate font-medium">{p.name[locale]}</p>
           {lvl > 0 && (
             <Badge variant="secondary" className="tabular-nums">
-              {maxed ? t.upgrades.maxBadge : t.upgrades.level(lvl)}
+              {maxed ? t("upgrades.maxBadge") : t("upgrades.level", { n: lvl })}
             </Badge>
           )}
         </div>
@@ -138,7 +141,7 @@ function PerkRow({ state, perk: p }: { state: GameState; perk: PerkDef }) {
       </div>
       <Button size="sm" className="min-w-16 tabular-nums" disabled={!canBuy} onClick={() => game.buyPerk(p.id)}>
         {maxed ? (
-          t.upgrades.max
+          t("upgrades.max")
         ) : (
           <>
             <ChipIcon /> {num(cost)}

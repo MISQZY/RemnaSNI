@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { LOCALE_COOKIE, isLocale } from "@/lib/i18n";
+import { LOCALE_COOKIE, isLocale } from "@/i18n/locales";
 import { siteGame, type GameId } from "@/lib/site-game";
 
 /** Public paths of each game; the pages live under app/games/<id>. */

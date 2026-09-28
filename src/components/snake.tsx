@@ -1,10 +1,11 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Gamepad2, Gauge, Heart, LogOut, Pause, Play, RotateCcw, Send, Sparkles, Turtle } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { ChipIcon } from "@/components/chip-icon";
-import { LanguageSwitch, useI18n } from "@/components/i18n-provider";
+import { LanguageSwitch, useFormat } from "@/components/i18n-provider";
 import { QzrIcon } from "@/components/qzr-icon";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -220,7 +221,8 @@ function draw(canvas: HTMLCanvasElement, g: Game | null) {
 }
 
 /** A snake bonus as RemnaWeb reports it: level bought, the next level's price in Qzr keys (null when maxed). */
-type Perk = { id: string; perLevel: number; level: number; maxLevel: number; cost: number | null };
+/** A bonus as RemnaWeb sends it, named in the page's language; `{n}` in the description is the effect of the level. */
+type Perk = { id: string; name: string; description: string; perLevel: number; level: number; maxLevel: number; cost: number | null };
 /**
  * `boost` is the country's turbo, `multiplier` what it does to crystal prices (1 without it); `keys` the free
  * Qzr keys (shared with the clicker), `nextKey` the crystals left until the next one.
@@ -302,7 +304,8 @@ const noop = () => () => {};
 const PERK_ICONS: Record<string, typeof Sparkles> = { golden: Sparkles, life: Heart, slow: Turtle };
 
 export function SnakeSite({ code, name, signIn }: { code: string; name: string; signIn: boolean }) {
-  const { t, num, fixed } = useI18n();
+  const t = useTranslations();
+  const { num, fixed } = useFormat();
   const account = useSession();
   // False while hydrating, so values kept in the browser do not differ from the server's markup.
   const hydrated = useSyncExternalStore(noop, () => true, () => false);
@@ -359,7 +362,7 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
     }
     writePending(left);
     setPending(left);
-    if (earned > 0) toast.success(t.snake.synced(num(earned)));
+    if (earned > 0) toast.success(t("snake.synced", { n: num(earned) }));
   });
 
   const loadStatus = useEffectEvent(async () => {
@@ -431,7 +434,7 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
       // Crystals eaten while the chunk was on its way are not in the server's count yet.
       setCollected(res.crystals + chunkRef.current.score);
     } catch {
-      toast.error(t.snake.failed);
+      toast.error(t("snake.failed"));
     }
   });
 
@@ -509,7 +512,7 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
       const res = await snakeApi<Status>(code, { id }, "snake/perks");
       if (res) setStatus((s) => ({ ...res, value: s?.value ?? DEFAULT_VALUE }));
     } catch {
-      toast.error(t.snake.buyFailed);
+      toast.error(t("snake.buyFailed"));
     } finally {
       setBuying(null);
     }
@@ -582,7 +585,7 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
         <span className={cn("fi shrink-0 rounded-[3px] text-2xl shadow-xs", `fi-${code}`)} />
         <div className="min-w-0 flex-1">
           <p className="truncate font-heading text-xl font-semibold">{name}</p>
-          <p className="text-sm text-muted-foreground">{t.snake.subtitle}</p>
+          <p className="text-sm text-muted-foreground">{t("snake.subtitle")}</p>
         </div>
         <LanguageSwitch />
         <SnakeAccount signIn={signIn} name={account.account?.name ?? null} photoUrl={account.account?.photoUrl ?? null} token={account.token} />
@@ -616,8 +619,8 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
         {/* Score, record and balance in one compact row, with pause and the pad toggle at its end. */}
         <div className="flex items-center gap-2">
           <div className="grid min-w-0 flex-1 grid-cols-3 gap-1.5">
-            <Stat label={t.snake.score} value={num(score)} />
-            <Stat label={t.snake.best} value={num(shownBest)} />
+            <Stat label={t("snake.score")} value={num(score)} />
+            <Stat label={t("snake.best")} value={num(shownBest)} />
             <Stat
               label="Qzr"
               value={
@@ -634,7 +637,7 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
           <Button
             variant="ghost"
             size="icon"
-            aria-label={phase === "paused" ? t.snake.resume : t.snake.paused}
+            aria-label={phase === "paused" ? t("snake.resume") : t("snake.paused")}
             disabled={phase !== "playing" && phase !== "paused"}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={togglePause}
@@ -646,7 +649,7 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
             variant={showPad ? "secondary" : "ghost"}
             size="icon"
             className="sm:hidden"
-            aria-label={t.snake.pad}
+            aria-label={t("snake.pad")}
             aria-pressed={showPad}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={togglePad}
@@ -658,7 +661,7 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
         <p className="flex items-center justify-center gap-1 text-center text-xs text-muted-foreground">
           {hydrated && (
             <>
-              <QzrIcon className="size-3.5" /> {t.snake.price(num(nextPrice))}
+              <QzrIcon className="size-3.5" /> {t("snake.price", { qzr: num(nextPrice) })}
             </>
           )}
           {phase !== "ready" && lives > 0 && (
@@ -668,10 +671,10 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
           )}
           {turbo > 1 && (
             <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/12 px-1.5 font-medium text-primary">
-              <Gauge className="size-3" /> {t.snake.turbo(fixed(status?.boost ?? 0, 1), num(Math.round((turbo - 1) * 100)))}
+              <Gauge className="size-3" /> {t("snake.turbo", { boost: fixed(status?.boost ?? 0, 1), percent: num(Math.round((turbo - 1) * 100)) })}
             </span>
           )}
-          {!account.token && signIn && <span>· {t.snake.signIn}</span>}
+          {!account.token && signIn && <span>· {t("snake.signIn")}</span>}
         </p>
 
         {/* A frame around the board, so its rounding never cuts the corner cells. */}
@@ -699,31 +702,31 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
           </div>
           {phase !== "playing" && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-3xl bg-background/60 backdrop-blur-[2px]">
-              {phase !== "ready" && <p className="font-heading text-2xl font-bold">{phase === "paused" ? t.snake.paused : t.snake.over}</p>}
-              {phase === "over" && <p className="text-sm text-muted-foreground tabular-nums">{t.snake.score}: {num(score)}</p>}
+              {phase !== "ready" && <p className="font-heading text-2xl font-bold">{phase === "paused" ? t("snake.paused") : t("snake.over")}</p>}
+              {phase === "over" && <p className="text-sm text-muted-foreground tabular-nums">{t("snake.score")}: {num(score)}</p>}
               <Button size="lg" onClick={phase === "paused" ? togglePause : start}>
                 {phase === "over" ? <RotateCcw /> : <Play />}
-                {phase === "ready" ? t.snake.play : phase === "paused" ? t.snake.resume : t.snake.again}
+                {phase === "ready" ? t("snake.play") : phase === "paused" ? t("snake.resume") : t("snake.again")}
               </Button>
-              {phase === "ready" && <p className="text-xs text-muted-foreground sm:hidden">{t.snake.swipe}</p>}
+              {phase === "ready" && <p className="text-xs text-muted-foreground sm:hidden">{t("snake.swipe")}</p>}
             </div>
           )}
         </div>
 
-        <p className="hidden text-center text-xs text-muted-foreground sm:block">{t.snake.hint}</p>
+        <p className="hidden text-center text-xs text-muted-foreground sm:block">{t("snake.hint")}</p>
 
         {/* Bonuses bought with the country's Qzr keys, shared with the clicker; kept in RemnaWeb, so signed in only. */}
         {account.token && status && (
           <section className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between gap-2 text-sm">
-              <p className="font-heading font-semibold">{t.snake.bonuses}</p>
+              <p className="font-heading font-semibold">{t("snake.bonuses")}</p>
               <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                <ChipIcon className="size-4" /> {num(status.keys)} · {t.snake.nextKey(num(status.nextKey))}
+                <ChipIcon className="size-4" /> {num(status.keys)} · {t("snake.nextKey", { n: num(status.nextKey) })}
               </p>
             </div>
             {status.perks.map((p) => {
               const Icon = PERK_ICONS[p.id] ?? Sparkles;
-              const text = t.snake.perks[p.id as keyof typeof t.snake.perks];
+              const effect = num(Math.round(Math.max(1, p.level) * p.perLevel * (p.id === "life" ? 1 : 100)));
               const maxed = p.cost === null;
               const canBuy = !maxed && status.keys >= (p.cost ?? Infinity) && phase !== "playing";
               return (
@@ -733,16 +736,16 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium">
-                      {text?.name ?? p.id}
+                      {p.name ?? p.id}
                       <span className="ml-1.5 text-xs text-muted-foreground tabular-nums">
                         {p.level}/{p.maxLevel}
                       </span>
                     </p>
-                    <p className="text-xs text-muted-foreground">{text?.description(num(Math.round(Math.max(1, p.level) * p.perLevel * (p.id === "life" ? 1 : 100))))}</p>
+                    <p className="text-xs text-muted-foreground">{p.description?.replace("{n}", effect)}</p>
                   </div>
                   <Button size="sm" className="shrink-0 tabular-nums" disabled={!canBuy || buying !== null} onClick={() => void buyPerk(p.id)}>
                     {maxed ? (
-                      t.snake.max
+                      t("snake.max")
                     ) : (
                       <>
                         <ChipIcon /> {num(p.cost ?? 0)}
@@ -761,17 +764,17 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
         <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-background via-background/90 to-transparent pt-6 pb-[calc(env(safe-area-inset-bottom,0px)+14px)] select-none sm:hidden">
           <div className="mx-auto grid w-fit touch-none grid-cols-3 gap-2">
             <span />
-            <PadButton label={t.snake.up} onPress={() => steer("up")}>
+            <PadButton label={t("snake.up")} onPress={() => steer("up")}>
               <ArrowUp />
             </PadButton>
             <span />
-            <PadButton label={t.snake.left} onPress={() => steer("left")}>
+            <PadButton label={t("snake.left")} onPress={() => steer("left")}>
               <ArrowLeft />
             </PadButton>
-            <PadButton label={t.snake.down} onPress={() => steer("down")}>
+            <PadButton label={t("snake.down")} onPress={() => steer("down")}>
               <ArrowDown />
             </PadButton>
-            <PadButton label={t.snake.right} onPress={() => steer("right")}>
+            <PadButton label={t("snake.right")} onPress={() => steer("right")}>
               <ArrowRight />
             </PadButton>
           </div>
@@ -811,11 +814,11 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
 
 /** Telegram sign-in, or the signed-in account with a sign-out. */
 function SnakeAccount({ signIn, name, photoUrl, token }: { signIn: boolean; name: string | null; photoUrl: string | null; token: string | null }) {
-  const { t } = useI18n();
+  const t = useTranslations();
   if (!token) {
     return signIn ? (
       <Button size="sm" onClick={() => location.assign(session.signInUrl())}>
-        <Send /> {t.account.signIn}
+        <Send /> {t("account.signIn")}
       </Button>
     ) : null;
   }
@@ -823,7 +826,7 @@ function SnakeAccount({ signIn, name, photoUrl, token }: { signIn: boolean; name
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button type="button" aria-label={t.account.account} className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+        <button type="button" aria-label={t("account.account")} className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
           <Avatar size="lg">
             {photoUrl && <AvatarImage src={photoUrl} alt="" referrerPolicy="no-referrer" />}
             <AvatarFallback>{shown.slice(0, 2).toUpperCase()}</AvatarFallback>
@@ -833,7 +836,7 @@ function SnakeAccount({ signIn, name, photoUrl, token }: { signIn: boolean; name
       <PopoverContent align="end" className="w-56 p-1">
         <p className="truncate p-2 text-sm font-medium">{shown}</p>
         <Button variant="ghost" size="sm" className="w-full justify-start text-destructive hover:text-destructive" onClick={session.signOut}>
-          <LogOut /> {t.snake.signOut}
+          <LogOut /> {t("snake.signOut")}
         </Button>
       </PopoverContent>
     </Popover>

@@ -1,4 +1,6 @@
-import { dictionaries, type Locale } from "@/lib/i18n";
+import { createTranslator } from "next-intl";
+import type { Locale } from "@/i18n/locales";
+import { MESSAGES } from "@/i18n/messages";
 
 const SUFFIXES = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
 
@@ -24,19 +26,20 @@ function formatPlain(n: number, fraction: boolean): string {
   return `${value.toFixed(value < 10 ? 2 : value < 100 ? 1 : 0).replace(/\.0+$/, "")}${SUFFIXES[tier]}`;
 }
 
+const BYTE_UNITS = ["byte", "kilobyte", "megabyte", "gigabyte", "terabyte", "petabyte"] as const;
+
+/** 1536 -> "1.5 kB" / "1,5 КБ". */
 export function formatBytes(bytes: number, locale: Locale = "en"): string {
-  const units = dictionaries[locale].units.bytes;
-  if (!bytes || bytes < 0) return `0 ${units[0]}`;
-  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-  const v = bytes / 1024 ** i;
-  const value = v.toFixed(i === 0 || v >= 100 ? 0 : 1);
-  return `${locale === "ru" ? value.replace(".", ",") : value} ${units[i]}`;
+  const i = bytes > 0 ? Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), BYTE_UNITS.length - 1) : 0;
+  const v = bytes > 0 ? bytes / 1024 ** i : 0;
+  const digits = i === 0 || v >= 100 ? 0 : 1;
+  return new Intl.NumberFormat(locale, { style: "unit", unit: BYTE_UNITS[i], unitDisplay: "short", maximumFractionDigits: digits }).format(v);
 }
 
+/** "2h 5m" / "2 ч 5 мин"; under an hour, minutes only (at least one). */
 export function formatDuration(seconds: number, locale: Locale = "en"): string {
-  const { hours, minutes } = dictionaries[locale].units;
-  const sep = locale === "ru" ? " " : "";
+  const t = createTranslator({ locale, messages: MESSAGES[locale], namespace: "units" });
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
-  return h ? `${h}${sep}${hours} ${m}${sep}${minutes}` : `${Math.max(m, 1)}${sep}${minutes}`;
+  return h ? t("hoursMinutes", { h, m }) : t("minutes", { m: Math.max(m, 1) });
 }

@@ -75,10 +75,16 @@ On the RemnaWeb side set `TELEGRAM_LOGIN_CLIENT_SECRET` and add this site's orig
 
 ## Languages
 
-English by default, Russian as well; the language button in the header switches between them and the choice is kept
-in the `lang` cookie, so the server renders the page in it. All interface strings are in `src/lib/i18n/en.ts` and
-`ru.ts` (typed by the English one, so a missing translation fails the build). Country names come from
-`Intl.DisplayNames`; upgrade and perk names and descriptions arrive from RemnaWeb in both languages.
+English by default, Russian as well, through `next-intl` (ICU MessageFormat: plurals, placeholders, tags). The language
+button in the header switches between them and the choice is kept in the `lang` cookie, so the server renders the page
+in it; the RemnaWeb Mini App passes its language as `?lang=` (`src/proxy.ts`). Interface strings are in
+`messages/en.json` and `messages/ru.json`: the English catalog types the keys and arguments (`src/global.d.ts`), and
+`npm test` checks that both catalogs have the same keys, parse as ICU and take the same arguments. Code outside React
+(sync, toasts of the game loop) translates through `src/i18n/client.ts`.
+
+The API proxy (`app/api/sni/[...path]`) passes the page's language to RemnaWeb as `x-locale`, so its answers and errors
+come in it. Country names come from `Intl.DisplayNames`; upgrade and perk names and descriptions arrive from RemnaWeb
+in both languages, snake bonuses in the page's language.
 
 ## Run on a node
 
@@ -126,4 +132,5 @@ Caddy.
 ```sh
 npm install
 NODE_COUNTRY=de npm run dev
+npm test
 ```
