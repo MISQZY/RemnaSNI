@@ -1,0 +1,41 @@
+{
+  "fishing": {
+    "meta": {
+      "title": "{country} Fishing",
+      "description": "Cast a line in {country}, hook fish of every rarity and sell them for Qzr."
+    },
+    "subtitle": "Fishing",
+    "caught": "Caught",
+    "best": "Heaviest",
+    "cast": "Cast",
+    "casting": "Casting…",
+    "waiting": "Waiting for a bite…",
+    "waitHint": "Don't pull too early",
+    "bite": "Bite! Hook it!",
+    "hook": "Hook",
+    "reel": "Hold to reel in",
+    "reelHint": "Keep the fish in the green zone",
+    "landing": "Landing…",
+    "again": "Cast again",
+    "lost": {
+      "early": "Too early: the fish got scared",
+      "missed": "Missed the bite",
+      "escaped": "The fish broke free"
+    },
+    "kg": "{kg} kg",
+    "keys": "+{n} Qzr {n, plural, one {key} other {keys}}",
+    "demo": "Sign in to sell fish for Qzr",
+    "price": "{qzr} for an average fish, growing",
+    "turbo": "turbo ×{boost} · +{percent}%",
+    "failed": "Could not reach the lake, try again",
+    "buyFailed": "Could not buy the bonus",
+    "hint": "Space or tap: cast, hook, and hold to reel in",
+    "rarity": {
+      "common": "Common",
+      "uncommon": "Uncommon",
+      "rare": "Rare",
+      "epic": "Epic",
+      "legendary": "Legendary"
+    }
+  }
+}

@@ -3,6 +3,8 @@ import clickerEn from "../../../messages/clicker/en.json";
 import clickerRu from "../../../messages/clicker/ru.json";
 import coreEn from "../../../messages/core/en.json";
 import coreRu from "../../../messages/core/ru.json";
+import fishingEn from "../../../messages/fishing/en.json";
+import fishingRu from "../../../messages/fishing/ru.json";
 import snakeEn from "../../../messages/snake/en.json";
 import snakeRu from "../../../messages/snake/ru.json";
 
@@ -14,10 +16,11 @@ export const CATALOGS = {
   core: { en: coreEn, ru: coreRu },
   clicker: { en: clickerEn, ru: clickerRu },
   snake: { en: snakeEn, ru: snakeRu },
+  fishing: { en: fishingEn, ru: fishingRu },
 };
 
-const en = { ...coreEn, ...clickerEn, ...snakeEn };
-const ru = { ...coreRu, ...clickerRu, ...snakeRu };
+const en = { ...coreEn, ...clickerEn, ...snakeEn, ...fishingEn };
+const ru = { ...coreRu, ...clickerRu, ...snakeRu, ...fishingRu };
 
 export type Messages = typeof en;
 

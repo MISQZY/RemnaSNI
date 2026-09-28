@@ -94,6 +94,41 @@
   --animate-float-up: float-up 0.9s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
   --animate-glow: glow 3s ease-in-out infinite;
   --animate-flag-burst: flag-burst 0.85s cubic-bezier(0.15, 0.6, 0.35, 1) forwards;
+  /* The fishing's float: bobbing while it waits, jerking under on a bite, and the rings it sends out. */
+  --animate-bob: bob 2.4s ease-in-out infinite;
+  --animate-bite: bite 0.35s ease-in-out infinite;
+  --animate-ripple: ripple 1.8s ease-out infinite;
+
+  @keyframes bob {
+    0%,
+    100% {
+      transform: translate(-50%, -50%);
+    }
+    50% {
+      transform: translate(-50%, -38%);
+    }
+  }
+
+  @keyframes bite {
+    0%,
+    100% {
+      transform: translate(-50%, -50%);
+    }
+    50% {
+      transform: translate(-50%, 10%) rotate(-8deg);
+    }
+  }
+
+  @keyframes ripple {
+    0% {
+      opacity: 0.55;
+      transform: translate(-50%, -50%) scale(0.4);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(2.2);
+    }
+  }
 
   @keyframes float-up {
     0% {

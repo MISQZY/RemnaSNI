@@ -12,6 +12,10 @@ export const GAMES = {
     routes: ["/"],
     api: ["snake", "snake/perks"],
   },
+  fishing: {
+    routes: ["/"],
+    api: ["fishing", "fishing/cast", "fishing/catch", "fishing/perks"],
+  },
 } as const satisfies Record<string, { routes: readonly string[]; api: readonly string[] }>;
 
 /** A game id, also known to RemnaWeb (its lib/games.ts): a new one is added there too. */

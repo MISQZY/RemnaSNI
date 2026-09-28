@@ -1,6 +1,6 @@
 # RemnaSNI
 
-Self-SNI stub site for the nodes: one of the infrastructure games — the flag clicker or the snake. RemnaWeb is the
+Self-SNI stub site for the nodes: one of the infrastructure games — the flag clicker, the snake or the fishing. RemnaWeb is the
 orchestrator: it picks the node's game and country and sends the rules; the site only plays.
 Progress lives in the visitor's `localStorage`; after signing in with Telegram it is also synced to RemnaWeb.
 Achievements and pets are not here: both are the profile's, in the RemnaWeb Mini App.
@@ -30,11 +30,19 @@ last, plus 50% per unit of the country's turbo; Qzr keys come harder and harder,
 snake's bonuses: golden crystals, a second life, a slower speed-up. Without sign-in the runs are kept on the device and
 credited after it, via RemnaWeb `/api/sni/snake`.
 
+The fishing: cast, wait for the bite and hook it in time (a tap too early scares the fish, a late one misses it),
+then reel it in by holding: the catch zone rises while held and sinks otherwise, and the fish must stay in it, or it
+breaks free (`src/games/fishing/reel.ts`). Rarer fish fight harder. Signed in, RemnaWeb rolls the fish when the line
+is cast and tells the site only how hard it pulls; the landed fish is sold for Qzr to the country balance, its price
+growing with the fish caught there, plus the turbo, and brings Qzr keys shared with the other games, which buy the
+fishing's bonuses (lure, strong line, groundbait). Without sign-in the fish are rolled on the device for fun and
+not sold, since nothing proves they were caught.
+
 ## Games and routes
 
 Every game lives in its own route subtree, `src/app/games/<id>`, with its own layout and title; the root layout holds
 only what all share (fonts, language, footer, toasts). `src/proxy.ts` gets the game at request time and rewrites the
-public paths to the node's game (`/` → `/games/clicker` or `/games/snake`); the `/games/...` paths themselves are
+public paths to the node's game (`/` → `/games/clicker`, `/games/snake` or `/games/fishing`); the `/games/...` paths themselves are
 404. So a node loads the JS of its own game only. The API proxy passes the calls of every game in the registry, so
 a tab left open on the previous game keeps saving after an admin switches the node's game in RemnaWeb.
 
@@ -53,8 +61,10 @@ src/core/           what every game uses; knows no game
   storage.ts        localStorage/sessionStorage that never throws, under the `remnasni:` prefix
   look.ts           profile cosmetics as CSS
   format.ts         numbers, bytes, durations
+  use-game-status.ts  useGameStatus(): a game's status from RemnaWeb, loaded on session start and sign-in
   i18n/             next-intl: locales, catalogs, request config, provider, useFormat, LanguageSwitch, tr()
-  ui/               SiteHeader, AccountMenu (+ SignInButton, MenuButton), ProfileAvatar, Unavailable, Qzr and key icons
+  ui/               SiteHeader, AccountMenu (+ SignInButton, MenuButton), PerkShop (bonuses for keys, key bar),
+                    StatTile, ProfileAvatar, Unavailable, Qzr and key icons
 src/games/<id>/     one game: its rules, state and components
 src/app/            routes only: app/games/<id>, the API proxy, the favicon
 messages/<scope>/   catalogs: core/ and one per game, each with its own top-level namespaces
@@ -63,7 +73,8 @@ messages/<scope>/   catalogs: core/ and one per game, each with its own top-leve
 ESLint enforces the boundaries: `src/core` imports no game, a game imports no other game.
 
 A new game: its code in `src/games/<id>` (rules loaded with `remoteConfig`, the page built from `nodePage`,
-`SiteHeader` and `AccountMenu`, calls through `api`, storage through `storage`), its pages in `src/app/games/<id>`,
+`SiteHeader` and `AccountMenu`, the status through `useGameStatus`, bonuses through `PerkShop`, calls through `api`,
+storage through `storage`), its pages in `src/app/games/<id>`,
 its texts in `messages/<id>/{en,ru}.json` listed in `src/core/i18n/messages.ts`, and its entry in `src/core/games.ts`
 (and RemnaWeb's `lib/games.ts`).
 
@@ -80,6 +91,11 @@ they have been fetched once the site shows a "temporarily unavailable" stub. So 
 The snake's rules come with them, under `snake` (`RemnaWeb/src/lib/snake-rules.ts`): the board size, the start and
 fastest step, the speed-up per crystal, the crystal price and the golden multiplier. RemnaWeb derives its run checks from
 the same numbers, so the site and the checks never disagree; without them (an older RemnaWeb) the snake shows the stub.
+
+The fishing's come under `fishing` (`RemnaWeb/src/lib/fishing-rules.ts`): the time to hook, the catch zone and how
+fast the progress fills and drains, the price formula and the species with their names, sizes and strength (for play
+without an account). The fight itself is code here (`reel.ts`); RemnaWeb accepts a catch no sooner than the bite plus
+its shortest fight, which the reel can never beat (it starts at 0.3 and fills at most at `fillPerSec`).
 
 ## Telegram sign-in
 
