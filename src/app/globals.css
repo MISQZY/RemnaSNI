@@ -171,3 +171,31 @@
     height: 100dvh;
   }
 }
+
+/* Animations of the cosmetics RemnaWeb sends with the profile (lib/look.ts), named as in RemnaWeb's globals.css. */
+@keyframes look-flow {
+  to {
+    background-position: var(--look-flow-to);
+  }
+}
+@keyframes look-pulse {
+  0%,
+  100% {
+    background-position: 0% 50%;
+    opacity: 0.5;
+  }
+  50% {
+    background-position: 100% 50%;
+    opacity: 0.8;
+  }
+}
+@keyframes look-turn {
+  to {
+    transform: rotate(1turn);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [style*="look-"] {
+    animation: none !important;
+  }
+}

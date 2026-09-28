@@ -6,12 +6,12 @@ import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } fro
 import { toast } from "sonner";
 import { ChipIcon } from "@/components/chip-icon";
 import { LanguageSwitch, useFormat } from "@/components/i18n-provider";
+import { ProfileAvatar, ProfileName } from "@/components/profile-avatar";
 import { QzrIcon } from "@/components/qzr-icon";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { SnakeRules, ValueRule } from "@/lib/config";
-import { session, useSession } from "@/lib/session";
+import { session, useSession, type Account } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 // Snake (a prototype), the game of nodes RemnaWeb has picked it for. Every crystal eaten brings Qzr to the
@@ -579,7 +579,7 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
           <p className="text-sm text-muted-foreground">{t("snake.subtitle")}</p>
         </div>
         <LanguageSwitch />
-        <SnakeAccount signIn={signIn} name={account.account?.name ?? null} photoUrl={account.account?.photoUrl ?? null} token={account.token} />
+        <SnakeAccount signIn={signIn} account={account.account} token={account.token} />
       </header>
 
       {/* The whole play area takes swipes, so a thumb below the board steers too; it does not scroll while playing. */}
@@ -804,7 +804,7 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 /** Telegram sign-in, or the signed-in account with a sign-out. */
-function SnakeAccount({ signIn, name, photoUrl, token }: { signIn: boolean; name: string | null; photoUrl: string | null; token: string | null }) {
+function SnakeAccount({ signIn, account, token }: { signIn: boolean; account: Account | null; token: string | null }) {
   const t = useTranslations();
   if (!token) {
     return signIn ? (
@@ -813,19 +813,17 @@ function SnakeAccount({ signIn, name, photoUrl, token }: { signIn: boolean; name
       </Button>
     ) : null;
   }
-  const shown = name ?? "Telegram";
   return (
     <Popover>
       <PopoverTrigger asChild>
         <button type="button" aria-label={t("account.account")} className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
-          <Avatar size="lg">
-            {photoUrl && <AvatarImage src={photoUrl} alt="" referrerPolicy="no-referrer" />}
-            <AvatarFallback>{shown.slice(0, 2).toUpperCase()}</AvatarFallback>
-          </Avatar>
+          <ProfileAvatar account={account} />
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-56 p-1">
-        <p className="truncate p-2 text-sm font-medium">{shown}</p>
+        <div className="p-2">
+          <ProfileName account={account} className="truncate text-sm font-medium" />
+        </div>
         <Button variant="ghost" size="sm" className="w-full justify-start text-destructive hover:text-destructive" onClick={session.signOut}>
           <LogOut /> {t("snake.signOut")}
         </Button>

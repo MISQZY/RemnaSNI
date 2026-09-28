@@ -90,6 +90,10 @@ keys buy perks. Keys are shared with the other games: RemnaWeb counts those they
 `keysShopSpent` in the progress), and the free ones are the same everywhere. Formulas are in `lib/rules.ts`, mirroring RemnaWeb. A tap effect bought
 in the RemnaWeb Mini App shop comes with `/api/sni/progress` as `effect` and replaces the mini flags thrown by a tap.
 
+The profile's other cosmetics from that shop — the title, the avatar frame, the name color and the glow — come with
+the player (`user.look` of `/api/sni/progress` and `/api/sni/snake`) as plain CSS, so a new look needs no redeploy here;
+`components/profile-avatar.tsx` draws them with `lib/look.ts`, and the look-* keyframes of `globals.css` animate them.
+
 On the RemnaWeb side set `TELEGRAM_LOGIN_CLIENT_SECRET` and add this site's origin to `SNI_ORIGINS`.
 
 ## Languages

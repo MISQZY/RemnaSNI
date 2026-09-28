@@ -6,22 +6,13 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useSync } from "@/components/game-runtime";
 import { useFormat } from "@/components/i18n-provider";
-import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ProfileAvatar, ProfileName } from "@/components/profile-avatar";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { game } from "@/lib/game";
 import { sync, type SyncState } from "@/lib/sync";
 import { cn } from "@/lib/utils";
-
-const initials = (name: string) =>
-  name
-    .replace(/^@/, "")
-    .split(/\s+/)
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 
 /** Telegram sign-in button, or the signed-in account with its sync status. Both menus hold the progress reset. */
 export function AccountButton({ signIn }: { signIn: boolean }) {
@@ -56,21 +47,16 @@ export function AccountButton({ signIn }: { signIn: boolean }) {
     );
   }
 
-  const name = s.account?.name ?? "Telegram";
   return (
     <Popover>
       <PopoverTrigger asChild>
         <button type="button" aria-label={t("account.account")} className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
-          <Avatar size="lg">
-            {s.account?.photoUrl && <AvatarImage src={s.account.photoUrl} alt="" referrerPolicy="no-referrer" />}
-            <AvatarFallback>{initials(name)}</AvatarFallback>
-            <AvatarBadge className={cn(s.status === "offline" && "bg-warning")} />
-          </Avatar>
+          <ProfileAvatar account={s.account} />
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-64 p-0">
         <div className="space-y-1 p-3">
-          <p className="truncate font-medium">{name}</p>
+          <ProfileName account={s.account} className="truncate font-medium" />
           <SyncLine state={s} />
         </div>
         <Separator />

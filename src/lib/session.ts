@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { tr } from "@/i18n/client";
+import type { SiteLook } from "@/lib/look";
 
 // The Telegram session every game shares: sign-in through RemnaWeb, which runs the OAuth flow and hands the
 // token back in the URL fragment, or the session of the RemnaWeb Mini App when the site runs in its frame.
@@ -10,7 +11,8 @@ const TOKEN_KEY = "remnasni:token";
 /** Random value sent to the sign-in and expected back with the token, so a token planted in a link is refused. */
 const STATE_KEY = "remnasni:sign-in-state";
 
-export type Account = { name: string; photoUrl: string | null };
+/** The player as RemnaWeb tells, with the cosmetics bought there (missing from older RemnaWeb versions). */
+export type Account = { name: string; photoUrl: string | null; look?: SiteLook };
 export type SessionState = {
   /** Whether sign-in is available at all: the site has REMNAWEB_URL and a game started the session. */
   enabled: boolean;
