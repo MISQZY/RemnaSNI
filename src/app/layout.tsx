@@ -5,7 +5,6 @@ import { getLocale } from "next-intl/server";
 import { I18nProvider } from "@/core/i18n/provider";
 import { Toaster } from "@/components/ui/sonner";
 import { pageMessages } from "@/core/i18n/messages";
-import { siteGame } from "@/core/site";
 import "flag-icons/css/flag-icons.min.css";
 import "./globals.css";
 
@@ -34,14 +33,14 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   await connection();
-  const [locale, game] = await Promise.all([getLocale(), siteGame()]);
+  const locale = await getLocale();
   // Optional: the stub sites stay anonymous unless a footer is asked for.
   const footer = process.env.SITE_FOOTER?.trim();
 
   return (
     <html lang={locale} className={`${inter.variable} ${scienceGothic.variable}`}>
       <body className="flex min-h-dvh flex-col overflow-x-clip antialiased">
-        <I18nProvider locale={locale} messages={pageMessages(locale, game)}>
+        <I18nProvider locale={locale} messages={pageMessages(locale)}>
           {children}
           {footer && <footer className="px-4 pb-6 text-center text-xs text-muted-foreground">© {new Date().getFullYear()} {footer}</footer>}
           <Toaster position="top-center" />

@@ -25,10 +25,11 @@ export type Messages = typeof en;
 export const MESSAGES: Record<Locale, Messages> = { en, ru };
 
 /**
- * What a page of `game` needs in the browser: the core namespaces and the game's, in `locale`. The rest stays on
- * the server; typed as all messages, since a page asks only for its own.
+ * What a page needs in the browser, in `locale`: the core namespaces, and `game`'s for the pages of a game (its
+ * layout knows which, so no lookup can disagree with the game src/proxy.ts served). The rest stays on the server;
+ * typed as all messages, since a page asks only for its own.
  */
-export function pageMessages(locale: Locale, game: Exclude<keyof typeof CATALOGS, "core">): Messages {
-  const keys = [...Object.keys(CATALOGS.core.en), ...Object.keys(CATALOGS[game].en)];
+export function pageMessages(locale: Locale, game?: Exclude<keyof typeof CATALOGS, "core">): Messages {
+  const keys = [...Object.keys(CATALOGS.core.en), ...(game ? Object.keys(CATALOGS[game].en) : [])];
   return Object.fromEntries(keys.map((k) => [k, MESSAGES[locale][k as keyof Messages]])) as Messages;
 }

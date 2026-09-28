@@ -2,11 +2,13 @@ import { cookies } from "next/headers";
 import { DEFAULT_LOCALE, LOCALE_COOKIE, LOCALE_HEADER, isLocale } from "@/core/i18n/locales";
 import { CORE_API, GAMES } from "@/core/games";
 import { remnaWebUrl } from "@/core/remnaweb";
-import { SITE_HEADER, siteGame, siteHost } from "@/core/site";
+import { SITE_HEADER, siteHost } from "@/core/site";
 
 // RemnaWeb's SNI API behind this site's own origin: the page never names RemnaWeb, so a visitor or a
-// probe sees a standalone game. Only the calls of the session and of the node's game (core/games.ts) are
-// passed through.
+// probe sees a standalone game. Only the calls the games make (core/games.ts) are passed through: those of every
+// game, so a tab left open on the game a node ran before a switch in RemnaWeb still saves its progress.
+
+const API = new Set<string>([...CORE_API, ...Object.values(GAMES).flatMap((g) => g.api)]);
 
 const MAX_BODY_BYTES = 64 * 1024;
 const TIMEOUT_MS = 10_000;
@@ -21,8 +23,7 @@ async function forward(req: Request, { params }: Ctx): Promise<Response> {
 
   // Sign-in is a browser navigation: RemnaWeb keeps the OAuth state in its own cookie.
   if (path === "auth/start" && req.method === "GET") return Response.redirect(`${base}/api/sni/auth/start${query}`, 302);
-  const allowed: readonly string[] = [...CORE_API, ...GAMES[await siteGame()].api];
-  if (!allowed.includes(path)) return Response.json({ error: "Not found" }, { status: 404 });
+  if (!API.has(path)) return Response.json({ error: "Not found" }, { status: 404 });
 
   let body: ArrayBuffer | undefined;
   if (req.method !== "GET") {

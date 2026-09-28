@@ -35,7 +35,8 @@ credited after it, via RemnaWeb `/api/sni/snake`.
 Every game lives in its own route subtree, `src/app/games/<id>`, with its own layout and title; the root layout holds
 only what all share (fonts, language, footer, toasts). `src/proxy.ts` gets the game at request time and rewrites the
 public paths to the node's game (`/` → `/games/clicker` or `/games/snake`); the `/games/...` paths themselves are
-404, and the API proxy passes only the node's game calls. So a node loads the JS of its own game only.
+404. So a node loads the JS of its own game only. The API proxy passes the calls of every game in the registry, so
+a tab left open on the previous game keeps saving after an admin switches the node's game in RemnaWeb.
 
 ## Code layout
 
@@ -134,7 +135,7 @@ in it; the RemnaWeb Mini App passes its language as `?lang=` (`src/proxy.ts`). I
 `messages/<scope>/en.json` and `ru.json` (`core` and one per game, merged in `src/core/i18n/messages.ts`): the English catalogs type the keys and arguments (`src/global.d.ts`), and
 `npm test` checks that both languages have the same keys, parse as ICU and take the same arguments, and that scopes share no namespace. Code outside React
 (sync, toasts of the game loop) translates through `src/core/i18n/client.ts`. A page gets the core messages and its game's only
-(`pageMessages`), from the server: no catalog is bundled into the JS.
+(`pageMessages`, handed over by the game's layout), from the server: no catalog is bundled into the JS.
 
 The API proxy (`app/api/sni/[...path]`) passes the page's language to RemnaWeb as `x-locale`, so its answers and errors
 come in it. Country names come from `Intl.DisplayNames`; upgrade and perk names and descriptions arrive from RemnaWeb
