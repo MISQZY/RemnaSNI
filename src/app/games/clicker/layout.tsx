@@ -10,7 +10,7 @@ import { loadClickerConfig } from "@/games/clicker/config-server";
 import { ConfigProvider } from "@/games/clicker/config-provider";
 import { GameRuntime } from "@/games/clicker/game-runtime";
 
-// The flag clicker: its rules from RemnaWeb, the header and the runtime that saves and syncs the game.
+// The clicker: its rules from RemnaWeb, the header and the runtime that saves and syncs the game.
 // Served at / by src/proxy.ts.
 
 export async function generateMetadata(): Promise<Metadata> {

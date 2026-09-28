@@ -5,7 +5,7 @@ import { session, type Account } from "@/core/session";
 import { game, isNewer, type GameState } from "@/games/clicker/game";
 import { human, type HumanCheck } from "@/games/clicker/human";
 
-// Two-way sync of the flag clicker's progress with RemnaWeb (core/api.ts). The Telegram session is the core's
+// Two-way sync of the clicker's progress with RemnaWeb (core/api.ts). The Telegram session is the core's
 // (core/session.ts), shared with the other games; its token and account are mirrored here.
 
 const PUSH_EVERY_MS = 10_000;

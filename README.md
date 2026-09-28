@@ -1,6 +1,6 @@
 # RemnaSNI
 
-Self-SNI stub site for the nodes: one of the infrastructure games — the flag clicker, the snake or the fishing. RemnaWeb is the
+Self-SNI stub site for the nodes: one of the infrastructure games — the clicker, the snake or the fishing. RemnaWeb is the
 orchestrator: it picks the node's game and country and sends the rules; the site only plays.
 Progress lives in the visitor's `localStorage`; after signing in with Telegram it is also synced to RemnaWeb.
 Achievements and pets are not here: both are the profile's, in the RemnaWeb Mini App.
@@ -19,7 +19,7 @@ Achievements and pets are not here: both are the profile's, in the RemnaWeb Mini
 
 RemnaWeb decides what the node runs. The server asks `REMNAWEB_URL/api/sni/site` with `x-sni-site: <DOMAIN>` and gets
 `{ game, country }` (`src/core/site.ts`): the game an admin picked for this site in RemnaWeb (Админка → Игра → Игровые
-сайты; the flag clicker until one is picked) and the country of the panel host with this domain as its SNI. The answer
+сайты; the clicker until one is picked) and the country of the panel host with this domain as its SNI. The answer
 is kept for a minute, so a switch in RemnaWeb reaches the node without a redeploy; while RemnaWeb is down the last one
 keeps serving. The API proxy passes `x-sni-site` with every call, so RemnaWeb keeps progress in that country whatever
 the page asks. `GAME` and `NODE_COUNTRY` in `.env` are deprecated: they are used only while RemnaWeb cannot tell (an

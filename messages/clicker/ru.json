@@ -1,8 +1,8 @@
 {
   "clicker": {
-    "subtitle": "Кликер флага",
+    "subtitle": "Кликер",
     "meta": {
-      "title": "Кликер флага: {country}",
+      "title": "Кликер: {country}",
       "description": "{country}: тапайте по флагу, зарабатывайте Qzr, покупайте улучшения и поднимайтесь в престиже."
     },
     "points": "Qzyrium",

@@ -1,7 +1,7 @@
 {
   "name": "remnasni",
   "version": "1.0.0",
-  "description": "Flag clicker game for node sites",
+  "description": "Clicker game for node sites",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
