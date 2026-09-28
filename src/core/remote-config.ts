@@ -1,6 +1,6 @@
 import "server-only";
-import { isGameConfig, withDefaults, type GameConfig } from "@/lib/config";
-import { syncUrl } from "@/lib/sync-url";
+import { isGameConfig, withDefaults, type GameConfig } from "@/games/clicker/config";
+import { syncUrl } from "@/core/remnaweb";
 
 /** Short: an admin may tune the numbers in RemnaWeb, and its progress checks follow them at once. */
 const TTL_MS = 60_000;

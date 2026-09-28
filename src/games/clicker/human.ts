@@ -1,5 +1,5 @@
-import { sync } from "@/lib/sync";
-import { TapGuard, type Suspicion } from "@/lib/tap-guard";
+import { sync } from "@/games/clicker/sync";
+import { TapGuard, type Suspicion } from "@/games/clicker/tap-guard";
 
 // Human checks against auto-clickers: whether one is due (taps do not count until it is passed) and the
 // guard that asks for one early. Signed in, RemnaWeb gives and grades the checks and will not save

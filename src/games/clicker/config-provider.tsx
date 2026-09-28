@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
-import { setConfig, type GameConfig } from "@/lib/config";
+import { setConfig, type GameConfig } from "@/games/clicker/config";
 
 const ConfigContext = createContext<GameConfig | null>(null);
 

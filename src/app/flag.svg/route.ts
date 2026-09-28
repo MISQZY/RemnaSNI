@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { connection } from "next/server";
-import { siteCountry } from "@/lib/country";
+import { siteCountry } from "@/core/country";
 
 /** Square flag of the node's country, used as the favicon. */
 export async function GET() {

@@ -1,5 +1,5 @@
-import { config } from "@/lib/config";
-import * as rules from "@/lib/rules";
+import { config } from "@/games/clicker/config";
+import * as rules from "@/games/clicker/rules";
 
 const STORAGE_KEY = "remnasni:v2";
 /** Last traffic boost received from RemnaWeb, so income while away can be credited before the next sync. */

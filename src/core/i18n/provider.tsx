@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import { NextIntlClientProvider, useLocale, useTranslations } from "next-intl";
 import { useMemo, useTransition, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { setCurrentLocale, storeLocale } from "@/i18n/client";
-import { LOCALES, LOCALE_NAMES, type Locale } from "@/i18n/locales";
-import type { Messages } from "@/i18n/messages";
-import { formatBytes, formatDuration, formatNumber } from "@/lib/format";
+import { setCurrentLocale, storeLocale } from "@/core/i18n/client";
+import { LOCALES, LOCALE_NAMES, type Locale } from "@/core/i18n/locales";
+import type { Messages } from "@/core/i18n/messages";
+import { formatBytes, formatDuration, formatNumber } from "@/core/format";
 
 /** Hands the language the server rendered with, and its messages, to client components and to code outside React. */
 export function I18nProvider({ locale, messages, children }: { locale: Locale; messages: Messages; children: ReactNode }) {

@@ -1,10 +1,10 @@
 import { connection } from "next/server";
 import { getLocale } from "next-intl/server";
-import { SnakeSite } from "@/components/snake";
-import { Unavailable } from "@/components/unavailable";
-import { loadConfig } from "@/lib/config-server";
-import { siteCountry } from "@/lib/country";
-import { syncUrl } from "@/lib/sync-url";
+import { SnakeSite } from "@/games/snake/snake";
+import { Unavailable } from "@/core/ui/unavailable";
+import { loadConfig } from "@/core/remote-config";
+import { siteCountry } from "@/core/country";
+import { syncUrl } from "@/core/remnaweb";
 
 // The snake, served at / by src/proxy.ts. Its rules come from RemnaWeb with the clicker's.
 

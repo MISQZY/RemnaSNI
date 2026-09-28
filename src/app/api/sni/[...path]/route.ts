@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
-import { DEFAULT_LOCALE, LOCALE_COOKIE, LOCALE_HEADER, isLocale } from "@/i18n/locales";
-import { SITE_HEADER, siteHost } from "@/lib/site-game";
-import { syncUrl } from "@/lib/sync-url";
+import { DEFAULT_LOCALE, LOCALE_COOKIE, LOCALE_HEADER, isLocale } from "@/core/i18n/locales";
+import { SITE_HEADER, siteHost } from "@/core/site";
+import { syncUrl } from "@/core/remnaweb";
 
 // RemnaWeb's SNI API behind this site's own origin: the page never names RemnaWeb, so a visitor or a
 // probe sees a standalone game. Only the calls the game makes are passed through.

@@ -2,17 +2,17 @@
 
 import { useTranslations } from "next-intl";
 import { Lock } from "lucide-react";
-import { GameIcon } from "@/components/game-icon";
-import { useConfig } from "@/components/config-provider";
-import { useFormat } from "@/components/i18n-provider";
+import { GameIcon } from "@/games/clicker/game-icon";
+import { useConfig } from "@/games/clicker/config-provider";
+import { useFormat } from "@/core/i18n/provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { config, type UpgradeDef as Upgrade, type UpgradeKind } from "@/lib/config";
-import { game, level, type GameState } from "@/lib/game";
-import { upgradePrice } from "@/lib/rules";
+import { config, type UpgradeDef as Upgrade, type UpgradeKind } from "@/games/clicker/config";
+import { game, level, type GameState } from "@/games/clicker/game";
+import { upgradePrice } from "@/games/clicker/rules";
 import { cn } from "@/lib/utils";
 
 const TABS: { value: "tap" | "luck" | "boost"; kinds: UpgradeKind[] }[] = [

@@ -4,16 +4,16 @@ import { useTranslations } from "next-intl";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Gamepad2, Gauge, Heart, LogOut, Pause, Play, RotateCcw, Send, Sparkles, Turtle } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
-import { ChipIcon } from "@/components/chip-icon";
-import { LanguageSwitch, useFormat } from "@/components/i18n-provider";
-import { ProfileAvatar, ProfileName } from "@/components/profile-avatar";
-import { QzrIcon } from "@/components/qzr-icon";
+import { ChipIcon } from "@/core/ui/chip-icon";
+import { LanguageSwitch, useFormat } from "@/core/i18n/provider";
+import { ProfileAvatar, ProfileName } from "@/core/ui/profile-avatar";
+import { QzrIcon } from "@/core/ui/qzr-icon";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
-import type { SnakeRules, ValueRule } from "@/lib/config";
-import type { SnakeLook, SnakeSkin } from "@/lib/look";
-import { session, useSession, type Account } from "@/lib/session";
+import type { SnakeRules, ValueRule } from "@/games/clicker/config";
+import type { SnakeLook, SnakeSkin } from "@/core/look";
+import { session, useSession, type Account } from "@/core/session";
 import { cn } from "@/lib/utils";
 
 // Snake (a prototype), the game of nodes RemnaWeb has picked it for. Every crystal eaten brings Qzr to the

@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { lookStyle } from "@/lib/look";
-import type { Account } from "@/lib/session";
+import { lookStyle } from "@/core/look";
+import type { Account } from "@/core/session";
 
 const initials = (name: string) =>
   name

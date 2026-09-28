@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { LOCALE_COOKIE, isLocale } from "@/i18n/locales";
-import { siteGame, type GameId } from "@/lib/site-game";
+import { LOCALE_COOKIE, isLocale } from "@/core/i18n/locales";
+import { siteGame, type GameId } from "@/core/site";
 
 /** Public paths of each game; the pages live under app/games/<id>. */
 const ROUTES: Record<GameId, string[]> = {

@@ -2,11 +2,11 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Science_Gothic } from "next/font/google";
 import { connection } from "next/server";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
-import { I18nProvider } from "@/components/i18n-provider";
+import { I18nProvider } from "@/core/i18n/provider";
 import { Toaster } from "@/components/ui/sonner";
-import { siteCountry } from "@/lib/country";
-import type { Messages } from "@/i18n/messages";
-import { siteGame } from "@/lib/site-game";
+import { siteCountry } from "@/core/country";
+import type { Messages } from "@/core/i18n/messages";
+import { siteGame } from "@/core/site";
 import "flag-icons/css/flag-icons.min.css";
 import "./globals.css";
 

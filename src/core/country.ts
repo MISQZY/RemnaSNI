@@ -1,6 +1,6 @@
 import "server-only";
-import type { Locale } from "@/i18n/locales";
-import { loadSite } from "@/lib/site-game";
+import type { Locale } from "@/core/i18n/locales";
+import { loadSite } from "@/core/site";
 
 export type Country = { code: string; name: string };
 

@@ -1,4 +1,4 @@
-import { ChipIcon } from "@/components/chip-icon";
+import { ChipIcon } from "@/core/ui/chip-icon";
 import {
   Award,
   BadgePercent,

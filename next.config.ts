@@ -10,4 +10,4 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: { "/flag.svg": ["./node_modules/flag-icons/flags/1x1/*.svg"] },
 };
 
-export default createNextIntlPlugin("./src/i18n/request.ts")(nextConfig);
+export default createNextIntlPlugin("./src/core/i18n/request.ts")(nextConfig);

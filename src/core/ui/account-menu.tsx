@@ -4,14 +4,14 @@ import { useTranslations } from "next-intl";
 import { CloudCheck, CloudOff, HardDrive, LoaderCircle, LogOut, MonitorX, RefreshCw, RotateCcw, Send, Settings } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useSync } from "@/components/game-runtime";
-import { useFormat } from "@/components/i18n-provider";
-import { ProfileAvatar, ProfileName } from "@/components/profile-avatar";
+import { useSync } from "@/games/clicker/game-runtime";
+import { useFormat } from "@/core/i18n/provider";
+import { ProfileAvatar, ProfileName } from "@/core/ui/profile-avatar";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-import { game } from "@/lib/game";
-import { sync, type SyncState } from "@/lib/sync";
+import { game } from "@/games/clicker/game";
+import { sync, type SyncState } from "@/games/clicker/sync";
 import { cn } from "@/lib/utils";
 
 /** Telegram sign-in button, or the signed-in account with its sync status. Both menus hold the progress reset. */

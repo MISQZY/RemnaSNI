@@ -1,6 +1,6 @@
 import { createTranslator } from "next-intl";
-import type { Locale } from "@/i18n/locales";
-import { MESSAGES } from "@/i18n/messages";
+import type { Locale } from "@/core/i18n/locales";
+import { MESSAGES } from "@/core/i18n/messages";
 
 const SUFFIXES = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
 

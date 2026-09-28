@@ -1,6 +1,6 @@
 import { connection } from "next/server";
-import { Clicker } from "@/components/clicker";
-import { siteCountry } from "@/lib/country";
+import { Clicker } from "@/games/clicker/clicker";
+import { siteCountry } from "@/core/country";
 import { getLocale } from "next-intl/server";
 
 export default async function Page() {

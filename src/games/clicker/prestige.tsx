@@ -1,20 +1,20 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { ChipIcon } from "@/components/chip-icon";
-import { QzrIcon } from "@/components/qzr-icon";
-import { GameIcon } from "@/components/game-icon";
+import { ChipIcon } from "@/core/ui/chip-icon";
+import { QzrIcon } from "@/core/ui/qzr-icon";
+import { GameIcon } from "@/games/clicker/game-icon";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useConfig } from "@/components/config-provider";
-import { useFormat } from "@/components/i18n-provider";
+import { useConfig } from "@/games/clicker/config-provider";
+import { useFormat } from "@/core/i18n/provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import type { GameConfig, PerkDef } from "@/lib/config";
-import { game, prestigeMultiplier, type GameState } from "@/lib/game";
-import { freeKeys, keysFor, nextKeyAt, pendingKeys, perkCost, perkLevel } from "@/lib/rules";
+import type { GameConfig, PerkDef } from "@/games/clicker/config";
+import { game, prestigeMultiplier, type GameState } from "@/games/clicker/game";
+import { freeKeys, keysFor, nextKeyAt, pendingKeys, perkCost, perkLevel } from "@/games/clicker/rules";
 import { cn } from "@/lib/utils";
 
 // Prestige: moving to a new place trades points and upgrades for keys. Mirrors

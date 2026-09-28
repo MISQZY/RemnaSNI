@@ -5,7 +5,7 @@ import { ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { human, type HumanCheck } from "@/lib/human";
+import { human, type HumanCheck } from "@/games/clicker/human";
 import { cn } from "@/lib/utils";
 
 /**

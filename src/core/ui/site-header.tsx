@@ -1,8 +1,8 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { AccountButton } from "@/components/account-button";
-import { LanguageSwitch } from "@/components/i18n-provider";
+import { AccountButton } from "@/core/ui/account-menu";
+import { LanguageSwitch } from "@/core/i18n/provider";
 import { cn } from "@/lib/utils";
 
 /** The node's flag and name, the language and the account. The clicker is a single page: no tabs. */

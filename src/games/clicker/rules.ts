@@ -1,5 +1,5 @@
-import type { GameConfig, PerkDef, PerkKind, UpgradeDef, UpgradeKind } from "@/lib/config";
-import type { GameState as Progress } from "@/lib/game";
+import type { GameConfig, PerkDef, PerkKind, UpgradeDef, UpgradeKind } from "@/games/clicker/config";
+import type { GameState as Progress } from "@/games/clicker/game";
 
 // How the game applies the GameConfig loaded from RemnaWeb. Mirrors RemnaWeb/src/lib/clicker/rules.ts, which applies
 // the same config in the Mini App; keep both in step when a formula or a rule type changes.

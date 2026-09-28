@@ -1,4 +1,4 @@
-import { syncUrl } from "@/lib/sync-url";
+import { syncUrl } from "@/core/remnaweb";
 
 // RemnaWeb is the orchestrator: it picks the game of each node and knows the country of the panel host the
 // node stands behind. The server asks it for both (GET /api/sni/site, naming the site by DOMAIN) and keeps

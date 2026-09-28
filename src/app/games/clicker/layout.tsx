@@ -1,12 +1,12 @@
 import { connection } from "next/server";
-import { ConfigProvider } from "@/components/config-provider";
-import { GameRuntime } from "@/components/game-runtime";
-import { SiteHeader } from "@/components/site-header";
-import { Unavailable } from "@/components/unavailable";
-import { loadConfig } from "@/lib/config-server";
-import { siteCountry } from "@/lib/country";
+import { ConfigProvider } from "@/games/clicker/config-provider";
+import { GameRuntime } from "@/games/clicker/game-runtime";
+import { SiteHeader } from "@/core/ui/site-header";
+import { Unavailable } from "@/core/ui/unavailable";
+import { loadConfig } from "@/core/remote-config";
+import { siteCountry } from "@/core/country";
 import { getLocale } from "next-intl/server";
-import { syncUrl } from "@/lib/sync-url";
+import { syncUrl } from "@/core/remnaweb";
 
 // The flag clicker: its rules from RemnaWeb, the header with its tabs and the runtime that
 // saves and syncs the game. Served at / by src/proxy.ts.

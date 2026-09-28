@@ -3,20 +3,20 @@
 import { useTranslations } from "next-intl";
 import { ArrowUpCircle, Cloud, Gauge, Hand, MousePointerClick, Send, Sparkles, TrendingUp } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
-import { ChipIcon } from "@/components/chip-icon";
-import { FlagButton } from "@/components/flag-button";
-import { QzrIcon } from "@/components/qzr-icon";
-import { useGame, useSync } from "@/components/game-runtime";
-import { useFormat } from "@/components/i18n-provider";
-import { useConfig } from "@/components/config-provider";
-import { Prestige, prestigeReady } from "@/components/prestige";
-import { Upgrades, upgradeReady } from "@/components/upgrades";
+import { ChipIcon } from "@/core/ui/chip-icon";
+import { FlagButton } from "@/games/clicker/flag-button";
+import { QzrIcon } from "@/core/ui/qzr-icon";
+import { useGame, useSync } from "@/games/clicker/game-runtime";
+import { useFormat } from "@/core/i18n/provider";
+import { useConfig } from "@/games/clicker/config-provider";
+import { Prestige, prestigeReady } from "@/games/clicker/prestige";
+import { Upgrades, upgradeReady } from "@/games/clicker/upgrades";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { critChance, critMultiplier, incomeMultiplier, perSecond, perTap, type GameState } from "@/lib/game";
-import { sync as syncApi, type SyncState } from "@/lib/sync";
+import { critChance, critMultiplier, incomeMultiplier, perSecond, perTap, type GameState } from "@/games/clicker/game";
+import { sync as syncApi, type SyncState } from "@/games/clicker/sync";
 import { cn } from "@/lib/utils";
 
 export function Clicker({ code, name }: { code: string; name: string }) {

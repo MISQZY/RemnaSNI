@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
-import { tr } from "@/i18n/client";
-import type { SiteLook } from "@/lib/look";
+import { tr } from "@/core/i18n/client";
+import type { SiteLook } from "@/core/look";
 
 // The Telegram session every game shares: sign-in through RemnaWeb, which runs the OAuth flow and hands the
 // token back in the URL fragment, or the session of the RemnaWeb Mini App when the site runs in its frame.

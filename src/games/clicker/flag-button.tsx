@@ -2,12 +2,12 @@
 
 import { useTranslations } from "next-intl";
 import { useRef, useState, useSyncExternalStore } from "react";
-import { HumanCheckOverlay } from "@/components/human-check";
-import { useSync } from "@/components/game-runtime";
-import { useFormat } from "@/components/i18n-provider";
-import { game } from "@/lib/game";
-import { human } from "@/lib/human";
-import { lookStyle } from "@/lib/look";
+import { HumanCheckOverlay } from "@/games/clicker/human-check";
+import { useSync } from "@/games/clicker/game-runtime";
+import { useFormat } from "@/core/i18n/provider";
+import { game } from "@/games/clicker/game";
+import { human } from "@/games/clicker/human";
+import { lookStyle } from "@/core/look";
 import { cn } from "@/lib/utils";
 
 type Pop = { id: number; x: number; y: number; value: number; crit: boolean; drift: number };

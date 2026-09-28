@@ -1,9 +1,9 @@
 import { toast } from "sonner";
-import { game, isNewer, type GameState } from "@/lib/game";
-import { human, type HumanCheck } from "@/lib/human";
-import type { Look } from "@/lib/look";
-import { tr } from "@/i18n/client";
-import { session, type Account } from "@/lib/session";
+import { game, isNewer, type GameState } from "@/games/clicker/game";
+import { human, type HumanCheck } from "@/games/clicker/human";
+import type { Look } from "@/core/look";
+import { tr } from "@/core/i18n/client";
+import { session, type Account } from "@/core/session";
 
 // Two-way sync of the flag clicker's progress with RemnaWeb, via this site's /api/sni proxy. The Telegram
 // session is lib/session.ts, shared with the other games; its token and account are mirrored here.

@@ -2,10 +2,10 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import { toast } from "sonner";
-import { formatDuration, formatNumber } from "@/lib/format";
-import { game } from "@/lib/game";
-import { currentLocale, tr } from "@/i18n/client";
-import { sync } from "@/lib/sync";
+import { formatDuration, formatNumber } from "@/core/format";
+import { game } from "@/games/clicker/game";
+import { currentLocale, tr } from "@/core/i18n/client";
+import { sync } from "@/games/clicker/sync";
 
 /** How often passive income from the turbo is credited; it is counted by the time passed, so a second is enough. */
 const TICK_MS = 1_000;
