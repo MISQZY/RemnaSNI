@@ -113,7 +113,7 @@
     "price": "{qzr} per crystal, growing",
     "turbo": "turbo ×{boost} · +{percent}%",
     "bonuses": "Bonuses",
-    "nextKey": "next Qzr key in {n}",
+    "nextKey": "Next Qzr key",
     "max": "Max",
     "buyFailed": "Could not buy the bonus",
     "earned": "+{n} Qzr",

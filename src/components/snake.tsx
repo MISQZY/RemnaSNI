@@ -10,6 +10,7 @@ import { ProfileAvatar, ProfileName } from "@/components/profile-avatar";
 import { QzrIcon } from "@/components/qzr-icon";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Progress } from "@/components/ui/progress";
 import type { SnakeRules, ValueRule } from "@/lib/config";
 import type { SnakeLook, SnakeSkin } from "@/lib/look";
 import { session, useSession, type Account } from "@/lib/session";
@@ -245,9 +246,16 @@ function draw(canvas: HTMLCanvasElement, g: Game | null, grid: number, skin: Sna
 type Perk = { id: string; name: string; description: string; perLevel: number; level: number; maxLevel: number; cost: number | null };
 /**
  * `boost` is the country's turbo, `multiplier` what it does to crystal prices (1 without it); `keys` the free
- * Qzr keys (shared with the clicker), `nextKey` the crystals left until the next one.
+ * Qzr keys (shared with the clicker), `nextKey` the crystals left until the next one, `keyFrom` the crystals at
+ * which the last one came (missing from older RemnaWeb versions).
  */
-type Status = { balance: number; crystals: number; boost: number; multiplier: number; keys: number; nextKey: number; perks: Perk[] };
+type Status = { balance: number; crystals: number; boost: number; multiplier: number; keys: number; nextKey: number; keyFrom?: number; perks: Perk[] };
+
+/** Percent of the way from the last key to the next one; from zero with an older RemnaWeb. */
+function keyProgress({ crystals, nextKey, keyFrom = 0 }: Status): number {
+  const next = crystals + nextKey;
+  return next > keyFrom ? Math.min(100, Math.max(0, ((crystals - keyFrom) / (next - keyFrom)) * 100)) : 0;
+}
 
 function boostsOf(perks: Perk[] | undefined, rules: SnakeRules): Boosts {
   const effect = (id: string) => {
@@ -429,6 +437,7 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
         multiplier: res.multiplier,
         keys: res.keys,
         nextKey: res.nextKey,
+        keyFrom: res.keyFrom,
         perks: res.perks,
       });
       setCollected(res.crystals + chunkRef.current.score);
@@ -779,11 +788,23 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
         {/* Bonuses bought with the country's Qzr keys, shared with the clicker; kept in RemnaWeb, so signed in only. */}
         {account.token && status && (
           <section className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between gap-2 text-sm">
-              <p className="font-heading font-semibold">{t("snake.bonuses")}</p>
-              <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                <ChipIcon className="size-4" /> {num(status.keys)} · {t("snake.nextKey", { n: num(status.nextKey) })}
-              </p>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between gap-2 text-sm">
+                <p className="font-heading font-semibold">{t("snake.bonuses")}</p>
+                <p className="flex items-center gap-1 text-xs font-medium tabular-nums">
+                  <ChipIcon className="size-3.5" /> {num(status.keys)}
+                </p>
+              </div>
+              {/* Like the clicker's bar (prestige.tsx): from the key reached last to the next one. */}
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{t("snake.nextKey")}</span>
+                  <span className="tabular-nums">
+                    {num(status.crystals)} / {num(status.crystals + status.nextKey)}
+                  </span>
+                </div>
+                <Progress value={keyProgress(status)} className="h-1" />
+              </div>
             </div>
             {status.perks.map((p) => {
               const Icon = PERK_ICONS[p.id] ?? Sparkles;

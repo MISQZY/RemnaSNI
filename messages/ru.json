@@ -117,7 +117,7 @@
     "price": "{qzr} за кристалл, дорожает",
     "turbo": "турбо ×{boost} · +{percent}%",
     "bonuses": "Бонусы",
-    "nextKey": "следующий Qzr ключ через {n}",
+    "nextKey": "До следующего Qzr ключа",
     "max": "Макс",
     "buyFailed": "Бонус не купился",
     "earned": "+{n} Qzr",
