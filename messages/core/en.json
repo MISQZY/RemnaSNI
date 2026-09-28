@@ -26,5 +26,10 @@
   "units": {
     "hoursMinutes": "{h}h {m}m",
     "minutes": "{m}m"
+  },
+  "perks": {
+    "title": "Bonuses",
+    "nextKey": "Next Qzr key",
+    "max": "Max"
   }
 }

@@ -24,9 +24,6 @@
     "right": "Вправо",
     "price": "{qzr} за кристалл, дорожает",
     "turbo": "турбо ×{boost} · +{percent}%",
-    "bonuses": "Бонусы",
-    "nextKey": "До следующего Qzr ключа",
-    "max": "Макс",
     "buyFailed": "Бонус не купился",
     "earned": "+{n} Qzr",
     "failed": "Партия не сохранилась"

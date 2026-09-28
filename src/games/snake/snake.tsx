@@ -5,13 +5,13 @@ import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Gamepad2, Gauge, Heart, Paus
 import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { ApiError, api } from "@/core/api";
 import { useFormat } from "@/core/i18n/provider";
-import { session, useSession, type Account } from "@/core/session";
+import { session, useSession } from "@/core/session";
 import { storage } from "@/core/storage";
 import { AccountMenu } from "@/core/ui/account-menu";
-import { ChipIcon } from "@/core/ui/chip-icon";
+import { PerkShop, StatTile, type GamePerk } from "@/core/ui/perk-shop";
+import { useGameStatus } from "@/core/use-game-status";
 import { QzrIcon } from "@/core/ui/qzr-icon";
 import { SiteHeader } from "@/core/ui/site-header";
 import { cn } from "@/lib/utils";
@@ -36,22 +36,14 @@ const PAD_KEY = "snake-pad";
 /** A swipe turns once the finger has moved this far, px. */
 const SWIPE_PX = 18;
 
-/** A bonus as RemnaWeb sends it, named in the page's language; `{n}` in the description is the effect of the level. */
-type Perk = { id: string; name: string; description: string; perLevel: number; level: number; maxLevel: number; cost: number | null };
 /**
  * `boost` is the country's turbo, `multiplier` what it does to crystal prices (1 without it); `keys` the free
  * Qzr keys (shared with the clicker), `nextKey` the crystals left until the next one, `keyFrom` the crystals at
  * which the last one came (missing from older RemnaWeb versions).
  */
-type Status = { balance: number; crystals: number; boost: number; multiplier: number; keys: number; nextKey: number; keyFrom?: number; perks: Perk[] };
+type Status = { balance: number; crystals: number; boost: number; multiplier: number; keys: number; nextKey: number; keyFrom?: number; perks: GamePerk[] };
 
-/** Percent of the way from the last key to the next one; from zero with an older RemnaWeb. */
-function keyProgress({ crystals, nextKey, keyFrom = 0 }: Status): number {
-  const next = crystals + nextKey;
-  return next > keyFrom ? Math.min(100, Math.max(0, ((crystals - keyFrom) / (next - keyFrom)) * 100)) : 0;
-}
-
-function boostsOf(perks: Perk[] | undefined, rules: SnakeRules): Boosts {
+function boostsOf(perks: GamePerk[] | undefined, rules: SnakeRules): Boosts {
   const effect = (id: string) => {
     const p = perks?.find((x) => x.id === id);
     return p ? p.level * p.perLevel : 0;
@@ -103,6 +95,8 @@ const noop = () => () => {};
 
 /** Icons of the snake bonuses. */
 const PERK_ICONS: Record<string, typeof Sparkles> = { golden: Sparkles, life: Heart, slow: Turtle };
+/** A bonus's effect for its description: lives as they are, the rest in percent. */
+const perkEffect = (p: GamePerk) => Math.round(Math.max(1, p.level) * p.perLevel * (p.id === "life" ? 1 : 100));
 
 export function SnakeSite({ code, name, signIn, rules }: { code: string; name: string; signIn: boolean; rules: SnakeRules }) {
   const t = useTranslations();
@@ -116,7 +110,7 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
   const [phase, setPhase] = useState<Phase>("ready");
   const [score, setScore] = useState(0);
   const [best, setBest] = useState(readBest);
-  const [status, setStatus] = useState<Status | null>(null);
+  const { status, setStatus, loaded } = useGameStatus<Status & { snake?: SnakeLook }>("snake", code);
   const [pending, setPending] = useState<Run[]>(readPending);
   const [pad, setPad] = useState(readPad);
   /** Crystals eaten since the last chunk was sent, their Qzr, and when that chunk began. */
@@ -131,8 +125,11 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
    */
   const [collected, setCollected] = useState<number | null>(null);
   const [popups, setPopups] = useState<Popup[]>([]);
-  /** The skin and crystal effect bought in RemnaWeb; a ref too, for the canvas drawn outside renders. */
-  const [look, setLook] = useState<SnakeLook>({ skin: null, effect: null });
+  /**
+   * The skin and crystal effect bought in RemnaWeb, the default ones signed out (missing from older RemnaWeb
+   * versions); the skin in a ref too, for the canvas drawn outside renders.
+   */
+  const look: SnakeLook = { skin: loaded?.snake?.skin ?? null, effect: loaded?.snake?.effect ?? null };
   const skinRef = useRef<SnakeSkin | null>(null);
   const popupId = useRef(0);
   const togglePad = () => {
@@ -165,45 +162,18 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
     if (earned > 0) toast.success(t("snake.synced", { n: num(earned) }));
   });
 
-  const loadStatus = useEffectEvent(async () => {
-    try {
-      const res = await snakeApi<Status & { user: Account; snake?: SnakeLook; session: string | null }>(code);
-      if (!res) {
-        // Signed out: the bought looks are the account's.
-        setLook({ skin: null, effect: null });
-        skinRef.current = null;
-        return;
-      }
-      // Missing from older RemnaWeb versions.
-      const bought = { skin: res.snake?.skin ?? null, effect: res.snake?.effect ?? null };
-      setLook(bought);
-      skinRef.current = bought.skin;
-      if (canvasRef.current) draw(canvasRef.current, gameRef.current, rules.grid, bought.skin);
-      if (res.session) session.keep(res.session);
-      session.setAccount(res.user);
-      setStatus({
-        balance: res.balance,
-        crystals: res.crystals,
-        boost: res.boost,
-        multiplier: res.multiplier,
-        keys: res.keys,
-        nextKey: res.nextKey,
-        keyFrom: res.keyFrom,
-        perks: res.perks,
-      });
-      setCollected(res.crystals + chunkRef.current.score);
-      await flushPending();
-    } catch {
-      // The balance just stays hidden; playing works without it.
-    }
+  /** Each status load: the bought skin on the board, the count of the next crystal, and runs played signed out. */
+  const onLoaded = useEffectEvent(async () => {
+    skinRef.current = look.skin;
+    if (canvasRef.current) draw(canvasRef.current, gameRef.current, rules.grid, look.skin);
+    if (!loaded) return;
+    setCollected(loaded.crystals + chunkRef.current.score);
+    await flushPending();
   });
 
   useEffect(() => {
-    const stop = session.start(() => void loadStatus());
-    // After the effect: the status arrives asynchronously anyway.
-    void Promise.resolve().then(() => loadStatus());
-    return stop;
-  }, []);
+    void onLoaded();
+  }, [loaded]);
 
   const redraw = () => {
     if (canvasRef.current) draw(canvasRef.current, gameRef.current, rules.grid, skinRef.current);
@@ -417,9 +387,9 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
         {/* Score, record and balance in one compact row, with pause and the pad toggle at its end. */}
         <div className="flex items-center gap-2">
           <div className="grid min-w-0 flex-1 grid-cols-3 gap-1.5">
-            <Stat label={t("snake.score")} value={num(score)} />
-            <Stat label={t("snake.best")} value={num(shownBest)} />
-            <Stat
+            <StatTile label={t("snake.score")} value={num(score)} />
+            <StatTile label={t("snake.best")} value={num(shownBest)} />
+            <StatTile
               label="Qzr"
               value={
                 balance !== null ? (
@@ -524,59 +494,18 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
 
         <p className="hidden text-center text-xs text-muted-foreground sm:block">{t("snake.hint")}</p>
 
-        {/* Bonuses bought with the country's Qzr keys, shared with the clicker; kept in RemnaWeb, so signed in only. */}
+        {/* Bonuses bought with the country's Qzr keys, shared with the other games; kept in RemnaWeb, so signed in only. */}
         {account.token && status && (
-          <section className="space-y-2" onPointerDown={(e) => e.stopPropagation()}>
-            <div className="space-y-1">
-              <div className="flex items-center justify-between gap-2 text-sm">
-                <p className="font-heading font-semibold">{t("snake.bonuses")}</p>
-                <p className="flex items-center gap-1 text-xs font-medium tabular-nums">
-                  <ChipIcon className="size-3.5" /> {num(status.keys)}
-                </p>
-              </div>
-              {/* Like the clicker's bar (prestige.tsx): from the key reached last to the next one. */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{t("snake.nextKey")}</span>
-                  <span className="tabular-nums">
-                    {num(status.crystals)} / {num(status.crystals + status.nextKey)}
-                  </span>
-                </div>
-                <Progress value={keyProgress(status)} className="h-1" />
-              </div>
-            </div>
-            {status.perks.map((p) => {
-              const Icon = PERK_ICONS[p.id] ?? Sparkles;
-              const effect = num(Math.round(Math.max(1, p.level) * p.perLevel * (p.id === "life" ? 1 : 100)));
-              const maxed = p.cost === null;
-              const canBuy = !maxed && status.keys >= (p.cost ?? Infinity) && phase !== "playing";
-              return (
-                <div key={p.id} className="flex items-center gap-3 rounded-xl bg-card p-2.5 ring-1 ring-foreground/10">
-                  <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg", p.level ? "bg-primary/12 text-primary" : "bg-muted text-muted-foreground")}>
-                    <Icon className="size-[18px]" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">
-                      {p.name ?? p.id}
-                      <span className="ml-1.5 text-xs text-muted-foreground tabular-nums">
-                        {p.level}/{p.maxLevel}
-                      </span>
-                    </p>
-                    <p className="text-xs text-muted-foreground">{p.description?.replace("{n}", effect)}</p>
-                  </div>
-                  <Button size="sm" className="shrink-0 tabular-nums" disabled={!canBuy || buying !== null} onClick={() => void buyPerk(p.id)}>
-                    {maxed ? (
-                      t("snake.max")
-                    ) : (
-                      <>
-                        <ChipIcon /> {num(p.cost ?? 0)}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              );
-            })}
-          </section>
+          <PerkShop
+            keys={status.keys}
+            progress={{ count: status.crystals, nextKey: status.nextKey, keyFrom: status.keyFrom }}
+            perks={status.perks}
+            icons={PERK_ICONS}
+            effect={perkEffect}
+            locked={phase === "playing"}
+            buying={buying}
+            onBuy={(id) => void buyPerk(id)}
+          />
         )}
       </main>
 
@@ -621,14 +550,5 @@ function PadButton({ label, onPress, children }: { label: string; onPress: () =>
     >
       {children}
     </Button>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="min-w-0 rounded-lg bg-muted/60 px-2 py-1.5">
-      <p className="truncate text-[11px] text-muted-foreground">{label}</p>
-      <p className="truncate font-heading text-sm font-semibold tabular-nums">{value}</p>
-    </div>
   );
 }
