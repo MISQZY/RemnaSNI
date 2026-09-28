@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Science_Gothic } from "next/font/google";
 import { connection } from "next/server";
-import { getLocale, getMessages } from "next-intl/server";
+import { getLocale } from "next-intl/server";
 import { I18nProvider } from "@/core/i18n/provider";
 import { Toaster } from "@/components/ui/sonner";
-import type { Messages } from "@/core/i18n/messages";
+import { pageMessages } from "@/core/i18n/messages";
+import { siteGame } from "@/core/site";
 import "flag-icons/css/flag-icons.min.css";
 import "./globals.css";
 
@@ -33,14 +34,14 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   await connection();
-  const [locale, messages] = await Promise.all([getLocale(), getMessages()]);
+  const [locale, game] = await Promise.all([getLocale(), siteGame()]);
   // Optional: the stub sites stay anonymous unless a footer is asked for.
   const footer = process.env.SITE_FOOTER?.trim();
 
   return (
     <html lang={locale} className={`${inter.variable} ${scienceGothic.variable}`}>
       <body className="flex min-h-dvh flex-col overflow-x-clip antialiased">
-        <I18nProvider locale={locale} messages={messages as Messages}>
+        <I18nProvider locale={locale} messages={pageMessages(locale, game)}>
           {children}
           {footer && <footer className="px-4 pb-6 text-center text-xs text-muted-foreground">© {new Date().getFullYear()} {footer}</footer>}
           <Toaster position="top-center" />

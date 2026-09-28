@@ -7,5 +7,6 @@ import { MESSAGES } from "./messages";
 export default getRequestConfig(async () => {
   const value = (await cookies()).get(LOCALE_COOKIE)?.value;
   const locale = isLocale(value) ? value : DEFAULT_LOCALE;
-  return { locale, messages: MESSAGES[locale] };
+  // Dates and times are not formatted by next-intl: the zone only silences its warning.
+  return { locale, messages: MESSAGES[locale], timeZone: "UTC" };
 });

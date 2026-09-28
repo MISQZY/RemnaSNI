@@ -21,5 +21,14 @@ const ru = { ...coreRu, ...clickerRu, ...snakeRu };
 
 export type Messages = typeof en;
 
-/** Both languages are small, so both ship: code outside React (sync, toasts of the game loop) needs the current one. */
+/** Every message, for the server. */
 export const MESSAGES: Record<Locale, Messages> = { en, ru };
+
+/**
+ * What a page of `game` needs in the browser: the core namespaces and the game's, in `locale`. The rest stays on
+ * the server; typed as all messages, since a page asks only for its own.
+ */
+export function pageMessages(locale: Locale, game: Exclude<keyof typeof CATALOGS, "core">): Messages {
+  const keys = [...Object.keys(CATALOGS.core.en), ...Object.keys(CATALOGS[game].en)];
+  return Object.fromEntries(keys.map((k) => [k, MESSAGES[locale][k as keyof Messages]])) as Messages;
+}

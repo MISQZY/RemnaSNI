@@ -1,6 +1,8 @@
 import { createTranslator } from "next-intl";
 import type { Locale } from "@/core/i18n/locales";
-import { MESSAGES } from "@/core/i18n/messages";
+// The core catalogs only: the pages ship with no other one.
+import en from "../../messages/core/en.json";
+import ru from "../../messages/core/ru.json";
 
 const SUFFIXES = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
 
@@ -38,7 +40,7 @@ export function formatBytes(bytes: number, locale: Locale = "en"): string {
 
 /** "2h 5m" / "2 ч 5 мин"; under an hour, minutes only (at least one). */
 export function formatDuration(seconds: number, locale: Locale = "en"): string {
-  const t = createTranslator({ locale, messages: MESSAGES[locale], namespace: "units" });
+  const t = createTranslator({ locale, messages: { en, ru }[locale], namespace: "units" });
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   return h ? t("hoursMinutes", { h, m }) : t("minutes", { m: Math.max(m, 1) });

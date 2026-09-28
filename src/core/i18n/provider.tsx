@@ -13,9 +13,10 @@ import { formatBytes, formatDuration, formatNumber } from "@/core/format";
 /** Hands the language the server rendered with, and its messages, to client components and to code outside React. */
 export function I18nProvider({ locale, messages, children }: { locale: Locale; messages: Messages; children: ReactNode }) {
   // Set while rendering, not in an effect: child effects (the welcome-back toast) run first.
-  setCurrentLocale(locale);
+  setCurrentLocale(locale, messages);
   return (
-    <NextIntlClientProvider locale={locale} messages={messages}>
+    // Dates and times are formatted by core/format.ts and useFormat, not next-intl: the zone only silences its SSR warning.
+    <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
       {children}
     </NextIntlClientProvider>
   );
