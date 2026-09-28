@@ -40,7 +40,7 @@ export function useFormat() {
   );
 }
 
-/** Switches to the next language and re-renders the page in it. */
+/** Switches to the next language and re-renders the page in it (also inside the Mini App frame opened with ?lang=). */
 export function LanguageSwitch() {
   const t = useTranslations("header");
   const locale = useLocale();
@@ -57,7 +57,14 @@ export function LanguageSwitch() {
       title={LOCALE_NAMES[next]}
       onClick={() => {
         storeLocale(next);
-        startTransition(() => router.refresh());
+        // ?lang= of the Mini App's frame would win over the cookie again (src/proxy.ts): drop it from the address.
+        const url = new URL(window.location.href);
+        if (url.searchParams.has("lang")) {
+          url.searchParams.delete("lang");
+          startTransition(() => router.replace(url.pathname + url.search + url.hash, { scroll: false }));
+        } else {
+          startTransition(() => router.refresh());
+        }
       }}
     >
       <Languages /> {locale.toUpperCase()}
