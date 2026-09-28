@@ -4,14 +4,14 @@ import { connection } from "next/server";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { I18nProvider } from "@/components/i18n-provider";
 import { Toaster } from "@/components/ui/sonner";
-import { nodeCountry } from "@/lib/country";
+import { siteCountry } from "@/lib/country";
 import type { Messages } from "@/i18n/messages";
 import { siteGame } from "@/lib/site-game";
 import "flag-icons/css/flag-icons.min.css";
 import "./globals.css";
 
 // Only what every game shares: fonts, language, footer and toasts. Each game has its own layout under
-// app/games/<id>, which src/proxy.ts serves by GAME, so a node loads the code of its own game only.
+// app/games/<id>, which src/proxy.ts serves by the game RemnaWeb picked, so a node loads the code of its own game only.
 
 const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter" });
 // Science Gothic: headings and brand texts (Qzr, site name); Inter for everything else. Both carry Cyrillic.
@@ -21,9 +21,8 @@ const scienceGothic = Science_Gothic({ subsets: ["latin", "cyrillic"], variable:
 export async function generateMetadata(): Promise<Metadata> {
   await connection();
   const locale = await getLocale();
-  const { name } = nodeCountry(locale);
-  const t = await getTranslations();
-  const snake = siteGame() === "snake";
+  const [{ name }, game, t] = await Promise.all([siteCountry(locale), siteGame(), getTranslations()]);
+  const snake = game === "snake";
   const title = snake ? t("snake.title", { country: name }) : t("meta.title", { country: name });
   return {
     title: { default: title, template: `%s · ${title}` },

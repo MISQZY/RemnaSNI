@@ -7,11 +7,13 @@ services:
     image: ghcr.io/misqzy/remnasni:latest
     container_name: remnasni
     restart: unless-stopped
-    # GAME picks the game, NODE_COUNTRY the flag; REMNAWEB_URL enables Telegram sign-in, SITE_FOOTER adds a footer.
+    # RemnaWeb tells the game and the country of the site by DOMAIN; SITE_FOOTER adds a footer.
+    # GAME and NODE_COUNTRY are deprecated: used only while RemnaWeb cannot tell them.
     environment:
-      - GAME=${GAME:-clicker}
-      - NODE_COUNTRY=${NODE_COUNTRY:-}
+      - DOMAIN=${DOMAIN:-}
       - REMNAWEB_URL=${REMNAWEB_URL:-}
+      - GAME=${GAME:-}
+      - NODE_COUNTRY=${NODE_COUNTRY:-}
       - SITE_FOOTER=${SITE_FOOTER:-}
     ports:
       - "127.0.0.1:${PORT:-8080}:3000"

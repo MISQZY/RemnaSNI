@@ -9,16 +9,16 @@ const ROUTES: Record<GameId, string[]> = {
 };
 
 /**
- * Serves the node's game (GAME, read at request time) at its public paths by rewriting them to
+ * Serves the node's game (picked in RemnaWeb, lib/site-game.ts) at its public paths by rewriting them to
  * app/games/<id>, so each node loads the code of its own game only; paths of other games are 404.
  *
  * `?lang=ru` picks the language, used by the RemnaWeb Mini App that opens the site in a frame: there the
  * `lang` cookie of a direct visit is not sent. The page renders in it right away, and a partitioned
  * cookie keeps it for the next pages inside that frame.
  */
-export function proxy(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const game = siteGame();
+  const game = await siteGame();
   const lang = req.nextUrl.searchParams.get("lang");
   if (isLocale(lang)) req.cookies.set(LOCALE_COOKIE, lang);
 

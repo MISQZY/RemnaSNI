@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { DEFAULT_LOCALE, LOCALE_COOKIE, LOCALE_HEADER, isLocale } from "@/i18n/locales";
+import { SITE_HEADER, siteHost } from "@/lib/site-game";
 import { syncUrl } from "@/lib/sync-url";
 
 // RemnaWeb's SNI API behind this site's own origin: the page never names RemnaWeb, so a visitor or a
@@ -33,6 +34,9 @@ async function forward(req: Request, { params }: Ctx): Promise<Response> {
   // RemnaWeb answers, errors included, in the language of this page.
   const lang = (await cookies()).get(LOCALE_COOKIE)?.value;
   headers[LOCALE_HEADER] = isLocale(lang) ? lang : DEFAULT_LOCALE;
+  // RemnaWeb keeps progress in the country of the panel host behind this site, whatever the page asks.
+  const host = siteHost();
+  if (host) headers[SITE_HEADER] = host;
   if (body) headers["Content-Type"] = "application/json";
 
   try {

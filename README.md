@@ -1,6 +1,7 @@
 # RemnaSNI
 
-Self-SNI stub site for the nodes: one of the infrastructure games, picked by `GAME` — the flag clicker or the snake.
+Self-SNI stub site for the nodes: one of the infrastructure games — the flag clicker or the snake. RemnaWeb is the
+orchestrator: it picks the node's game and country and sends the rules; the site only plays.
 Progress lives in the visitor's `localStorage`; after signing in with Telegram it is also synced to RemnaWeb.
 Achievements and pets are not here: both are the profile's, in the RemnaWeb Mini App.
 
@@ -8,17 +9,31 @@ Achievements and pets are not here: both are the profile's, in the RemnaWeb Mini
 
 | Variable       | Description                                              |
 | -------------- | -------------------------------------------------------- |
-| `GAME`         | The game this node runs: `clicker` (the flag clicker, the default) or `snake` (a prototype: every crystal eaten brings Qzr to the country balance right away, each one worth more than the last — `50 + 25 × collected`, set in RemnaWeb, plus 50% per unit of the country's turbo; Qzr keys come harder and harder (the k-th at 100 × k² crystals in total), shared with the clicker, and which buys the snake's bonuses: golden crystals, a second life, a slower speed-up; without sign-in they are kept on the device and credited after it, via RemnaWeb `/api/sni/snake`). RemnaWeb asks every site `GET /api/sni/game` and lists the node under its game in the Mini App, where players pick the game they earn Qzr in. Unknown values fall back to `clicker`. |
-| `NODE_COUNTRY` | ISO 3166-1 alpha-2 code (`de`, `nl`, `fi`, …). Read at request time, so one image fits every node. Invalid or missing → neutral flag. |
-| `REMNAWEB_URL` | RemnaWeb URL (https; http only for localhost), required: the game rules come from it (see below). Also enables "Sign in with Telegram" and progress sync. Used by the server only: pages never see it. |
+| `DOMAIN`       | The node's domain: Caddy serves it, and the site names itself by it to RemnaWeb, which tells the game and the country (see below). |
+| `REMNAWEB_URL` | RemnaWeb URL (https; http only for localhost), required: the game, the country and the game rules come from it (see below). Also enables "Sign in with Telegram" and progress sync. Used by the server only: pages never see it. |
 | `SITE_FOOTER`  | Optional footer text (`© <year> <text>`). Empty by default, so nothing on the page ties the nodes together. |
 | `FRAME_ANCESTORS` | For Caddy: who may open the site in a frame, e.g. `https://app.example.com https://web.telegram.org https://*.telegram.org` (the RemnaWeb origin and Telegram's web clients that frame it). Enables "Играть" right in the Mini App: the site then gets the Mini App user's session from RemnaWeb by `postMessage`. Empty → nobody. |
 | `PORT`         | Host port for `docker-compose.yml` (bound to `127.0.0.1`). |
 
+## Game and country
+
+RemnaWeb decides what the node runs. The server asks `REMNAWEB_URL/api/sni/site` with `x-sni-site: <DOMAIN>` and gets
+`{ game, country }` (`lib/site-game.ts`): the game an admin picked for this site in RemnaWeb (Админка → Игра → Игровые
+сайты; the flag clicker until one is picked) and the country of the panel host with this domain as its SNI. The answer
+is kept for a minute, so a switch in RemnaWeb reaches the node without a redeploy; while RemnaWeb is down the last one
+keeps serving. The API proxy passes `x-sni-site` with every call, so RemnaWeb keeps progress in that country whatever
+the page asks. `GAME` and `NODE_COUNTRY` in `.env` are deprecated: they are used only while RemnaWeb cannot tell (an
+older RemnaWeb, a host it does not know, no `DOMAIN` in development).
+
+The snake (a prototype): every crystal eaten brings Qzr to the country balance right away, each one worth more than the
+last, plus 50% per unit of the country's turbo; Qzr keys come harder and harder, shared with the clicker, and buy the
+snake's bonuses: golden crystals, a second life, a slower speed-up. Without sign-in the runs are kept on the device and
+credited after it, via RemnaWeb `/api/sni/snake`.
+
 ## Games and routes
 
 Every game lives in its own route subtree, `src/app/games/<id>`, with its own layout; the root layout holds only what all
-share (fonts, language, footer, toasts). `src/proxy.ts` reads `GAME` at request time and rewrites the public paths to the
+share (fonts, language, footer, toasts). `src/proxy.ts` gets the game at request time and rewrites the public paths to the
 node's game (`/` → `/games/clicker` or `/games/snake`); the `/games/...` paths themselves are 404. So a node loads the JS
 of its own game only. The Telegram session (`lib/session.ts`) is shared and imports no game; a game must not import
 another one. A new game: its folder under `src/app/games`, its id in `lib/site-game.ts` and `ROUTES` in the proxy.
@@ -32,6 +47,10 @@ descriptions in both languages, crit and offline-income constants all live in
 they have been fetched once the site shows a "temporarily unavailable" stub. So a balance or text change in RemnaWeb
 reaches every node without a redeploy. What stays here is code: `lib/rules.ts` applies the config and mirrors
 `RemnaWeb/src/lib/clicker/rules.ts` — a new rule type or formula has to be added to both.
+
+The snake's rules come with them, under `snake` (`RemnaWeb/src/lib/snake-rules.ts`): the board size, the start and
+fastest step, the speed-up per crystal, the crystal price and the golden multiplier. RemnaWeb derives its run checks from
+the same numbers, so the site and the checks never disagree; without them (an older RemnaWeb) the snake shows the stub.
 
 ## Telegram sign-in
 
@@ -113,7 +132,7 @@ and the Cloudflare module by version (`caddy/Dockerfile`); Dependabot proposes i
    for f in docker-compose.yml Caddyfile .env.example; do
      curl -fsSLO "https://raw.githubusercontent.com/MISQZY/RemnaSNI/main/$f"
    done
-   cp .env.example .env && chmod 600 .env   # set NODE_COUNTRY, REMNAWEB_URL, DOMAIN, CF_API_TOKEN
+   cp .env.example .env && chmod 600 .env   # set REMNAWEB_URL, DOMAIN, CF_API_TOKEN
    ```
 3. **Run**:
    ```sh
@@ -131,6 +150,6 @@ Caddy.
 
 ```sh
 npm install
-NODE_COUNTRY=de npm run dev
+GAME=clicker NODE_COUNTRY=de npm run dev   # no DOMAIN: the game and country come from .env
 npm test
 ```

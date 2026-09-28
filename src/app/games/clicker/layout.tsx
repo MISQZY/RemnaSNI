@@ -2,33 +2,25 @@ import { connection } from "next/server";
 import { ConfigProvider } from "@/components/config-provider";
 import { GameRuntime } from "@/components/game-runtime";
 import { SiteHeader } from "@/components/site-header";
+import { Unavailable } from "@/components/unavailable";
 import { loadConfig } from "@/lib/config-server";
-import { nodeCountry } from "@/lib/country";
-import { getLocale, getTranslations } from "next-intl/server";
+import { siteCountry } from "@/lib/country";
+import { getLocale } from "next-intl/server";
 import { syncUrl } from "@/lib/sync-url";
 
-// The flag clicker (GAME=clicker): its rules from RemnaWeb, the header with its tabs and the runtime that
+// The flag clicker: its rules from RemnaWeb, the header with its tabs and the runtime that
 // saves and syncs the game. Served at / by src/proxy.ts.
 
 export default async function ClickerLayout({ children }: { children: React.ReactNode }) {
-  // NODE_COUNTRY comes from the container at request time, not from the build.
+  // The country comes from RemnaWeb at request time, not from the build.
   await connection();
   const locale = await getLocale();
-  const { code, name } = nodeCountry(locale);
+  const { code, name } = await siteCountry(locale);
   const syncEnabled = syncUrl() !== null;
   const config = await loadConfig();
 
-  if (!config) {
-    const t = await getTranslations();
-    // The rules come from RemnaWeb; until it has been reached once there is no game to play.
-    return (
-      <main className="flex flex-1 flex-col items-center justify-center gap-4 px-4 text-center">
-        <span className={`fi fi-${code} rounded-md text-7xl shadow-md`} />
-        <h1 className="text-xl font-semibold">{name}</h1>
-        <p className="max-w-sm text-sm text-muted-foreground">{t("unavailable")}</p>
-      </main>
-    );
-  }
+  // The rules come from RemnaWeb; until it has been reached once there is no game to play.
+  if (!config) return <Unavailable code={code} name={name} />;
   return (
     <ConfigProvider config={config}>
       <SiteHeader code={code} name={name} account={syncEnabled} />

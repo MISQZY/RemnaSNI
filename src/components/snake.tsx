@@ -10,18 +10,15 @@ import { QzrIcon } from "@/components/qzr-icon";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import type { SnakeRules, ValueRule } from "@/lib/config";
 import { session, useSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
-// Snake (a prototype), the game of nodes with GAME=snake. Every crystal eaten brings Qzr to the
-// country's balance in RemnaWeb (POST /api/sni/snake in chunks while playing). A crystal
-// is worth more the more the player has collected, by the formula RemnaWeb sends (lib/snake.ts there).
+// Snake (a prototype), the game of nodes RemnaWeb has picked it for. Every crystal eaten brings Qzr to the
+// country's balance in RemnaWeb (POST /api/sni/snake in chunks while playing). The board, the speeds and the
+// crystal prices are RemnaWeb's (SnakeRules, from GET /api/sni/config): a crystal is worth more the more the
+// player has collected (lib/snake-rules.ts there).
 
-const GRID = 16;
-const START_STEP_MS = 150;
-const MIN_STEP_MS = 80;
-/** Each crystal makes the snake this much faster. */
-const SPEEDUP_MS = 3;
 const BEST_KEY = "remnasni:snake-best";
 /** Crystals are sent to RemnaWeb in chunks this often while playing, and when a run ends. */
 const CHUNK_MS = 5_000;
@@ -30,11 +27,6 @@ const PENDING_KEY = "remnasni:snake-pending";
 const MAX_PENDING = 100;
 /** Pending runs sent per status load; RemnaWeb takes a dozen runs a minute. */
 const FLUSH_PER_LOAD = 10;
-/** Price of crystal number `n` (from 0): base + step × n. */
-type ValueRule = { base: number; step: number };
-/** The crystal price formula until RemnaWeb tells its own. */
-const DEFAULT_VALUE: ValueRule = { base: 50, step: 25 };
-
 /** Price of crystal number `n` (from 0), as RemnaWeb computes it. */
 const crystalValue = (n: number, v: ValueRule) => v.base + v.step * n;
 
@@ -71,7 +63,7 @@ type Food = Cell & { golden: boolean };
 
 /** What the bonuses bought give a run (see SNAKE_PERKS in RemnaWeb lib/snake.ts). */
 type Boosts = { goldenChance: number; lives: number; speedup: number };
-const NO_BOOSTS: Boosts = { goldenChance: 0, lives: 0, speedup: SPEEDUP_MS };
+const noBoosts = (rules: SnakeRules): Boosts => ({ goldenChance: 0, lives: 0, speedup: rules.speedupMs });
 
 type Game = {
   snake: Cell[];
@@ -85,25 +77,26 @@ type Game = {
   /** Collisions with itself the snake survives this run (the second-life bonus). */
   lives: number;
   boosts: Boosts;
+  rules: SnakeRules;
   stepMs: number;
   startedAt: number;
   pausedAt: number | null;
   pausedMs: number;
 };
 
-function freeCell(snake: Cell[]): Cell {
-  const taken = new Set(snake.map((c) => c.y * GRID + c.x));
-  const free = Array.from({ length: GRID * GRID }, (_, i) => i).filter((i) => !taken.has(i));
+function freeCell(snake: Cell[], grid: number): Cell {
+  const taken = new Set(snake.map((c) => c.y * grid + c.x));
+  const free = Array.from({ length: grid * grid }, (_, i) => i).filter((i) => !taken.has(i));
   const i = free[Math.floor(Math.random() * free.length)] ?? 0;
-  return { x: i % GRID, y: Math.floor(i / GRID) };
+  return { x: i % grid, y: Math.floor(i / grid) };
 }
 
-function newFood(snake: Cell[], boosts: Boosts): Food {
-  return { ...freeCell(snake), golden: Math.random() < boosts.goldenChance };
+function newFood(snake: Cell[], boosts: Boosts, grid: number): Food {
+  return { ...freeCell(snake, grid), golden: Math.random() < boosts.goldenChance };
 }
 
-function newGame(boosts: Boosts): Game {
-  const mid = GRID >> 1;
+function newGame(boosts: Boosts, rules: SnakeRules): Game {
+  const mid = rules.grid >> 1;
   const snake = [
     { x: mid, y: mid },
     { x: mid - 1, y: mid },
@@ -113,12 +106,13 @@ function newGame(boosts: Boosts): Game {
     snake,
     dir: "right",
     queue: [],
-    food: newFood(snake, boosts),
+    food: newFood(snake, boosts, rules.grid),
     score: 0,
     golden: 0,
     lives: boosts.lives,
     boosts,
-    stepMs: START_STEP_MS,
+    rules,
+    stepMs: rules.startStepMs,
     startedAt: performance.now(),
     pausedAt: null,
     pausedMs: 0,
@@ -133,8 +127,9 @@ function step(g: Game): "ok" | "ate" | "dead" | "saved" {
   const next = g.queue.shift();
   if (next && next !== OPPOSITE[g.dir]) g.dir = next;
   const head = g.snake[0];
+  const { grid } = g.rules;
   // The edges wrap around: the snake never hits a wall.
-  const to = { x: (head.x + VEC[g.dir].x + GRID) % GRID, y: (head.y + VEC[g.dir].y + GRID) % GRID };
+  const to = { x: (head.x + VEC[g.dir].x + grid) % grid, y: (head.y + VEC[g.dir].y + grid) % grid };
   const eats = to.x === g.food.x && to.y === g.food.y;
   // The tail moves away this step unless the snake grows.
   const body = eats ? g.snake : g.snake.slice(0, -1);
@@ -154,8 +149,8 @@ function step(g: Game): "ok" | "ate" | "dead" | "saved" {
   }
   g.score++;
   if (g.food.golden) g.golden++;
-  g.stepMs = Math.max(MIN_STEP_MS, g.stepMs - g.boosts.speedup);
-  g.food = newFood(g.snake, g.boosts);
+  g.stepMs = Math.max(g.rules.minStepMs, g.stepMs - g.boosts.speedup);
+  g.food = newFood(g.snake, g.boosts, grid);
   return "ate";
 }
 
@@ -165,7 +160,7 @@ function turn(g: Game, d: Dir) {
   if (g.queue.length < 2 && d !== last && d !== OPPOSITE[last]) g.queue.push(d);
 }
 
-function draw(canvas: HTMLCanvasElement, g: Game | null) {
+function draw(canvas: HTMLCanvasElement, g: Game | null, grid: number) {
   const dpr = window.devicePixelRatio || 1;
   const size = canvas.clientWidth;
   if (canvas.width !== Math.round(size * dpr)) {
@@ -176,11 +171,11 @@ function draw(canvas: HTMLCanvasElement, g: Game | null) {
   if (!ctx) return;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, size, size);
-  const cell = size / GRID;
+  const cell = size / grid;
 
   // A faint checkerboard, readable on both themes.
   ctx.fillStyle = "rgba(127, 127, 127, 0.07)";
-  for (let y = 0; y < GRID; y++) for (let x = (y % 2); x < GRID; x += 2) ctx.fillRect(x * cell, y * cell, cell, cell);
+  for (let y = 0; y < grid; y++) for (let x = (y % 2); x < grid; x += 2) ctx.fillRect(x * cell, y * cell, cell, cell);
   if (!g) return;
 
   // The crystal: a glowing green rhombus, like the Qzr icon; a golden one shines gold.
@@ -227,17 +222,14 @@ type Perk = { id: string; name: string; description: string; perLevel: number; l
  * `boost` is the country's turbo, `multiplier` what it does to crystal prices (1 without it); `keys` the free
  * Qzr keys (shared with the clicker), `nextKey` the crystals left until the next one.
  */
-type Status = { balance: number; crystals: number; value: ValueRule; boost: number; multiplier: number; keys: number; nextKey: number; perks: Perk[] };
+type Status = { balance: number; crystals: number; boost: number; multiplier: number; keys: number; nextKey: number; perks: Perk[] };
 
-/** A golden crystal is worth this many regular ones (GOLDEN_MULTIPLIER in RemnaWeb). */
-const GOLDEN_MULTIPLIER = 5;
-
-function boostsOf(perks: Perk[] | undefined): Boosts {
+function boostsOf(perks: Perk[] | undefined, rules: SnakeRules): Boosts {
   const effect = (id: string) => {
     const p = perks?.find((x) => x.id === id);
     return p ? p.level * p.perLevel : 0;
   };
-  return { goldenChance: effect("golden"), lives: effect("life"), speedup: SPEEDUP_MS * Math.max(0, 1 - effect("slow")) };
+  return { goldenChance: effect("golden"), lives: effect("life"), speedup: rules.speedupMs * Math.max(0, 1 - effect("slow")) };
 }
 type Run = { score: number; durationMs: number; golden?: number };
 /** A floating "+N Qzr" over an eaten crystal: `bonus` is the part the turbo added. */
@@ -303,7 +295,7 @@ const noop = () => () => {};
 /** Icons of the snake bonuses. */
 const PERK_ICONS: Record<string, typeof Sparkles> = { golden: Sparkles, life: Heart, slow: Turtle };
 
-export function SnakeSite({ code, name, signIn }: { code: string; name: string; signIn: boolean }) {
+export function SnakeSite({ code, name, signIn, rules }: { code: string; name: string; signIn: boolean; rules: SnakeRules }) {
   const t = useTranslations();
   const { num, fixed } = useFormat();
   const account = useSession();
@@ -352,7 +344,7 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
         const res = await snakeApi<Status & { earned: number }>(code, run);
         if (!res) break;
         earned += res.earned;
-        setStatus((s) => ({ ...res, value: s?.value ?? DEFAULT_VALUE }));
+        setStatus(res);
         setCollected(res.crystals + chunkRef.current.score);
       } catch (err) {
         // A refused run is dropped; any other failure leaves the rest for later.
@@ -374,7 +366,6 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
       setStatus({
         balance: res.balance,
         crystals: res.crystals,
-        value: res.value,
         boost: res.boost,
         multiplier: res.multiplier,
         keys: res.keys,
@@ -396,17 +387,17 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
   }, []);
 
   const redraw = () => {
-    if (canvasRef.current) draw(canvasRef.current, gameRef.current);
+    if (canvasRef.current) draw(canvasRef.current, gameRef.current, rules.grid);
   };
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    draw(canvas, gameRef.current);
-    const observer = new ResizeObserver(() => draw(canvas, gameRef.current));
+    draw(canvas, gameRef.current, rules.grid);
+    const observer = new ResizeObserver(() => draw(canvas, gameRef.current, rules.grid));
     observer.observe(canvas);
     return () => observer.disconnect();
-  }, []);
+  }, [rules.grid]);
 
   /**
    * Sends the crystals eaten since the last chunk. Their Qzr are already counted on screen: signed in,
@@ -430,7 +421,7 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
     try {
       const res = await snakeApi<Status & { earned: number }>(code, run);
       if (!res) return;
-      setStatus((s) => ({ ...res, value: s?.value ?? DEFAULT_VALUE }));
+      setStatus(res);
       // Crystals eaten while the chunk was on its way are not in the server's count yet.
       setCollected(res.crystals + chunkRef.current.score);
     } catch {
@@ -457,14 +448,14 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
     const number = collected ?? (session.getSnapshot().token ? (status?.crystals ?? 0) : pending.reduce((sum, r) => sum + r.score, 0));
     // Turbo needs an account; the server applies it again when crediting.
     const turbo = session.getSnapshot().token ? (status?.multiplier ?? 1) : 1;
-    const price = crystalValue(number, status?.value ?? DEFAULT_VALUE) * (golden ? GOLDEN_MULTIPLIER : 1);
+    const price = crystalValue(number, rules.value) * (golden ? rules.goldenMultiplier : 1);
     setCollected(number + 1);
     if (golden) chunk.golden++;
     const qzr = Math.round(price * turbo);
     chunk.score++;
     chunk.qzr += qzr;
     setUnsent({ crystals: chunk.score, qzr: chunk.qzr });
-    const popup = { id: ++popupId.current, x: ((at.x + 0.5) / GRID) * 100, y: ((at.y + 0.5) / GRID) * 100, qzr, bonus: qzr - price, golden };
+    const popup = { id: ++popupId.current, x: ((at.x + 0.5) / rules.grid) * 100, y: ((at.y + 0.5) / rules.grid) * 100, qzr, bonus: qzr - price, golden };
     setPopups((list) => [...list, popup]);
     setTimeout(() => setPopups((list) => list.filter((p) => p.id !== popup.id)), POPUP_MS);
   });
@@ -485,7 +476,7 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
       // Whether the crystal ahead is golden, before the step replaces it.
       const golden = g.food.golden;
       const result = step(g);
-      if (canvasRef.current) draw(canvasRef.current, g);
+      if (canvasRef.current) draw(canvasRef.current, g, g.rules.grid);
       if (result === "dead") {
         void finish(g);
         return;
@@ -510,7 +501,7 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
     setBuying(id);
     try {
       const res = await snakeApi<Status>(code, { id }, "snake/perks");
-      if (res) setStatus((s) => ({ ...res, value: s?.value ?? DEFAULT_VALUE }));
+      if (res) setStatus(res);
     } catch {
       toast.error(t("snake.buyFailed"));
     } finally {
@@ -520,8 +511,8 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
 
   const start = () => {
     // Bonuses need an account: they are bought and kept in RemnaWeb.
-    const boosts = account.token ? boostsOf(status?.perks) : NO_BOOSTS;
-    gameRef.current = newGame(boosts);
+    const boosts = account.token ? boostsOf(status?.perks, rules) : noBoosts(rules);
+    gameRef.current = newGame(boosts, rules);
     setLives(boosts.lives);
     chunkRef.current = { score: 0, golden: 0, qzr: 0, since: performance.now() };
     setUnsent({ crystals: 0, qzr: 0 });
@@ -568,7 +559,7 @@ export function SnakeSite({ code, name, signIn }: { code: string; name: string; 
 
   const shownBest = hydrated ? Math.max(best, score) : 0;
   const showPad = hydrated && pad;
-  const rule = status?.value ?? DEFAULT_VALUE;
+  const rule = rules.value;
   const pendingCrystals = pending.reduce((sum, r) => sum + r.score, 0);
   /** Crystals already counted: the account's in the country, or this device's before sign-in. */
   const collectedBefore = account.token ? (status?.crystals ?? 0) : pendingCrystals;
