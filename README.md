@@ -43,9 +43,9 @@ another one. A new game: its folder under `src/app/games`, its id in `lib/site-g
 RemnaWeb is the source of truth for the clicker: upgrades (prices, effects, icons), prestige perks, their names and
 descriptions in both languages, crit and offline-income constants all live in
 `RemnaWeb/src/lib/clicker/config.ts`. The server fetches them from `REMNAWEB_URL/api/sni/config`
-(`lib/config-server.ts`), refreshes them every 5 minutes and keeps serving the last ones while RemnaWeb is down; until
+(`lib/config-server.ts`), refreshes them every minute and keeps serving the last ones while RemnaWeb is down; until
 they have been fetched once the site shows a "temporarily unavailable" stub. So a balance or text change in RemnaWeb
-reaches every node without a redeploy. What stays here is code: `lib/rules.ts` applies the config and mirrors
+(an admin tunes the numbers in Админка → Игра → Настройки) reaches every node within a minute, without a redeploy. What stays here is code: `lib/rules.ts` applies the config and mirrors
 `RemnaWeb/src/lib/clicker/rules.ts` — a new rule type or formula has to be added to both.
 
 The snake's rules come with them, under `snake` (`RemnaWeb/src/lib/snake-rules.ts`): the board size, the start and

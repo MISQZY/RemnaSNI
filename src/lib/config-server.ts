@@ -2,7 +2,8 @@ import "server-only";
 import { isGameConfig, withDefaults, type GameConfig } from "@/lib/config";
 import { syncUrl } from "@/lib/sync-url";
 
-const TTL_MS = 5 * 60_000;
+/** Short: an admin may tune the numbers in RemnaWeb, and its progress checks follow them at once. */
+const TTL_MS = 60_000;
 const TIMEOUT_MS = 5_000;
 
 /** After a failed fetch with nothing cached, pages do not wait on RemnaWeb again for this long. */
@@ -13,7 +14,7 @@ let failedAt = 0;
 let loading: Promise<GameConfig | null> | null = null;
 
 /**
- * The game config from RemnaWeb, refreshed every few minutes. While RemnaWeb is unreachable the last one
+ * The game config from RemnaWeb, refreshed every minute. While RemnaWeb is unreachable the last one
  * received keeps serving; null only when there has never been one (or REMNAWEB_URL is not set).
  */
 export async function loadConfig(): Promise<GameConfig | null> {
