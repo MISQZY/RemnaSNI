@@ -154,8 +154,7 @@ export function FishingSite({ code, name, signIn, rules }: { code: string; name:
         next = { ...res, local: null };
       } else {
         // Without an account (or signed out by an expired session just now): a fish of this device.
-        const fish = rollCatch(rules, local, locale);
-        const strength = rules.species.find((f) => f.id === fish.id)?.strength ?? 0.5;
+        const { fish, strength } = rollCatch(rules, local, locale);
         next = { id: null, biteMs: localBiteMs(rules), hookMs: rules.hookWindowMs, reel: localReel(rules, strength), local: fish };
       }
     } catch (err) {
@@ -490,7 +489,7 @@ export function FishingSite({ code, name, signIn, rules }: { code: string; name:
   );
 }
 
-/** A landed fish: its species in its rarity's color, its size, and what it sold for (or would sell for, signed in). */
+/** A landed fish: its species in its rarity's color, its weight, and what it sold for (or would sell for, signed in). */
 function CatchCard({ fish, sold }: { fish: Catch; sold: boolean }) {
   const t = useTranslations();
   const { num, fixed } = useFormat();

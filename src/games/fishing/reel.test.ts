@@ -71,24 +71,33 @@ describe("the rules", () => {
     biteMaxMs: 5_500,
     value: { base: 600, step: 3_600 },
     averageValue: 1,
+    rarities: [
+      { id: "common", weight: 3, value: 0.5, strength: 0.1, minKg: 0.1, maxKg: 0.5 },
+      { id: "legendary", weight: 1, value: 2.5, strength: 1, minKg: 10, maxKg: 50 },
+    ],
     species: [
-      { id: "roach", rarity: "common", weight: 3, value: 0.5, strength: 0.1, minKg: 0.1, maxKg: 0.5, name: { en: "Roach", ru: "Плотва" } },
-      { id: "goldfish", rarity: "legendary", weight: 1, value: 2.5, strength: 1, minKg: 0.1, maxKg: 0.5, name: { en: "Golden Fish", ru: "Золотая рыбка" } },
+      { id: "roach", name: { en: "Roach", ru: "Плотва" } },
+      { id: "goldfish", name: { en: "Golden Fish", ru: "Золотая рыбка" } },
     ],
   };
 
   it("take RemnaWeb's shape and refuse a broken one", () => {
     expect(isFishingRules(rules)).toBe(true);
     expect(isFishingRules({ ...rules, species: [] })).toBe(false);
-    expect(isFishingRules({ ...rules, species: [{ ...rules.species[0], rarity: "mythic" }] })).toBe(false);
+    expect(isFishingRules({ ...rules, rarities: [{ ...rules.rarities[0], id: "mythic" }] })).toBe(false);
+    expect(isFishingRules({ ...rules, species: [{ id: "roach" }] })).toBe(false);
     expect(isFishingRules(undefined)).toBe(false);
   });
 
-  it("roll a fish without an account at the price RemnaWeb would pay", () => {
-    const seq = [0.9, 0];
-    const fish = rollCatch(rules, 2, "ru", () => seq.shift()!);
-    expect(fish).toMatchObject({ id: "goldfish", name: "Золотая рыбка", kg: 0.1 });
+  it("roll a fish without an account at the price RemnaWeb would pay: of its rarity and weight, whatever its species", () => {
+    const seq = [0.9, 0, 0];
+    const { fish, strength } = rollCatch(rules, 2, "ru", () => seq.shift()!);
+    expect(fish).toMatchObject({ id: "roach", name: "Плотва", rarity: "legendary", kg: 10 });
     expect(fish.qzr).toBe(Math.round((600 + 3_600 * 2) * 2.5 * 0.5));
+    expect(strength).toBe(1);
+    const next = [0, 0, 0.99];
+    const golden = rollCatch(rules, 2, "ru", () => next.shift()!);
+    expect(golden.fish).toMatchObject({ id: "goldfish", rarity: "common" });
   });
 
   it("set up a fight without an account from the reel numbers", () => {
