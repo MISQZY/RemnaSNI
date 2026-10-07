@@ -272,7 +272,7 @@ function BetPanel({ rules, snapshot, serverNow, mine, balance, busy, onBet, onCa
       </div>
 
       <div className="grid grid-cols-[1fr_7rem] gap-2">
-        <label className="flex flex-col gap-1">
+        <label className="flex min-w-0 flex-col gap-1">
           <span className="flex items-center gap-1 px-1 text-xs text-muted-foreground">
             <Coins className="size-3.5" /> {t("bet")}
           </span>
@@ -285,12 +285,12 @@ function BetPanel({ rules, snapshot, serverNow, mine, balance, busy, onBet, onCa
             disabled={locked}
             onChange={(e) => setBet(Number(e.target.value) || 0)}
             className={cn(
-              "h-10 rounded-xl border bg-background px-3 text-base font-semibold tabular-nums outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60",
+              "h-10 w-full min-w-0 rounded-xl border bg-background px-3 text-base font-semibold tabular-nums outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60",
               !amountValid && !locked && "border-destructive",
             )}
           />
         </label>
-        <label className="flex flex-col gap-1">
+        <label className="flex min-w-0 flex-col gap-1">
           <span className="flex items-center gap-1 px-1 text-xs text-muted-foreground">
             <Bot className="size-3.5" /> {t("auto")}
           </span>
@@ -302,7 +302,7 @@ function BetPanel({ rules, snapshot, serverNow, mine, balance, busy, onBet, onCa
             disabled={locked}
             onChange={(e) => setAuto(e.target.value.replace(/[^\d.,]/g, "").slice(0, 8))}
             className={cn(
-              "h-10 rounded-xl border bg-background px-3 text-base font-semibold tabular-nums outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60",
+              "h-10 w-full min-w-0 rounded-xl border bg-background px-3 text-base font-semibold tabular-nums outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60",
               !autoValid && !locked && "border-destructive",
             )}
           />
@@ -326,7 +326,7 @@ function BetPanel({ rules, snapshot, serverNow, mine, balance, busy, onBet, onCa
 
       <Button
         size="lg"
-        className={cn("h-12 w-full text-base tabular-nums", canCashOut && "bg-emerald-600 text-white hover:bg-emerald-600/90")}
+        className={cn("h-auto min-h-12 w-full py-2 text-base leading-tight whitespace-normal tabular-nums", canCashOut && "bg-emerald-600 text-white hover:bg-emerald-600/90")}
         variant={canCancel ? "outline" : mine?.cashout != null || (mine && crashed) || (!canBet && !canCashOut) ? "secondary" : "default"}
         disabled={busy || !(canCashOut || canCancel || (canBet && amountValid && autoValid))}
         onClick={act}
