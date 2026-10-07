@@ -166,9 +166,11 @@ export function CrashChart({ rules, snapshot, serverNow, online, full }: Props) 
   const elapsedMs = !round || betting ? 0 : crashed ? msToReach(rules, round.crash!) : now - round.startAt;
   const top = crashed ? round!.crash! : multiplierAt(rules, elapsedMs);
   const tier = tierOf(rules, top);
+  // The curve takes the multiplier unrounded: floored to hundredths, its tip and scale would move in steps.
+  const curveTop = crashed ? top : Math.min(rules.maxCrash, 100 * Math.exp((rules.growth * elapsedMs) / 1000));
 
   useEffect(() => {
-    if (canvasRef.current) draw(canvasRef.current, rules, elapsedMs, top, TIER_STROKE[tier], crashed);
+    if (canvasRef.current) draw(canvasRef.current, rules, elapsedMs, curveTop, TIER_STROKE[tier], crashed);
   });
 
   const left = round ? Math.max(0, round.startAt - now) : 0;
