@@ -62,11 +62,12 @@ function draw(canvas: HTMLCanvasElement, rules: CrashRules, elapsedMs: number, t
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, w, h);
 
-  const pad = { left: 40, right: 16, top: 16, bottom: 16 };
+  // The right edge leaves room for the tip only, so the curve runs up to it.
+  const pad = { left: 40, right: 10, top: 16, bottom: 16 };
   const plotW = w - pad.left - pad.right;
   const plotH = h - pad.top - pad.bottom;
   // The scale grows with the round, so the curve always fills most of the chart.
-  const spanMs = Math.max(8_000, elapsedMs * 1.1);
+  const spanMs = Math.max(8_000, elapsedMs);
   const maxY = Math.max(2, (top / 100) * 1.2);
   const x = (ms: number) => pad.left + (ms / spanMs) * plotW;
   const y = (m: number) => pad.top + plotH - ((m - 1) / (maxY - 1)) * plotH;
@@ -175,16 +176,15 @@ export function CrashChart({ rules, snapshot, serverNow, online, full }: Props) 
     <div className="relative aspect-[4/3] w-full overflow-hidden rounded-3xl bg-gradient-to-b from-zinc-900 to-zinc-950 ring-1 ring-foreground/10">
       <canvas ref={canvasRef} aria-hidden className="absolute inset-0 size-full" />
 
-      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1 p-6 text-center">
+      <div className="pointer-events-none absolute inset-y-0 right-0 left-10 flex flex-col items-center justify-center gap-1 p-4 text-center">
         {(flying || crashed) && (
-          <p className={cn("font-heading text-5xl font-bold tabular-nums drop-shadow sm:text-6xl", TIER_TEXT[tier])}>{mult(top)}</p>
+          <p className={cn("font-heading text-3xl font-bold tabular-nums drop-shadow sm:text-4xl", TIER_TEXT[tier])}>{mult(top)}</p>
         )}
-        {crashed && <p className="font-heading text-lg font-semibold text-white/80">{t("crashed")}</p>}
         {betting && (
           <>
-            <p className="text-sm font-medium text-white/70">{t("betsOpen")}</p>
-            <p className="font-heading text-4xl font-bold text-white tabular-nums">{t("startsIn", { s: fixed(left / 1000, 1) })}</p>
-            <div className="mt-2 h-1.5 w-40 overflow-hidden rounded-full bg-white/15">
+            <p className="text-xs font-medium text-white/70">{t("betsOpen")}</p>
+            <p className="font-heading text-2xl font-bold text-white tabular-nums">{t("startsIn", { s: fixed(left / 1000, 1) })}</p>
+            <div className="mt-2 h-1 w-32 overflow-hidden rounded-full bg-white/15">
               <div className="h-full rounded-full bg-white/70" style={{ width: `${Math.min(100, (left / rules.bettingMs) * 100)}%` }} />
             </div>
           </>

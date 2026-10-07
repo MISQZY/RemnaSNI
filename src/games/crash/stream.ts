@@ -82,14 +82,24 @@ export function useCrashStream(): CrashStream {
   return { snapshot, online, full, serverNow };
 }
 
-/** `serverNow()` on every animation frame while `active`, else once. */
+/**
+ * `serverNow()` on every animation frame while `active`, else once. In between it runs on the frame's own clock and only
+ * eases toward `serverNow()`, never back: `Date.now()` steps in whole milliseconds and the offset to the server jumps
+ * when a new sample lands, either of which makes the curve's tip shake.
+ */
 export function useFrameNow(serverNow: () => number, active: boolean): number {
   const [now, setNow] = useState(serverNow);
   useEffect(() => {
     if (!active) return;
     let frame = 0;
-    const tick = () => {
-      setNow(serverNow());
+    let shown = 0;
+    let last = 0;
+    const tick = (t: number) => {
+      const target = serverNow();
+      const step = shown ? shown + (t - last) : target;
+      shown = Math.max(shown, step + (target - step) * 0.1);
+      last = t;
+      setNow(shown);
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
