@@ -13,6 +13,7 @@ import { Prestige, prestigeReady } from "@/games/clicker/prestige";
 import { Upgrades, upgradeReady } from "@/games/clicker/upgrades";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { critChance, critMultiplier, incomeMultiplier, perSecond, perTap, type GameState } from "@/games/clicker/game";
 import type { SyncState } from "@/games/clicker/sync";
@@ -95,7 +96,7 @@ function SidePanel({ state }: { state: GameState }) {
   // An older RemnaWeb sends no prestige: then there is only the upgrades.
   if (!config.prestige.perks.length) return <Upgrades state={state} />;
 
-  const scroll = "min-h-0 overflow-y-auto overscroll-contain p-px [scrollbar-width:thin]";
+  const scroll = "flex min-h-0 flex-col";
   return (
     <Tabs defaultValue="upgrades" className="lg:min-h-0 lg:flex-1">
       <TabsList className="w-full shrink-0">
@@ -109,12 +110,25 @@ function SidePanel({ state }: { state: GameState }) {
         </TabsTrigger>
       </TabsList>
       <TabsContent value="upgrades" className={scroll}>
-        <Upgrades state={state} />
+        <TabScroll>
+          <Upgrades state={state} />
+        </TabScroll>
       </TabsContent>
       <TabsContent value="prestige" className={scroll}>
-        <Prestige state={state} />
+        <TabScroll>
+          <Prestige state={state} />
+        </TabScroll>
       </TabsContent>
     </Tabs>
+  );
+}
+
+/** A tab's body, scrolling on its own once the side column caps its height. */
+function TabScroll({ children }: { children: ReactNode }) {
+  return (
+    <ScrollArea className="flex min-h-0 flex-1 flex-col" viewportClassName="h-auto min-h-0 flex-1 overscroll-contain">
+      <div className="p-px">{children}</div>
+    </ScrollArea>
   );
 }
 

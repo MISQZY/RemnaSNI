@@ -5,6 +5,7 @@ import { Copy, ShieldAlert, ShieldCheck, ShieldQuestion } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { TIER_CHIP, useMultiplier } from "./chart";
 import { tierOf, verifyRound, type CrashRound, type CrashRules } from "./rules";
@@ -124,9 +125,11 @@ export function RoundProof({ rules, round, children, align = "start" }: { rules:
         </div>
         <div className="space-y-1.5 text-xs leading-relaxed text-muted-foreground">
           <p>{t("how")}</p>
-          <pre className="overflow-x-auto rounded-lg bg-muted px-2 py-1.5 font-mono text-[11px] leading-relaxed text-foreground">
-            <code>{formula(rules)}</code>
-          </pre>
+          <ScrollArea scrollbars="horizontal" className="rounded-lg bg-muted">
+            <pre className="px-2 py-1.5 font-mono text-[11px] leading-relaxed text-foreground">
+              <code>{formula(rules)}</code>
+            </pre>
+          </ScrollArea>
           <p>{t("bounds", { max: mult(rules.maxCrash) })}</p>
         </div>
       </PopoverContent>
