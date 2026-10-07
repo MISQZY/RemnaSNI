@@ -43,7 +43,9 @@
       "mismatch": "Does not match!",
       "unchecked": "The browser cannot check it",
       "copied": "Copied",
-      "how": "The hash is the seed's SHA-256, shown from the round's start; the seed is shown after the crash. The crash point comes from the seed: u is the first 13 hex characters of HMAC-SHA256(key: seed, message: \"crash\") over 2^52; crash = ⌊{edge} / (1 − u)⌋ / 100, ×1.00 at the least."
+      "how": "The hash is shown from the round's start, the seed after the crash. The crash point comes from the seed alone (taken as text):",
+      "bounds": "h is the HMAC in hex. The crash is ×1.00 at the least and {max} at the most.",
+      "check": "Check the round"
     }
   }
 }

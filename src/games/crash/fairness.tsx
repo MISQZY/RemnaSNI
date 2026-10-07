@@ -87,6 +87,21 @@ function Verdict({ ok }: { ok: boolean | null | undefined }) {
   );
 }
 
+/**
+ * How to get the crash point by hand, as rules.ts and RemnaWeb's crashPoint do: in hundredths it is
+ * ⌊100 × (1 − edge) / (1 − u)⌋, so the multiplier is that over 100. Code rather than words, the same in every language.
+ */
+function formula(rules: Pick<CrashRules, "edge">): string {
+  // At most four decimals, so 2.5% edge gives 97.5 rather than 97.49999999999999.
+  const k = Number((100 * (1 - rules.edge)).toFixed(4));
+  return [
+    "hash  = SHA256(seed)",
+    'h     = HMAC_SHA256(key: seed, msg: "crash")',
+    "u     = int(h[0:13], 16) / 2^52",
+    `crash = ⌊${k} / (1 − u)⌋ / 100`,
+  ].join("\n");
+}
+
 /** A round's hash and seed, the check, and how to make it by hand; opened by `children`. */
 export function RoundProof({ rules, round, children, align = "start" }: { rules: CrashRules; round: RoundProofData; children: ReactNode; align?: "start" | "center" | "end" }) {
   const t = useTranslations("crash.fair");
@@ -107,25 +122,37 @@ export function RoundProof({ rules, round, children, align = "start" }: { rules:
         <div className="text-xs font-medium">
           <Verdict ok={ok} />
         </div>
-        <p className="text-xs leading-relaxed text-muted-foreground">{t("how", { edge: Math.round((1 - rules.edge) * 100) })}</p>
+        <div className="space-y-1.5 text-xs leading-relaxed text-muted-foreground">
+          <p>{t("how")}</p>
+          <pre className="overflow-x-auto rounded-lg bg-muted px-2 py-1.5 font-mono text-[11px] leading-relaxed text-foreground">
+            <code>{formula(rules)}</code>
+          </pre>
+          <p>{t("bounds", { max: mult(rules.maxCrash) })}</p>
+        </div>
       </PopoverContent>
     </Popover>
   );
 }
 
-/** Under the chart: the round on and its hash, the seed and the check once it has crashed. */
+/** Under the chart: the icon of the round on, which opens its proof; green once it has crashed and checked out. */
 export function CurrentRoundProof({ rules, round }: { rules: CrashRules; round: RoundProofData | null }) {
   const t = useTranslations("crash.fair");
   const ok = useVerified(rules, round ?? { id: 0, hash: "", seed: null, crash: null });
   if (!round) return null;
+  const Icon = ok === true ? ShieldCheck : ok === false ? ShieldAlert : ShieldQuestion;
   return (
-    <RoundProof rules={rules} round={round}>
-      <button type="button" className="flex w-full items-center gap-2 rounded-xl px-2 py-1 text-left text-xs text-muted-foreground hover:bg-muted/60">
-        {ok === true ? <ShieldCheck className="size-3.5 shrink-0 text-emerald-500" /> : <ShieldQuestion className="size-3.5 shrink-0" />}
-        <span className="shrink-0">{t("round", { id: round.id })}</span>
-        <span className="min-w-0 flex-1 truncate font-mono">
-          {round.seed ? `${t("seed")}: ${round.seed}` : `${t("hash")}: ${round.hash}`}
-        </span>
+    <RoundProof rules={rules} round={round} align="end">
+      <button
+        type="button"
+        aria-label={t("check")}
+        title={t("check")}
+        className={cn(
+          "self-end rounded-lg p-1 text-muted-foreground outline-none hover:bg-muted/60 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50",
+          ok === true && "text-emerald-500 hover:text-emerald-500",
+          ok === false && "text-destructive hover:text-destructive",
+        )}
+      >
+        <Icon className="size-4" />
       </button>
     </RoundProof>
   );
