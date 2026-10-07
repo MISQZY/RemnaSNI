@@ -1,44 +1,65 @@
 import { describe, expect, it } from "vitest";
-import { newReel, stepReel, zoneSize } from "./reel";
-import { isFishingRules, rollCatch, type FishingRules } from "./rules";
+import { MAX_TICKS, START_PROGRESS, newReel, replayReel, stepReel, zoneSize, type ReelSetup } from "./reel";
+import { isFishingRules, localReel, rollCatch, type FishingRules } from "./rules";
 
 const RULES = { zone: 0.3, fillPerSec: 0.3, drainPerSec: 0.22 };
+const setup = (strength: number, seed = 1): ReelSetup => ({ seed, strength, size: zoneSize(RULES.zone, strength), fill: RULES.fillPerSec, drain: RULES.drainPerSec, start: START_PROGRESS });
 
-/** Plays a fight at 60 fps with `play` deciding to hold; returns its end and how long it took, s. */
-function fight(strength: number, play: (r: ReturnType<typeof newReel>) => boolean, rand = Math.random) {
-  const r = newReel(RULES, strength);
-  for (let t = 0; t < 120; t += 1 / 60) {
-    const end = stepReel(r, RULES, 1 / 60, play(r), rand);
-    if (end !== "fight") return { end, seconds: t };
+/** Plays a fight with `play` deciding to hold, recording the flips as the site does; its end, ticks and flips. */
+function fight(s: ReelSetup, play: (r: ReturnType<typeof newReel>) => boolean) {
+  const r = newReel(s);
+  const flips: number[] = [];
+  for (;;) {
+    const hold = play(r);
+    if (hold !== r.holding) {
+      flips.push(r.tick);
+      r.holding = hold;
+    }
+    const end = stepReel(r, s);
+    if (end !== "fight") return { end, ticks: r.tick, flips };
   }
-  return { end: "fight", seconds: 120 };
 }
 
 /** A player keeping the zone's middle on the fish, leading by its speed. */
-const follow = (r: ReturnType<typeof newReel>) => r.zone + r.size / 2 + r.speed * 0.2 < r.fish;
+const follow = (s: ReelSetup) => (r: ReturnType<typeof newReel>) => r.zone + s.size / 2 + r.speed * 0.2 < r.fish;
 
 describe("the reel", () => {
   it("narrows the zone for strong fish and widens it with the line", () => {
-    expect(zoneSize(RULES, 1)).toBeLessThan(zoneSize(RULES, 0));
-    expect(zoneSize(RULES, 0.5, 0.45)).toBeCloseTo(zoneSize(RULES, 0.5) * 1.45);
+    expect(zoneSize(RULES.zone, 1)).toBeLessThan(zoneSize(RULES.zone, 0));
+    expect(zoneSize(RULES.zone, 0.5, 0.45)).toBeCloseTo(zoneSize(RULES.zone, 0.5) * 1.45);
   });
 
-  it("loses the fish left alone, a strong one too", () => {
-    expect(fight(0.2, () => false, () => 0.99).end).toBe("lost");
-    expect(fight(1, () => false).end).toBe("lost");
+  it("loses the fish left alone, a strong one all the more", () => {
+    const lost = (strength: number) => Array.from({ length: 20 }, (_, seed) => fight(setup(strength, seed), () => false).end).filter((e) => e === "lost").length;
+    // A weak fish may now and then stay low, in the zone on the bottom, for long enough.
+    expect(lost(0.2)).toBeGreaterThan(12);
+    expect(lost(1)).toBeGreaterThan(17);
   });
 
   it("lands a weak fish for a player who follows it, in a few seconds at the least", () => {
     let landed = 0;
-    for (let i = 0; i < 20; i++) {
-      const { end, seconds } = fight(0.15, follow);
+    for (let seed = 0; seed < 20; seed++) {
+      const s = setup(0.15, seed);
+      const { end, ticks } = fight(s, follow(s));
       if (end === "caught") {
         landed++;
-        // Never faster than filling from the start: 0.7 / 0.3 s. RemnaWeb takes 2 s at the least.
-        expect(seconds).toBeGreaterThan(2.3);
+        // Never faster than filling from the start: 0.7 / 0.3 s.
+        expect(ticks / 60).toBeGreaterThan(2.3);
       }
     }
     expect(landed).toBeGreaterThan(15);
+  });
+
+  it("replays to the same end from the flips, as RemnaWeb checks it", () => {
+    for (let seed = 0; seed < 10; seed++) {
+      const s = setup(0.7, seed * 7919);
+      const played = fight(s, follow(s));
+      expect(replayReel(s, played.flips)).toEqual({ end: played.end, ticks: played.ticks });
+    }
+  });
+
+  it("gives up on a fight dragged out for too long", () => {
+    expect(replayReel({ ...setup(0), size: 1, fill: 0, drain: 0 }, [])).toEqual({ end: "lost", ticks: MAX_TICKS });
   });
 });
 
@@ -68,5 +89,9 @@ describe("the rules", () => {
     const fish = rollCatch(rules, 2, "ru", () => seq.shift()!);
     expect(fish).toMatchObject({ id: "goldfish", name: "Золотая рыбка", kg: 0.1 });
     expect(fish.qzr).toBe(Math.round((600 + 3_600 * 2) * 2.5 * 0.5));
+  });
+
+  it("set up a fight without an account from the reel numbers", () => {
+    expect(localReel(rules, 0.5, () => 0.5)).toEqual({ seed: 2 ** 30, strength: 0.5, size: zoneSize(0.3, 0.5), fill: 0.3, drain: 0.22, start: START_PROGRESS });
   });
 });

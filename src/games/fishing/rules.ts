@@ -1,8 +1,10 @@
 import type { Locale } from "@/core/i18n/locales";
+import { START_PROGRESS, zoneSize, type ReelSetup } from "./reel";
 
 // How the fishing plays and what a fish is worth. RemnaWeb is the source of truth (lib/fishing-rules.ts there): its
 // rules come with the other games' from GET /api/sni/config under `fishing` (config-server.ts). These types mirror
-// it. Signed in, RemnaWeb rolls every fish and pays for it; the species here are for playing without an account.
+// it. Signed in, RemnaWeb rolls every fish, picks its fight and pays for it; the species and the reel numbers here
+// are for playing without an account.
 
 export type Rarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 
@@ -20,9 +22,9 @@ export type FishSpecies = {
 };
 
 export type FishingRules = {
-  /** How long a bite waits to be hooked, ms. */
+  /** How long a bite waits to be hooked without an account, ms (RemnaWeb sends it with the cast otherwise). */
   hookWindowMs: number;
-  /** The catch zone, a share of the reel's track, before the fish's strength and the line bonus. */
+  /** For playing without an account: the catch zone, a share of the reel's track, before the fish's strength. */
   zone: number;
   /** Catch progress gained per second with the fish in the zone, and lost with it out (0 to 1). */
   fillPerSec: number;
@@ -86,3 +88,13 @@ export function rollCatch(r: FishingRules, n: number, locale: Locale, rand = Mat
 
 /** The wait for a bite without an account, ms. */
 export const localBiteMs = (r: FishingRules, rand = Math.random) => Math.round(r.biteMinMs + (r.biteMaxMs - r.biteMinMs) * rand());
+
+/** The fight with a fish of `strength` without an account (RemnaWeb picks it otherwise, lib/fishing.ts there). */
+export const localReel = (r: FishingRules, strength: number, rand = Math.random): ReelSetup => ({
+  seed: Math.floor(rand() * 2 ** 31),
+  strength,
+  size: zoneSize(r.zone, strength),
+  fill: r.fillPerSec,
+  drain: r.drainPerSec,
+  start: START_PROGRESS,
+});

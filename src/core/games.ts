@@ -14,7 +14,7 @@ export const GAMES = {
   },
   fishing: {
     routes: ["/"],
-    api: ["fishing", "fishing/cast", "fishing/catch", "fishing/perks"],
+    api: ["fishing", "fishing/cast", "fishing/hook", "fishing/catch", "fishing/perks"],
   },
   crash: {
     routes: ["/"],

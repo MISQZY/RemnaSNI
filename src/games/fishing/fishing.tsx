@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Cable, Fish, Gauge, Magnet, RotateCcw, Wheat } from "lucide-react";
-import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ApiError, api } from "@/core/api";
@@ -15,15 +15,17 @@ import { QzrIcon } from "@/core/ui/qzr-icon";
 import { SiteHeader } from "@/core/ui/site-header";
 import { useGameStatus } from "@/core/use-game-status";
 import { cn } from "@/lib/utils";
-import { newReel, stepReel, type Reel } from "./reel";
-import { fishValue, localBiteMs, rollCatch, type Catch, type FishingRules, type Rarity } from "./rules";
+import { TICK, newReel, stepReel, type Reel, type ReelSetup } from "./reel";
+import { fishValue, localBiteMs, localReel, rollCatch, type Catch, type FishingRules, type Rarity } from "./rules";
 
 // Fishing, the game of nodes RemnaWeb has picked it for: cast, wait for the bite, hook it in time and reel the fish
-// in, keeping it in the catch zone (reel.ts), or it breaks free. Signed in, RemnaWeb rolls the fish at the cast and
-// pays for it once landed (POST /api/sni/fishing/cast and /catch): the site only knows how hard it pulls. Signed out,
-// the fish are rolled here, for the fun of it: they are not sold, as nothing proves they were caught.
+// in, keeping it in the catch zone (reel.ts), or it breaks free. Signed in, RemnaWeb decides everything but the
+// player's holds: it rolls the fish and its fight at the cast (POST /api/sni/fishing/cast), takes the hook only in
+// time (/hook), and replays the fight from the holds sent with the catch before it pays for the fish (/catch): the
+// site only knows how hard the fish pulls. Signed out, the fish are rolled here, for the fun of it: they are not
+// sold, as nothing proves they were caught.
 
-/** The heaviest fish caught on this device, kg. */
+/** The heaviest fish caught on this device without an account, kg (signed in, RemnaWeb keeps the account's). */
 const BEST_KEY = "fishing-best";
 /** Fish caught on this device without an account: the prices shown grow with them, as they would signed in. */
 const LOCAL_KEY = "fishing-local";
@@ -32,22 +34,32 @@ type Phase = "ready" | "casting" | "waiting" | "bite" | "fight" | "landing" | "c
 type Lost = "early" | "missed" | "escaped";
 
 /**
- * `fish` caught in the country, `boost` its turbo and `multiplier` what it does to fish prices (1 without it);
- * `keys` the free Qzr keys (shared with the other games), `nextKey` fish until the next one, `keyFrom` the count
- * at which the last one came.
+ * `fish` caught in the country, `best` the heaviest, kg, `price` what the next average fish sells for; `boost`
+ * the country's turbo and `multiplier` what it does to fish prices (1 without it); `keys` the free Qzr keys
+ * (shared with the other games), `nextKey` fish until the next one, `keyFrom` the count at which the last one came.
  */
-type Status = { balance: number; fish: number; boost: number; multiplier: number; keys: number; nextKey: number; keyFrom?: number; perks: GamePerk[] };
+type Status = {
+  balance: number;
+  fish: number;
+  best?: number;
+  price?: number;
+  boost: number;
+  multiplier: number;
+  keys: number;
+  nextKey: number;
+  keyFrom?: number;
+  perks: GamePerk[];
+};
 /** What a landed fish brings: RemnaWeb's answer to the catch. */
 type Landed = Status & { earned: number; caught: Catch };
-/** The cast on the water: RemnaWeb's id (null without an account), when the bite comes and how hard the fish pulls. */
-type Cast = { id: string | null; biteMs: number; strength: number; local: Catch | null };
+/**
+ * The cast on the water: RemnaWeb's id (null without an account), when the bite comes, how long it waits to be
+ * hooked, the fight the fish gives, and the fish itself without an account.
+ */
+type Cast = { id: string | null; biteMs: number; hookMs: number; reel: ReelSetup; local: Catch | null };
 
 const PERK_ICONS = { lure: Magnet, line: Cable, bait: Wheat };
 const perkEffect = (p: GamePerk) => Math.round(Math.max(1, p.level) * p.perLevel * 100);
-const perkShare = (perks: GamePerk[] | undefined, id: string) => {
-  const p = perks?.find((x) => x.id === id);
-  return p ? p.level * p.perLevel : 0;
-};
 
 /** Text colors of the rarities, lightest to brightest. */
 const RARITY_COLOR: Record<Rarity, string> = {
@@ -61,6 +73,28 @@ const RARITY_COLOR: Record<Rarity, string> = {
 const readBest = () => Number(storage.get(BEST_KEY)) || 0;
 const readLocal = () => Math.max(0, Math.floor(Number(storage.get(LOCAL_KEY)) || 0));
 const noop = () => () => {};
+
+/**
+ * Keeps a long press on `ref` a press: no text selection, magnifier, callout or double-tap zoom on phones, which a
+ * fish held for seconds would otherwise bring up. Only a native listener can cancel a touch: React's are passive.
+ */
+function useHoldSurface(ref: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const stop = (e: Event) => {
+      if (e.cancelable) e.preventDefault();
+    };
+    el.addEventListener("touchstart", stop, { passive: false });
+    el.addEventListener("contextmenu", stop);
+    el.addEventListener("selectstart", stop);
+    return () => {
+      el.removeEventListener("touchstart", stop);
+      el.removeEventListener("contextmenu", stop);
+      el.removeEventListener("selectstart", stop);
+    };
+  }, [ref]);
+}
 
 export function FishingSite({ code, name, signIn, rules }: { code: string; name: string; signIn: boolean; rules: FishingRules }) {
   const t = useTranslations();
@@ -78,12 +112,20 @@ export function FishingSite({ code, name, signIn, rules }: { code: string; name:
   const [buying, setBuying] = useState<string | null>(null);
   const castRef = useRef<Cast | null>(null);
   const reelRef = useRef<Reel | null>(null);
+  /** The ticks at which the hold flipped during the fight: RemnaWeb replays them before it pays for the fish. */
+  const flipsRef = useRef<number[]>([]);
+  /** RemnaWeb's answer to the hook, signed in: whether it took it. */
+  const hookedRef = useRef<Promise<boolean> | null>(null);
   const holdingRef = useRef(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   // The reel's parts, moved straight in the DOM every frame rather than through renders.
   const zoneRef = useRef<HTMLDivElement>(null);
   const fishRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
+  const lakeRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  useHoldSurface(lakeRef);
+  useHoldSurface(buttonRef);
 
   const clearTimers = () => {
     timersRef.current.forEach(clearTimeout);
@@ -105,14 +147,16 @@ export function FishingSite({ code, name, signIn, rules }: { code: string; name:
     setPhase("casting");
     let next: Cast;
     try {
-      const res = account.token ? await api<{ id: string; biteMs: number; strength: number }>("fishing/cast", { method: "POST", country: code }) : null;
+      const res = account.token
+        ? await api<{ id: string; biteMs: number; hookMs: number; reel: ReelSetup }>("fishing/cast", { method: "POST", country: code })
+        : null;
       if (res) {
         next = { ...res, local: null };
       } else {
         // Without an account (or signed out by an expired session just now): a fish of this device.
         const fish = rollCatch(rules, local, locale);
         const strength = rules.species.find((f) => f.id === fish.id)?.strength ?? 0.5;
-        next = { id: null, biteMs: localBiteMs(rules), strength, local: fish };
+        next = { id: null, biteMs: localBiteMs(rules), hookMs: rules.hookWindowMs, reel: localReel(rules, strength), local: fish };
       }
     } catch (err) {
       toast.error(err instanceof ApiError && err.status !== 0 ? err.message : t("fishing.failed"));
@@ -125,32 +169,48 @@ export function FishingSite({ code, name, signIn, rules }: { code: string; name:
       setTimeout(() => {
         setPhase("bite");
         navigator.vibrate?.([20, 40, 20]);
-        timersRef.current.push(setTimeout(() => lose("missed"), rules.hookWindowMs));
+        timersRef.current.push(setTimeout(() => lose("missed"), next.hookMs));
       }, next.biteMs),
     );
   };
 
+  /** Hooks the biting fish: the fight starts at once, while RemnaWeb checks the hook was in time (signed in). */
   const hook = () => {
     const c = castRef.current;
     if (!c) return;
     clearTimers();
-    // The line bonus is the account's: it counts signed in only.
-    const line = account.token ? perkShare(status?.perks, "line") : 0;
-    reelRef.current = newReel(rules, c.strength, line);
+    reelRef.current = newReel(c.reel);
+    flipsRef.current = [];
     holdingRef.current = true;
+    hookedRef.current = c.id
+      ? api("fishing/hook", { method: "POST", body: { id: c.id }, country: code }).then(
+          (res) => !!res,
+          (err) => {
+            // Out of time for RemnaWeb (or a lost connection): the fish is gone, whatever the reel shows.
+            if (castRef.current === c) {
+              castRef.current = null;
+              if (err instanceof ApiError && err.status !== 0) toast.error(err.message);
+              lose("missed");
+            }
+            return false;
+          },
+        )
+      : null;
     setPhase("fight");
   };
 
   /** A fish reeled in: RemnaWeb pays for it signed in; without an account it is only counted on this device. */
   const land = useEffectEvent(async () => {
     const c = castRef.current;
-    castRef.current = null;
     if (!c) return;
     setPhase("landing");
     let fish: Catch;
     if (c.id) {
+      // The catch goes once RemnaWeb has taken the hook; a hook it refused has lost the fish already.
+      if (!(await hookedRef.current)) return;
+      castRef.current = null;
       try {
-        const res = await api<Landed>("fishing/catch", { method: "POST", body: { id: c.id }, country: code });
+        const res = await api<Landed>("fishing/catch", { method: "POST", body: { id: c.id, flips: flipsRef.current }, country: code });
         if (!res) {
           setPhase("ready");
           return;
@@ -163,39 +223,55 @@ export function FishingSite({ code, name, signIn, rules }: { code: string; name:
         return;
       }
     } else if (c.local) {
+      castRef.current = null;
       fish = c.local;
       const count = local + 1;
       setLocal(count);
       storage.set(LOCAL_KEY, String(count));
+      if (fish.kg > best) {
+        setBest(fish.kg);
+        storage.set(BEST_KEY, String(fish.kg));
+      }
     } else {
       return;
-    }
-    if (fish.kg > best) {
-      setBest(fish.kg);
-      storage.set(BEST_KEY, String(fish.kg));
     }
     setResult({ fish, sold: !!c.id });
     setPhase("caught");
     navigator.vibrate?.(fish.rarity === "legendary" || fish.rarity === "epic" ? [30, 50, 30, 50, 60] : 25);
   });
 
-  const escaped = useEffectEvent(() => lose("escaped"));
+  const escaped = useEffectEvent(() => {
+    castRef.current = null;
+    lose("escaped");
+  });
 
-  // The fight: the reel moves on every frame; the zone, the fish and the progress are set right in the DOM.
+  // The fight: the reel moves in fixed ticks, as many as the time since the last frame holds, recording every flip
+  // of the hold at the tick it came; the zone, the fish and the progress are set right in the DOM.
   useEffect(() => {
     if (phase !== "fight") return;
+    const setup = castRef.current?.reel;
+    if (!setup) return;
     let frame = 0;
     let last = performance.now();
+    let due = 0;
     const tick = (now: number) => {
       const r = reelRef.current;
       if (!r) return;
-      // A hidden tab or a slow frame does not let the fish run far.
-      const dt = Math.min(0.05, (now - last) / 1000);
+      // A hidden tab or a slow frame does not let the fish run far: the fight then runs slower, never faster.
+      due += Math.min(0.05, (now - last) / 1000);
       last = now;
-      const end = stepReel(r, rules, dt, holdingRef.current);
+      let end: ReturnType<typeof stepReel> = "fight";
+      while (due >= TICK && end === "fight") {
+        due -= TICK;
+        if (holdingRef.current !== r.holding) {
+          flipsRef.current.push(r.tick);
+          r.holding = holdingRef.current;
+        }
+        end = stepReel(r, setup);
+      }
       if (zoneRef.current) {
         zoneRef.current.style.bottom = `${r.zone * 100}%`;
-        zoneRef.current.style.height = `${r.size * 100}%`;
+        zoneRef.current.style.height = `${setup.size * 100}%`;
       }
       if (fishRef.current) fishRef.current.style.bottom = `${r.fish * 100}%`;
       if (progressRef.current) progressRef.current.style.height = `${r.progress * 100}%`;
@@ -205,7 +281,7 @@ export function FishingSite({ code, name, signIn, rules }: { code: string; name:
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [phase, rules]);
+  }, [phase]);
 
   /** A tap, a click or Space: what it does depends on the moment. */
   const press = () => {
@@ -252,7 +328,9 @@ export function FishingSite({ code, name, signIn, rules }: { code: string; name:
   const signedIn = !!account.token;
   const turbo = signedIn ? (status?.multiplier ?? 1) : 1;
   const caughtCount = signedIn ? status?.fish : hydrated ? local : undefined;
-  const nextPrice = Math.round(fishValue(rules, caughtCount ?? 0) * turbo);
+  // Signed in, RemnaWeb's numbers; without an account, the device's.
+  const nextPrice = (signedIn ? status?.price : undefined) ?? Math.round(fishValue(rules, caughtCount ?? 0) * turbo);
+  const bestKg = signedIn ? (status?.best ?? 0) : hydrated ? best : 0;
   const busy = phase === "casting" || phase === "landing";
   const onWater = phase === "waiting" || phase === "bite" || phase === "fight";
   const buttonLabel = {
@@ -270,6 +348,8 @@ export function FishingSite({ code, name, signIn, rules }: { code: string; name:
     onPointerDown: (e: React.PointerEvent) => {
       if (e.button !== 0) return;
       e.preventDefault();
+      // A selection made before (a long press elsewhere) would follow the thumb around.
+      window.getSelection()?.removeAllRanges();
       press();
     },
     onPointerUp: release,
@@ -284,7 +364,7 @@ export function FishingSite({ code, name, signIn, rules }: { code: string; name:
       <main className={cn("mx-auto flex w-full max-w-md flex-1 flex-col gap-3 px-4 pt-4 pb-6 select-none", phase === "fight" && "touch-none")}>
         <div className="grid grid-cols-3 gap-1.5">
           <StatTile label={t("fishing.caught")} value={caughtCount !== undefined ? num(caughtCount) : "—"} />
-          <StatTile label={t("fishing.best")} value={hydrated && best > 0 ? t("fishing.kg", { kg: fixed(best, best < 10 ? 2 : 1) }) : "—"} />
+          <StatTile label={t("fishing.best")} value={bestKg > 0 ? t("fishing.kg", { kg: fixed(bestKg, bestKg < 10 ? 2 : 1) }) : "—"} />
           <StatTile
             label="Qzr"
             value={
@@ -313,9 +393,10 @@ export function FishingSite({ code, name, signIn, rules }: { code: string; name:
           {!signedIn && signIn && <span>· {t("fishing.demo")}</span>}
         </p>
 
-        {/* The lake: the whole of it takes taps, so a thumb anywhere hooks and reels. */}
+        {/* The lake: the whole of it takes taps, so a thumb anywhere hooks and reels; held, it selects nothing. */}
         <div
-          className="relative aspect-square w-full touch-none overflow-hidden rounded-3xl bg-gradient-to-b from-sky-300/70 via-sky-600/80 to-blue-950 ring-1 ring-foreground/10"
+          ref={lakeRef}
+          className="relative aspect-square w-full touch-none overflow-hidden rounded-3xl select-none [-webkit-touch-callout:none] bg-gradient-to-b from-sky-300/70 via-sky-600/80 to-blue-950 ring-1 ring-foreground/10"
           {...holdHandlers}
         >
           {/* The shore line and some light on the water. */}
@@ -377,7 +458,14 @@ export function FishingSite({ code, name, signIn, rules }: { code: string; name:
           )}
         </div>
 
-        <Button size="lg" className="h-12 w-full touch-none text-base" variant={phase === "bite" ? "default" : phase === "fight" ? "secondary" : "default"} disabled={busy} {...holdHandlers}>
+        <Button
+          ref={buttonRef}
+          size="lg"
+          className="h-12 w-full touch-none text-base [-webkit-touch-callout:none]"
+          variant={phase === "bite" ? "default" : phase === "fight" ? "secondary" : "default"}
+          disabled={busy}
+          {...holdHandlers}
+        >
           {(phase === "caught" || phase === "lost") && <RotateCcw />}
           {buttonLabel}
         </Button>
