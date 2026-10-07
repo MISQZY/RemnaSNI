@@ -244,7 +244,9 @@ function BetPanel({ rules, snapshot, serverNow, mine, balance, busy, onBet, onCa
   else if (canBet) label = t("place", { qzr: num(amount) });
   else label = t("nextRound");
 
-  const locked = !!mine || !canBet;
+  // The fields are the next bet: set while a round flies, they leave the bet in it as it is. Only a bet waiting for
+  // the start holds them, as they show it.
+  const locked = !!mine && snapshot?.phase === "betting";
   return (
     <section className="flex flex-col gap-3 rounded-2xl bg-card p-3 ring-1 ring-foreground/10">
       <div className="grid grid-cols-2 gap-1.5">
