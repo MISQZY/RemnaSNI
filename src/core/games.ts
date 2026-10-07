@@ -16,6 +16,11 @@ export const GAMES = {
     routes: ["/"],
     api: ["fishing", "fishing/cast", "fishing/catch", "fishing/perks"],
   },
+  crash: {
+    routes: ["/"],
+    /** `crash/stream` is the round as it happens, which the proxy passes through as it comes. */
+    api: ["crash", "crash/bet", "crash/cancel", "crash/cashout", "crash/stream"],
+  },
 } as const satisfies Record<string, { routes: readonly string[]; api: readonly string[] }>;
 
 /** A game id, also known to RemnaWeb (its lib/games.ts): a new one is added there too. */

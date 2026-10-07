@@ -1,6 +1,6 @@
 # RemnaSNI
 
-Self-SNI stub site for the nodes: one of the infrastructure games — the clicker, the snake or the fishing. RemnaWeb is the
+Self-SNI stub site for the nodes: one of the infrastructure games — the clicker, the snake, the fishing or the crash. RemnaWeb is the
 orchestrator: it picks the node's game and country and sends the rules; the site only plays.
 Progress lives in the visitor's `localStorage`; after signing in with Telegram it is also synced to RemnaWeb.
 Achievements and pets are not here: both are the profile's, in the RemnaWeb Mini App.
@@ -38,11 +38,18 @@ growing with the fish caught there, plus the turbo, and brings Qzr keys shared w
 fishing's bonuses (lure, strong line, groundbait). Without sign-in the fish are rolled on the device for fun and
 not sold, since nothing proves they were caught.
 
+The crash: Qzr bet before a round, then a multiplier grows until the round crashes at a point RemnaWeb rolled and keeps
+to itself; a bet cashed out before that (by hand or at its own auto cash-out) comes back multiplied, the rest burn.
+RemnaWeb runs the rounds, one for every viewer of every site that runs the crash, and the page follows them through
+`/api/sni/crash/stream` (server-sent events, passed through by the API proxy as a stream): the state on every change
+and RemnaWeb's clock, so the curve runs in step everywhere. A round is colored by its multiplier, as the pets'
+rarities, grey to cosmic; the last ten are listed above the chart. Watching needs no account, betting does.
+
 ## Games and routes
 
 Every game lives in its own route subtree, `src/app/games/<id>`, with its own layout and title; the root layout holds
 only what all share (fonts, language, footer, toasts). `src/proxy.ts` gets the game at request time and rewrites the
-public paths to the node's game (`/` → `/games/clicker`, `/games/snake` or `/games/fishing`); the `/games/...` paths themselves are
+public paths to the node's game (`/` → `/games/clicker`, `/games/snake`, `/games/fishing` or `/games/crash`); the `/games/...` paths themselves are
 404. So a node loads the JS of its own game only. The API proxy passes the calls of every game in the registry, so
 a tab left open on the previous game keeps saving after an admin switches the node's game in RemnaWeb.
 
@@ -96,6 +103,10 @@ The fishing's come under `fishing` (`RemnaWeb/src/lib/fishing-rules.ts`): the ti
 fast the progress fills and drains, the price formula and the species with their names, sizes and strength (for play
 without an account). The fight itself is code here (`reel.ts`); RemnaWeb accepts a catch no sooner than the bite plus
 its shortest fight, which the reel can never beat (it starts at 0.3 and fills at most at `fillPerSec`).
+
+The crash's come under `crash` (`RemnaWeb/src/lib/crash-rules.ts`): how long bets are taken and a crash is shown, how
+fast the multiplier grows, the highest one, the smallest bet and auto cash-out, and where each color starts. The crash
+points themselves never leave RemnaWeb before the crash, and whether a cash-out came in time is up to its clock.
 
 ## Telegram sign-in
 

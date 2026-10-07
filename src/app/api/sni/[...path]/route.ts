@@ -42,6 +42,25 @@ async function forward(req: Request, { params }: Ctx): Promise<Response> {
   if (host) headers[SITE_HEADER] = host;
   if (body) headers["Content-Type"] = "application/json";
 
+  // A stream (the crash's round as it happens) goes through as it comes, for as long as the page keeps it open.
+  if (path.endsWith("/stream") && req.method === "GET") {
+    try {
+      const res = await fetch(`${base}/api/sni/${path}${query}`, {
+        headers: { ...headers, Accept: "text/event-stream" },
+        cache: "no-store",
+        redirect: "manual",
+        signal: req.signal,
+      });
+      if (!res.ok || !res.body) return Response.json({ error: "Unavailable" }, { status: 502 });
+      return new Response(res.body, {
+        headers: { "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no" },
+      });
+    } catch (err) {
+      if (!req.signal.aborted) console.error(err);
+      return Response.json({ error: "Unavailable" }, { status: 502 });
+    }
+  }
+
   try {
     const res = await fetch(`${base}/api/sni/${path}${query}`, {
       method: req.method,

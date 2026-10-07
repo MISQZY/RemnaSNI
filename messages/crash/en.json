@@ -1,0 +1,50 @@
+{
+  "crash": {
+    "meta": {
+      "title": "Crash: {country}",
+      "description": "{country}: bet Qzr and cash out while the multiplier grows: it may crash at any moment."
+    },
+    "subtitle": "Crash",
+    "history": "Last rounds",
+    "betsOpen": "Taking bets",
+    "startsIn": "Starts in {s} s",
+    "crashed": "Crashed",
+    "connecting": "Connecting…",
+    "idle": "A round is about to start",
+    "offline": "Lost the game, reconnecting…",
+    "full": "Too many viewers, trying again shortly",
+    "balance": "Balance",
+    "bet": "Bet",
+    "auto": "Auto cash-out",
+    "autoOff": "off",
+    "min": "Min",
+    "half": "½",
+    "double": "×2",
+    "max": "All",
+    "place": "Bet {qzr}",
+    "placed": "Bet taken, waiting for the start",
+    "cancel": "Take back the bet of {qzr}",
+    "cashOut": "Cash out {qzr} · {x}",
+    "cashedOut": "Cashed out at {x}: +{qzr}",
+    "lost": "The bet burnt",
+    "nextRound": "Bets open in the next round",
+    "signInToBet": "Sign in to bet Qzr. Watching needs no account.",
+    "players": "Bets of the round",
+    "total": "{n, plural, one {# bet} other {# bets}}",
+    "noBets": "Nobody has bet in this round yet",
+    "anonymous": "Player",
+    "failed": "That did not work, try again",
+    "hint": "Space bets, takes back or cashes out. Bets start at {min} Qzr",
+    "fair": {
+      "round": "Round #{id}",
+      "hash": "Hash",
+      "seed": "Seed",
+      "seedLater": "Shown after the crash",
+      "verified": "Fair: the seed and the crash match",
+      "mismatch": "Does not match!",
+      "unchecked": "The browser cannot check it",
+      "copied": "Copied",
+      "how": "The hash is the seed's SHA-256, shown from the round's start; the seed is shown after the crash. The crash point comes from the seed: u is the first 13 hex characters of HMAC-SHA256(key: seed, message: \"crash\") over 2^52; crash = ⌊{edge} / (1 − u)⌋ / 100, ×1.00 at the least."
+    }
+  }
+}

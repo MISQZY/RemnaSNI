@@ -15,7 +15,9 @@
 		dns cloudflare {$CF_API_TOKEN}
 		resolvers 1.1.1.1
 	}
-	encode zstd gzip
+	# Not the crash's stream: compressing it would hold the events back.
+	@compress not path /api/sni/crash/stream
+	encode @compress zstd gzip
 	header {
 		# No "Server: Caddy": the site should not tell what serves it.
 		-Server
