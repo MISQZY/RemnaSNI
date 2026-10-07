@@ -12,6 +12,7 @@ import { storage } from "@/core/storage";
 import { AccountMenu, SignInButton } from "@/core/ui/account-menu";
 import { StatTile } from "@/core/ui/perk-shop";
 import { QzrIcon } from "@/core/ui/qzr-icon";
+import { gameLayout } from "@/core/ui/game-layout";
 import { SiteHeader } from "@/core/ui/site-header";
 import { useGameStatus } from "@/core/use-game-status";
 import { cn } from "@/lib/utils";
@@ -110,38 +111,43 @@ export function CrashSite({ code, name, signIn, rules }: { code: string; name: s
 
   return (
     <>
-      <SiteHeader code={code} name={name} subtitle={t("crash.subtitle")} account={<AccountMenu signIn={signIn} />} className="max-w-md" />
+      <SiteHeader code={code} name={name} subtitle={t("crash.subtitle")} account={<AccountMenu signIn={signIn} />} className={gameLayout.header} />
 
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-3 px-4 pt-4 pb-6">
-        <History rules={rules} history={snapshot?.history ?? []} />
+      <main className={gameLayout.main}>
+        {/* On wide screens the chart shrinks with the window height, so it fits without scrolling. */}
+        <div className={cn(gameLayout.play, "lg:max-w-[max(24rem,calc((100dvh-12rem)*4/3))]")}>
+          <History rules={rules} history={snapshot?.history ?? []} />
 
-        <div className="flex flex-col gap-1">
-          <CrashChart rules={rules} snapshot={snapshot} serverNow={serverNow} online={online} full={full} />
-          <CurrentRoundProof rules={rules} round={snapshot?.round ?? null} />
+          <div className="flex flex-col gap-1">
+            <CrashChart rules={rules} snapshot={snapshot} serverNow={serverNow} online={online} full={full} />
+            <CurrentRoundProof rules={rules} round={snapshot?.round ?? null} />
+          </div>
         </div>
 
-        {signedIn ? (
-          <BetPanel rules={rules} snapshot={snapshot} serverNow={serverNow} mine={mine} balance={status?.balance} busy={busy} onBet={placeBet} onCancel={cancel} onCashOut={cashOut} />
-        ) : (
-          <div className="flex flex-col items-center gap-3 rounded-2xl bg-card p-4 text-center ring-1 ring-foreground/10">
-            <p className="text-sm text-muted-foreground">{t("crash.signInToBet")}</p>
-            {signIn && <SignInButton />}
-          </div>
-        )}
+        <div className={gameLayout.side}>
+          {signedIn ? (
+            <BetPanel rules={rules} snapshot={snapshot} serverNow={serverNow} mine={mine} balance={status?.balance} busy={busy} onBet={placeBet} onCancel={cancel} onCashOut={cashOut} />
+          ) : (
+            <div className="flex flex-col items-center gap-3 rounded-2xl bg-card p-4 text-center ring-1 ring-foreground/10">
+              <p className="text-sm text-muted-foreground">{t("crash.signInToBet")}</p>
+              {signIn && <SignInButton />}
+            </div>
+          )}
 
-        <section className="rounded-2xl bg-card p-3 ring-1 ring-foreground/10">
-          <div className="mb-2 flex items-center justify-between gap-2 px-1">
-            <p className="flex items-center gap-1.5 text-sm font-semibold">
-              <Users className="size-4 text-muted-foreground" /> {t("crash.players")}
-            </p>
-            {!!snapshot?.bets.length && (
-              <p className="flex items-center gap-1 text-xs text-muted-foreground tabular-nums">
-                {t("crash.total", { n: snapshot.bets.length })} · <QzrIcon className="size-3" /> {num(total)}
+          <section className="rounded-2xl bg-card p-3 ring-1 ring-foreground/10">
+            <div className="mb-2 flex items-center justify-between gap-2 px-1">
+              <p className="flex items-center gap-1.5 text-sm font-semibold">
+                <Users className="size-4 text-muted-foreground" /> {t("crash.players")}
               </p>
-            )}
-          </div>
-          <Bets bets={snapshot?.bets ?? []} crashed={snapshot?.round?.crash != null} rules={rules} mineId={mine?.id ?? null} />
-        </section>
+              {!!snapshot?.bets.length && (
+                <p className="flex items-center gap-1 text-xs text-muted-foreground tabular-nums">
+                  {t("crash.total", { n: snapshot.bets.length })} · <QzrIcon className="size-3" /> {num(total)}
+                </p>
+              )}
+            </div>
+            <Bets bets={snapshot?.bets ?? []} crashed={snapshot?.round?.crash != null} rules={rules} mineId={mine?.id ?? null} />
+          </section>
+        </div>
       </main>
     </>
   );

@@ -12,6 +12,7 @@ import { storage } from "@/core/storage";
 import { AccountMenu } from "@/core/ui/account-menu";
 import { PerkShop, StatTile, type GamePerk } from "@/core/ui/perk-shop";
 import { QzrIcon } from "@/core/ui/qzr-icon";
+import { gameLayout } from "@/core/ui/game-layout";
 import { SiteHeader } from "@/core/ui/site-header";
 import { useGameStatus } from "@/core/use-game-status";
 import { cn } from "@/lib/utils";
@@ -358,132 +359,137 @@ export function FishingSite({ code, name, signIn, rules }: { code: string; name:
 
   return (
     <>
-      <SiteHeader code={code} name={name} subtitle={t("fishing.subtitle")} account={<AccountMenu signIn={signIn} />} className="max-w-md" />
+      <SiteHeader code={code} name={name} subtitle={t("fishing.subtitle")} account={<AccountMenu signIn={signIn} />} className={gameLayout.header} />
 
-      <main className={cn("mx-auto flex w-full max-w-md flex-1 flex-col gap-3 px-4 pt-4 pb-6 select-none", phase === "fight" && "touch-none")}>
-        <div className="grid grid-cols-3 gap-1.5">
-          <StatTile label={t("fishing.caught")} value={caughtCount !== undefined ? num(caughtCount) : "—"} />
-          <StatTile label={t("fishing.best")} value={bestKg > 0 ? t("fishing.kg", { kg: fixed(bestKg, bestKg < 10 ? 2 : 1) }) : "—"} />
-          <StatTile
-            label="Qzr"
-            value={
-              signedIn && status ? (
-                <span className="inline-flex items-center gap-1">
-                  <QzrIcon className="size-3.5" /> {num(status.balance)}
-                </span>
-              ) : (
-                "—"
-              )
-            }
-          />
-        </div>
+      <main className={cn(gameLayout.main, "select-none", phase === "fight" && "touch-none")}>
+        {/* On wide screens the lake shrinks with the window height, so it fits with its button without scrolling. */}
+        <div className={cn(gameLayout.play, "lg:max-w-[max(20rem,calc(100dvh-14rem))]")}>
+          {/* The lake: the whole of it takes taps, so a thumb anywhere hooks and reels; held, it selects nothing. */}
+          <div
+            ref={lakeRef}
+            className="relative aspect-square w-full touch-none overflow-hidden rounded-3xl select-none [-webkit-touch-callout:none] bg-gradient-to-b from-sky-300/70 via-sky-600/80 to-blue-950 ring-1 ring-foreground/10"
+            {...holdHandlers}
+          >
+            {/* The shore line and some light on the water. */}
+            <div aria-hidden className="absolute inset-x-0 top-0 h-[22%] bg-gradient-to-b from-sky-100/60 to-transparent dark:from-sky-200/20" />
 
-        <p className="flex flex-wrap items-center justify-center gap-1 text-center text-xs text-muted-foreground">
-          {hydrated && (
-            <>
-              <QzrIcon className="size-3.5" /> {t("fishing.price", { qzr: num(nextPrice) })}
-            </>
-          )}
-          {turbo > 1 && (
-            <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/12 px-1.5 font-medium text-primary">
-              <Gauge className="size-3" /> {t("fishing.turbo", { boost: fixed(status?.boost ?? 0, 1), percent: num(Math.round((turbo - 1) * 100)) })}
-            </span>
-          )}
-          {!signedIn && signIn && <span>· {t("fishing.demo")}</span>}
-        </p>
-
-        {/* The lake: the whole of it takes taps, so a thumb anywhere hooks and reels; held, it selects nothing. */}
-        <div
-          ref={lakeRef}
-          className="relative aspect-square w-full touch-none overflow-hidden rounded-3xl select-none [-webkit-touch-callout:none] bg-gradient-to-b from-sky-300/70 via-sky-600/80 to-blue-950 ring-1 ring-foreground/10"
-          {...holdHandlers}
-        >
-          {/* The shore line and some light on the water. */}
-          <div aria-hidden className="absolute inset-x-0 top-0 h-[22%] bg-gradient-to-b from-sky-100/60 to-transparent dark:from-sky-200/20" />
-
-          {onWater && (
-            <>
-              {/* The line from the rod, out of the top right corner, to the float. */}
-              <svg aria-hidden className="absolute inset-0 size-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                <line x1="100" y1="0" x2="42" y2={phase === "bite" ? 58 : 55} className="stroke-white/70" strokeWidth="0.4" vectorEffect="non-scaling-stroke" />
-              </svg>
-              <span aria-hidden className="absolute top-[55%] left-[42%] size-10 animate-ripple rounded-full border-2 border-white/50" />
-              {phase === "bite" && <span aria-hidden className="absolute top-[55%] left-[42%] size-10 animate-ripple rounded-full border-2 border-white/70 [animation-delay:0.4s]" />}
-              <span
-                aria-hidden
-                className={cn(
-                  "absolute top-[55%] left-[42%] block h-7 w-4 rounded-full bg-gradient-to-b from-red-500 from-45% to-white to-55% shadow-md ring-1 ring-black/20",
-                  phase === "bite" ? "animate-bite" : "animate-bob",
-                )}
-              />
-            </>
-          )}
-
-          {/* The reel during the fight: the catch zone and the fish on the track, the progress next to it. */}
-          {phase === "fight" && (
-            <>
-              <div className="absolute inset-y-5 right-5 w-12 rounded-full bg-black/30 ring-1 ring-white/15">
-                <div ref={zoneRef} className="absolute inset-x-1 rounded-full bg-emerald-400/60 ring-2 ring-emerald-200/80" style={{ bottom: 0, height: "30%" }} />
-                <div ref={fishRef} className="absolute left-1/2 -translate-x-1/2 translate-y-1/2 text-white drop-shadow" style={{ bottom: "15%" }}>
-                  <Fish className="size-6" />
-                </div>
-              </div>
-              <div className="absolute inset-y-5 right-[4.75rem] w-2.5 overflow-hidden rounded-full bg-black/30">
-                <div ref={progressRef} className="absolute inset-x-0 bottom-0 rounded-full bg-amber-300" style={{ height: "30%" }} />
-              </div>
-            </>
-          )}
-
-          {/* What is going on, over the water. */}
-          <div className="pointer-events-none absolute inset-x-4 top-4 text-center">
-            {phase === "waiting" && (
+            {onWater && (
               <>
-                <p className="font-heading text-lg font-semibold text-white drop-shadow">{t("fishing.waiting")}</p>
-                <p className="text-xs text-white/80">{t("fishing.waitHint")}</p>
+                {/* The line from the rod, out of the top right corner, to the float. */}
+                <svg aria-hidden className="absolute inset-0 size-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  <line x1="100" y1="0" x2="42" y2={phase === "bite" ? 58 : 55} className="stroke-white/70" strokeWidth="0.4" vectorEffect="non-scaling-stroke" />
+                </svg>
+                <span aria-hidden className="absolute top-[55%] left-[42%] size-10 animate-ripple rounded-full border-2 border-white/50" />
+                {phase === "bite" && <span aria-hidden className="absolute top-[55%] left-[42%] size-10 animate-ripple rounded-full border-2 border-white/70 [animation-delay:0.4s]" />}
+                <span
+                  aria-hidden
+                  className={cn(
+                    "absolute top-[55%] left-[42%] block h-7 w-4 rounded-full bg-gradient-to-b from-red-500 from-45% to-white to-55% shadow-md ring-1 ring-black/20",
+                    phase === "bite" ? "animate-bite" : "animate-bob",
+                  )}
+                />
               </>
             )}
-            {phase === "bite" && <p className="font-heading text-2xl font-bold text-amber-300 drop-shadow">{t("fishing.bite")}</p>}
+
+            {/* The reel during the fight: the catch zone and the fish on the track, the progress next to it. */}
             {phase === "fight" && (
-              <p className="pr-20 text-left font-heading text-sm font-semibold text-white drop-shadow">{t("fishing.reelHint")}</p>
+              <>
+                <div className="absolute inset-y-5 right-5 w-12 rounded-full bg-black/30 ring-1 ring-white/15">
+                  <div ref={zoneRef} className="absolute inset-x-1 rounded-full bg-emerald-400/60 ring-2 ring-emerald-200/80" style={{ bottom: 0, height: "30%" }} />
+                  <div ref={fishRef} className="absolute left-1/2 -translate-x-1/2 translate-y-1/2 text-white drop-shadow" style={{ bottom: "15%" }}>
+                    <Fish className="size-6" />
+                  </div>
+                </div>
+                <div className="absolute inset-y-5 right-[4.75rem] w-2.5 overflow-hidden rounded-full bg-black/30">
+                  <div ref={progressRef} className="absolute inset-x-0 bottom-0 rounded-full bg-amber-300" style={{ height: "30%" }} />
+                </div>
+              </>
+            )}
+
+            {/* What is going on, over the water. */}
+            <div className="pointer-events-none absolute inset-x-4 top-4 text-center">
+              {phase === "waiting" && (
+                <>
+                  <p className="font-heading text-lg font-semibold text-white drop-shadow">{t("fishing.waiting")}</p>
+                  <p className="text-xs text-white/80">{t("fishing.waitHint")}</p>
+                </>
+              )}
+              {phase === "bite" && <p className="font-heading text-2xl font-bold text-amber-300 drop-shadow">{t("fishing.bite")}</p>}
+              {phase === "fight" && (
+                <p className="pr-20 text-left font-heading text-sm font-semibold text-white drop-shadow">{t("fishing.reelHint")}</p>
+              )}
+            </div>
+
+            {(phase === "lost" || phase === "caught" || phase === "ready" || busy) && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center">
+                {phase === "lost" && <p className="font-heading text-2xl font-bold text-white drop-shadow">{t(`fishing.lost.${lost}`)}</p>}
+                {phase === "caught" && result && <CatchCard fish={result.fish} sold={result.sold} />}
+                {phase === "ready" && <Fish aria-hidden className="size-16 text-white/40" />}
+              </div>
             )}
           </div>
 
-          {(phase === "lost" || phase === "caught" || phase === "ready" || busy) && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center">
-              {phase === "lost" && <p className="font-heading text-2xl font-bold text-white drop-shadow">{t(`fishing.lost.${lost}`)}</p>}
-              {phase === "caught" && result && <CatchCard fish={result.fish} sold={result.sold} />}
-              {phase === "ready" && <Fish aria-hidden className="size-16 text-white/40" />}
-            </div>
-          )}
+          <Button
+            ref={buttonRef}
+            size="lg"
+            className="h-12 w-full touch-none text-base [-webkit-touch-callout:none]"
+            variant={phase === "bite" ? "default" : phase === "fight" ? "secondary" : "default"}
+            disabled={busy}
+            {...holdHandlers}
+          >
+            {(phase === "caught" || phase === "lost") && <RotateCcw />}
+            {buttonLabel}
+          </Button>
+
+          <p className="hidden text-center text-xs text-muted-foreground sm:block">{t("fishing.hint")}</p>
         </div>
 
-        <Button
-          ref={buttonRef}
-          size="lg"
-          className="h-12 w-full touch-none text-base [-webkit-touch-callout:none]"
-          variant={phase === "bite" ? "default" : phase === "fight" ? "secondary" : "default"}
-          disabled={busy}
-          {...holdHandlers}
-        >
-          {(phase === "caught" || phase === "lost") && <RotateCcw />}
-          {buttonLabel}
-        </Button>
+        <div className={gameLayout.side}>
+          <div className={cn("grid grid-cols-3 gap-1.5", gameLayout.above)}>
+            <StatTile label={t("fishing.caught")} value={caughtCount !== undefined ? num(caughtCount) : "—"} />
+            <StatTile label={t("fishing.best")} value={bestKg > 0 ? t("fishing.kg", { kg: fixed(bestKg, bestKg < 10 ? 2 : 1) }) : "—"} />
+            <StatTile
+              label="Qzr"
+              value={
+                signedIn && status ? (
+                  <span className="inline-flex items-center gap-1">
+                    <QzrIcon className="size-3.5" /> {num(status.balance)}
+                  </span>
+                ) : (
+                  "—"
+                )
+              }
+            />
+          </div>
 
-        <p className="hidden text-center text-xs text-muted-foreground sm:block">{t("fishing.hint")}</p>
+          <p className={cn("flex flex-wrap items-center justify-center gap-1 text-center text-xs text-muted-foreground lg:justify-start lg:rounded-lg lg:bg-muted/60 lg:px-3 lg:py-2", gameLayout.above)}>
+            {hydrated && (
+              <>
+                <QzrIcon className="size-3.5" /> {t("fishing.price", { qzr: num(nextPrice) })}
+              </>
+            )}
+            {turbo > 1 && (
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/12 px-1.5 font-medium text-primary">
+                <Gauge className="size-3" /> {t("fishing.turbo", { boost: fixed(status?.boost ?? 0, 1), percent: num(Math.round((turbo - 1) * 100)) })}
+              </span>
+            )}
+            {!signedIn && signIn && <span>· {t("fishing.demo")}</span>}
+          </p>
 
-        {/* Bonuses bought with the country's Qzr keys, shared with the other games; kept in RemnaWeb, so signed in only. */}
-        {signedIn && status && (
-          <PerkShop
-            keys={status.keys}
-            progress={{ count: status.fish, nextKey: status.nextKey, keyFrom: status.keyFrom }}
-            perks={status.perks}
-            icons={PERK_ICONS}
-            effect={perkEffect}
-            locked={onWater}
-            buying={buying}
-            onBuy={(id) => void buyPerk(id)}
-          />
-        )}
+          {/* Bonuses bought with the country's Qzr keys, shared with the other games; kept in RemnaWeb, so signed in only. */}
+          {signedIn && status && (
+            <PerkShop
+              keys={status.keys}
+              progress={{ count: status.fish, nextKey: status.nextKey, keyFrom: status.keyFrom }}
+              perks={status.perks}
+              icons={PERK_ICONS}
+              effect={perkEffect}
+              locked={onWater}
+              buying={buying}
+              onBuy={(id) => void buyPerk(id)}
+            />
+          )}
+        </div>
       </main>
     </>
   );
