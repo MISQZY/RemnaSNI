@@ -12,6 +12,7 @@ import { ChargeIcon } from "./art";
 import { CardBack, CardFace, CardInfo, useCards } from "./card";
 import { playFx, type FxLabels } from "./fx";
 import { replay, type Boards, type Step } from "./replay";
+import { useSecondsLeft } from "./stream";
 import {
   autoSacrifices,
   chargeOf,
@@ -32,14 +33,17 @@ import {
 // Above each unit of one's own: what it will do on the attack. RemnaWeb checks every move. The players' cosmetics
 // dress it: this player's table, balance and win, either side's card backs, foil on their units and strikes.
 
+/** A turn's deadline and RemnaWeb's clock to count it down by. */
+export type TurnClock = { deadline: number | null; serverNow: () => number };
+
 type Props = {
   rules: SacrificeRules;
   view: MatchView;
   /** Who is across: a player's name or the robot. */
   them: string;
   busy: boolean;
-  /** Seconds left in the turn against a player. */
-  left?: number | null;
+  /** The turn's deadline by RemnaWeb's clock, against a player. */
+  clock?: TurnClock | null;
   /** The cosmetics of this player and of the one across (none for the robot, or from an older RemnaWeb). */
   looks?: { me?: SacrificeLook | null; them?: SacrificeLook | null };
   onAct: (action: Action) => void;
@@ -100,7 +104,7 @@ function useReplay(view: MatchView, root: RefObject<HTMLDivElement | null>, look
   return { step, skip: () => setPlay(null) };
 }
 
-export function Board({ rules, view, them, busy, left, looks, onAct }: Props) {
+export function Board({ rules, view, them, busy, clock, looks, onAct }: Props) {
   const t = useTranslations("sacrifice");
   const { cards, def } = useCards();
   const root = useRef<HTMLDivElement>(null);
@@ -225,7 +229,7 @@ export function Board({ rules, view, them, busy, left, looks, onAct }: Props) {
         deck={view.me.deck}
         sparks={view.me.sparks}
         active={replaying ? step.fx.who === "me" : mine}
-        left={mine ? left : null}
+        clock={mine ? clock : null}
       />
 
       {hint && <p className={cn("text-center text-xs text-neutral-400", replaying && "text-neutral-300")}>{hint}</p>}
@@ -281,6 +285,16 @@ const chargeOnBoard = (cards: Map<string, CardDef>, board: (Creature | null)[]) 
  * A side's name and what it has: crystals (what its units on the board would give as sacrifices, as card costs count
  * them), debris, cards left in the deck and sparks left for the fight. Each with its name in words, past a phone's width.
  */
+/**
+ * The seconds left in the turn: ticking on its own, four times a second, so the rest of the board does not re-render
+ * with it.
+ */
+function TurnSeconds({ clock }: { clock: TurnClock }) {
+  const t = useTranslations("sacrifice");
+  const left = useSecondsLeft(clock.deadline, clock.serverNow);
+  return left != null && <span className="ml-1.5 font-sans font-normal text-neutral-400 tabular-nums">{t("seconds", { s: left })}</span>;
+}
+
 function SideBar({
   name,
   charge,
@@ -288,7 +302,7 @@ function SideBar({
   deck,
   sparks,
   active,
-  left,
+  clock,
 }: {
   name: string;
   charge: number;
@@ -296,7 +310,8 @@ function SideBar({
   deck: number;
   sparks: number;
   active: boolean;
-  left?: number | null;
+  /** The turn's deadline by RemnaWeb's clock, against a player. */
+  clock?: TurnClock | null;
 }) {
   const t = useTranslations("sacrifice");
   const stats = [
@@ -310,7 +325,7 @@ function SideBar({
       <span className={cn("min-w-0 flex-1 truncate font-heading font-semibold text-neutral-200", active && "text-primary")}>
         {active && <span className="mr-1 inline-block size-1.5 animate-pulse rounded-full bg-primary align-middle" />}
         {name}
-        {left != null && <span className="ml-1.5 font-sans font-normal text-neutral-400 tabular-nums">{t("seconds", { s: left })}</span>}
+        {clock && <TurnSeconds clock={clock} />}
       </span>
       {stats.map((s) => (
         <span key={s.key} title={t(`stat.${s.key}`)} className="inline-flex items-center gap-1 rounded-full bg-white/[0.06] px-1.5 py-0.5 ring-1 ring-white/10">

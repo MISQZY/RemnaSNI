@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { memo, type ReactNode } from "react";
 
 // The art of the Sacrifice's cards, drawn here by hand on a 64×64 grid: the machines and miners of the Qzyrium
 // mines. Metal takes `currentColor` (the card's rarity), crystals the brand's greens, as the Qzyrium druse in
@@ -1530,8 +1530,8 @@ const ART: Record<string, ReactNode> = {
   ),
 };
 
-/** A card's art, sized by its box. */
-export function CardArt({ card, className }: { card: string; className?: string }) {
+/** A card's art, sized by its box: memoized, as it changes only with the card. */
+export const CardArt = memo(function CardArt({ card, className }: { card: string; className?: string }) {
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden>
       {ART[card] ?? (
@@ -1542,7 +1542,7 @@ export function CardArt({ card, className }: { card: string; className?: string 
       )}
     </svg>
   );
-}
+});
 
 /** The sacrifice a card costs, as a small crystal. */
 export function ChargeIcon({ className }: { className?: string }) {

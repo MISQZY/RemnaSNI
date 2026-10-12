@@ -2,7 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { BowArrow, Cog, Feather, Mountain, Recycle, Shield, ShieldPlus, Sprout, Swords, Split, Triangle, Zap, type LucideIcon } from "lucide-react";
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { createContext, memo, useContext, useMemo, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { QzrIcon } from "@/core/ui/qzr-icon";
 import { CardArt, ChargeIcon } from "./art";
@@ -115,8 +115,11 @@ type Props = {
   className?: string;
 };
 
-/** A card's face, filling its box (3:4). */
-export function CardFace({ card, power, health, selected, marked, dim, foil, onClick, className }: Props) {
+/**
+ * A card's face, filling its box (3:4). Memoized: the deck shows the whole catalog and the board re-renders on every
+ * beat, while a card (its art a heavy SVG) changes only with its props.
+ */
+export const CardFace = memo(function CardFace({ card, power, health, selected, marked, dim, foil, onClick, className }: Props) {
   const t = useTranslations("sacrifice.sigils");
   const { def, nameOf } = useCards();
   const d = def(card);
@@ -130,7 +133,7 @@ export function CardFace({ card, power, health, selected, marked, dim, foil, onC
       onClick={onClick}
       title={[nameOf(card), ...d.sigils.map((s) => t(`${s}.name`))].join(" · ")}
       className={cn(
-        "@container relative block aspect-[3/4] w-full overflow-hidden rounded-[10px] bg-gradient-to-b p-[2px] text-left transition-all duration-150 select-none",
+        "@container relative block aspect-[3/4] w-full overflow-hidden rounded-[10px] bg-gradient-to-b p-[2px] text-left transition-[translate,box-shadow] duration-150 select-none",
         r.frame,
         r.glow,
         onClick && "cursor-pointer hover:-translate-y-0.5 focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:outline-none",
@@ -171,7 +174,7 @@ export function CardFace({ card, power, health, selected, marked, dim, foil, onC
       </span>
     </Tag>
   );
-}
+});
 
 /** The emblem in the middle of a cosmetic back, on a 30×40 grid. */
 function BackEmblem({ back }: { back: CardBackLook }) {
@@ -221,7 +224,7 @@ function Sheen({ colors, seconds }: { colors: string[]; seconds: number }) {
  * The back of a card: the other's hand, a deck. Its owner's cosmetic back if they wear one (the frame's gradient, the
  * ground, an emblem, a sweeping shimmer), else the project's crystal.
  */
-export function CardBack({ back, className }: { back?: CardBackLook | null; className?: string }) {
+export const CardBack = memo(function CardBack({ back, className }: { back?: CardBackLook | null; className?: string }) {
   if (back) {
     return (
       <div aria-hidden className={cn("relative aspect-[3/4] w-full overflow-hidden rounded-[6px] p-px", className)} style={{ background: `linear-gradient(135deg, ${back.from}, ${back.to})` }}>
@@ -240,7 +243,7 @@ export function CardBack({ back, className }: { back?: CardBackLook | null; clas
       </div>
     </div>
   );
-}
+});
 
 /** Everything about a card in words: for the card picked in hand. */
 export function CardInfo({ card }: { card: string }) {

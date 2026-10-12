@@ -83,6 +83,26 @@ function strikeBurst(root: HTMLElement, at: Element, s: StrikeLook, out: Animati
   out.push(...playBurst(root, c.x, c.y, { kind: STRIKE_BURSTS[s.kind] ?? "shards", colors: [s.color, s.glow] }, 0.45));
 }
 
+/**
+ * A glow around a unit, rising and falling as `opacity` goes. A drop-shadow is never animated as a filter: one moves
+ * pixels, so the browser would repaint the card and its art on every frame; the opacity of a ring of shadow laid over
+ * it is left to the compositor. Made inside the unit, so it follows the unit's own motion.
+ */
+function glow(el: HTMLElement, color: string, opacity: number[], offsets: (number | null)[], ms: number, out: Animation[], easing = "linear") {
+  const g = document.createElement("span");
+  g.className = "pointer-events-none absolute inset-0 rounded-[10px]";
+  Object.assign(g.style, { boxShadow: `0 0 12px 2px ${color}`, opacity: "0" });
+  el.append(g);
+  const a = g.animate(
+    opacity.map((o, i) => ({ opacity: o, offset: offsets[i] ?? null })),
+    { duration: ms, easing },
+  );
+  a.onfinish = a.oncancel = () => g.remove();
+  out.push(a);
+}
+
+const SKY = "rgb(56 189 248)";
+
 /** Lifts an animated unit over its neighbours for as long as it moves. */
 function onTop(el: HTMLElement, a: Animation) {
   el.style.zIndex = "20";
@@ -108,35 +128,40 @@ export function playFx(root: HTMLElement, fx: Fx, labels: FxLabels, strikes: Par
       const up = Math.sign(dy) * 10;
       const at = (k: number, extra = "") => `translate(${dx * k}px, ${dy * k}px) ${extra}`;
       const strike = strikes[fx.who];
-      const rush = strike ? `drop-shadow(0 0 10px ${strike.glow}) brightness(1.15)` : "none";
+      const rush = strike ? "brightness(1.15)" : "none";
       const frames: Keyframe[] =
         fx.kind === "fly"
           ? [
               { transform: "none" },
-              { transform: `translate(0, ${up}px) scale(1.2)`, filter: "drop-shadow(0 0 10px rgb(56 189 248))", offset: 0.25 },
-              { transform: `translate(${dx}px, ${dy * 1.2}px) scale(1.25)`, filter: "drop-shadow(0 0 14px rgb(56 189 248))", offset: 0.55 },
-              { transform: `translate(${dx}px, ${dy * 1.15}px) scale(1.2)`, filter: "drop-shadow(0 0 10px rgb(56 189 248))", offset: 0.65 },
-              { transform: "none", filter: "none" },
+              { transform: `translate(0, ${up}px) scale(1.2)`, offset: 0.25 },
+              { transform: `translate(${dx}px, ${dy * 1.2}px) scale(1.25)`, offset: 0.55 },
+              { transform: `translate(${dx}px, ${dy * 1.15}px) scale(1.2)`, offset: 0.65 },
+              { transform: "none" },
             ]
           : fx.kind === "intercepted"
             ? [
                 { transform: "none" },
-                { transform: `translate(0, ${up}px) scale(1.18)`, filter: "drop-shadow(0 0 10px rgb(56 189 248))", offset: 0.25 },
+                { transform: `translate(0, ${up}px) scale(1.18)`, offset: 0.25 },
                 { transform: at(0.55, "scale(1.18)"), offset: 0.45 },
-                { transform: at(0.3, "rotate(-10deg) scale(1.05)"), filter: "none", offset: 0.62 },
+                { transform: at(0.3, "rotate(-10deg) scale(1.05)"), offset: 0.62 },
                 { transform: at(0.36, "rotate(6deg)"), offset: 0.72 },
                 { transform: "none" },
               ]
             : [
-                { transform: "none" },
-                { transform: at(-0.08, "scale(0.96)"), offset: 0.18 },
+                { transform: "none", filter: "none" },
+                { transform: at(-0.08, "scale(0.96)"), filter: "none", offset: 0.18 },
                 { transform: at(fx.kind === "direct" ? 0.7 : 0.62, "scale(1.1)"), filter: rush, offset: 0.42 },
                 { transform: at(fx.kind === "direct" ? 0.6 : 0.5, "scale(1.05)"), filter: rush, offset: 0.55 },
                 { transform: "none", filter: "none" },
               ];
-      const a = el.animate(frames, { duration: BEAT.lunge + BEAT.impact, easing: "cubic-bezier(.45,0,.3,1)" });
+      const ms = BEAT.lunge + BEAT.impact;
+      const easing = "cubic-bezier(.45,0,.3,1)";
+      const a = el.animate(frames, { duration: ms, easing });
       onTop(el, a);
       out.push(a);
+      if (fx.kind === "fly") glow(el, SKY, [0, 0.8, 1, 0.8, 0], [null, 0.25, 0.55, 0.65, null], ms, out, easing);
+      else if (fx.kind === "intercepted") glow(el, SKY, [0, 0.8, 0, 0], [null, 0.25, 0.62, null], ms, out, easing);
+      else if (strike) glow(el, strike.glow, [0, 0, 0.9, 0.9, 0], [null, 0.18, 0.42, 0.55, null], ms, out, easing);
       break;
     }
     case "impact": {
@@ -207,7 +232,10 @@ export function playFx(root: HTMLElement, fx: Fx, labels: FxLabels, strikes: Par
     case "sacrifice": {
       const el = unit(fx.who, fx.lane);
       const at = slot(fx.who, fx.lane);
-      if (el) out.push(el.animate([{ filter: "none" }, { filter: "drop-shadow(0 0 10px rgb(244 63 94)) brightness(1.3)" }, { filter: "none" }], { duration: BEAT.sacrifice }));
+      if (el) {
+        out.push(el.animate([{ filter: "none" }, { filter: "brightness(1.3)" }, { filter: "none" }], { duration: BEAT.sacrifice }));
+        glow(el, "rgb(244 63 94)", [0, 0.9, 0], [], BEAT.sacrifice, out);
+      }
       if (at) {
         ring(root, at, fx.survived ? "border-yellow-300 shadow-[0_0_14px] shadow-yellow-400/70" : "border-emerald-400 shadow-[0_0_14px] shadow-emerald-500/70", out);
         float(root, at, fx.survived ? labels.resilient : labels.sacrifice, fx.survived ? "text-[0.6875rem] text-yellow-200" : "text-[0.6875rem] text-emerald-300", out, 0.4);
@@ -217,7 +245,10 @@ export function playFx(root: HTMLElement, fx: Fx, labels: FxLabels, strikes: Par
     case "evolve": {
       const el = unit(fx.who, fx.lane);
       const at = slot(fx.who, fx.lane);
-      if (el) out.push(el.animate([{ filter: "none", transform: "none" }, { filter: "drop-shadow(0 0 12px rgb(163 230 53)) brightness(1.4)", transform: "scale(1.1)" }, { filter: "none", transform: "none" }], { duration: BEAT.evolve }));
+      if (el) {
+        out.push(el.animate([{ filter: "none", transform: "none" }, { filter: "brightness(1.4)", transform: "scale(1.1)" }, { filter: "none", transform: "none" }], { duration: BEAT.evolve }));
+        glow(el, "rgb(163 230 53)", [0, 1, 0], [], BEAT.evolve, out);
+      }
       if (at) {
         ring(root, at, "border-lime-400 shadow-[0_0_14px] shadow-lime-500/70", out);
         float(root, at, labels.growth, "text-[0.6875rem] text-lime-300", out, 0.4);

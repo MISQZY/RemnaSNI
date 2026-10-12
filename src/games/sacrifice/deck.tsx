@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Check, Clock, Gem, Info, Layers, Minus, PackageOpen, Recycle, Save, Undo2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useFormat } from "@/core/i18n/provider";
 import { QzrIcon } from "@/core/ui/qzr-icon";
@@ -24,11 +24,15 @@ type Props = {
   onSave: (deck: string[]) => void;
 };
 
-const countOf = (ids: string[]) => ids.reduce<Record<string, number>>((acc, id) => ({ ...acc, [id]: (acc[id] ?? 0) + 1 }), {});
+const countOf = (ids: string[]) => {
+  const out: Record<string, number> = {};
+  for (const id of ids) out[id] = (out[id] ?? 0) + 1;
+  return out;
+};
 
 export function DeckEditor({ rules, collection, busy, onSave }: Props) {
   const t = useTranslations("sacrifice");
-  const { cards, nameOf } = useCards();
+  const { cards } = useCards();
   // Keyed by the saved deck (sacrifice.tsx): a save starts the editing over from it.
   const [deck, setDeck] = useState(collection.deck);
 
@@ -42,17 +46,24 @@ export function DeckEditor({ rules, collection, busy, onSave }: Props) {
     .map((id, i) => ({ id, i, def: cards.get(id) }))
     .filter((c): c is { id: string; i: number; def: CardDef } => !!c.def)
     .sort((a, b) => order(a.def, b.def) || a.i - b.i);
-  const limit = (id: string) => Math.min(collection.cards[id] ?? 0, rules.copies[cards.get(id)!.rarity as Exclude<Rarity, "token">] ?? 0);
+  const limit = useCallback(
+    (id: string) => Math.min(collection.cards[id] ?? 0, rules.copies[cards.get(id)!.rarity as Exclude<Rarity, "token">] ?? 0),
+    [cards, collection.cards, rules.copies],
+  );
   const changed = deck.join() !== collection.deck.join();
   const sizeOk = deck.length >= rules.deckMin && deck.length <= rules.deckMax;
 
-  const add = (id: string) => {
-    if ((inDeck[id] ?? 0) < limit(id) && deck.length < rules.deckMax) setDeck([...deck, id]);
-  };
-  const remove = (id: string) => {
-    const i = deck.lastIndexOf(id);
-    if (i >= 0) setDeck(deck.filter((_, j) => j !== i));
-  };
+  // Stable, so a tap re-renders only the cards it changes (CatalogCard, ChosenCard), not the whole catalog.
+  const add = useCallback(
+    (id: string) => setDeck((d) => (d.filter((x) => x === id).length < limit(id) && d.length < rules.deckMax ? [...d, id] : d)),
+    [limit, rules.deckMax],
+  );
+  const remove = useCallback((id: string) => {
+    setDeck((d) => {
+      const i = d.lastIndexOf(id);
+      return i >= 0 ? d.filter((_, j) => j !== i) : d;
+    });
+  }, []);
 
   return (
     <section className="flex flex-col gap-3 rounded-2xl bg-card p-3 ring-1 ring-foreground/10">
@@ -84,7 +95,7 @@ export function DeckEditor({ rules, collection, busy, onSave }: Props) {
         {chosen.length > 0 ? (
           <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-7">
             {chosen.map((c) => (
-              <CardFace key={c.i} card={c.id} onClick={() => remove(c.id)} />
+              <ChosenCard key={c.i} id={c.id} onRemove={remove} />
             ))}
           </div>
         ) : (
@@ -97,54 +108,86 @@ export function DeckEditor({ rules, collection, busy, onSave }: Props) {
         <span className="font-normal tabular-nums">{t("collected", { n: ownedCount, total: all.length })}</span>
       </p>
       <div className="grid grid-cols-4 gap-x-3 gap-y-2 sm:grid-cols-5">
-        {all.map((d) => {
-          const n = inDeck[d.id] ?? 0;
-          if (!collection.cards[d.id])
-            return (
-              <div key={d.id} className="flex flex-col items-center gap-1" title={t("notOwned")}>
-                <CardFace card={d.id} className="opacity-40 grayscale" />
-                <span className="h-5 text-[0.6875rem] leading-5 text-muted-foreground">{t("notOwnedShort")}</span>
-              </div>
-            );
-          // The cards the deck holds in a gold frame. Under the card: copies in the deck of the limit in a hollow yellow ring, how many are owned in the middle and,
-          // once the deck holds one, the mark that takes one out.
-          return (
-            <div key={d.id} className="flex flex-col gap-1">
-              <CardFace card={d.id} onClick={() => add(d.id)} className={cn(n > 0 && "ring-2 ring-amber-400")} />
-              <div className="flex h-5 items-center justify-between gap-0.5 text-[0.625rem] leading-none font-bold tabular-nums">
-                <span
-                  title={t("limitBadge", { n, limit: limit(d.id) })}
-                  className={cn(
-                    "flex h-4 min-w-4 items-center shrink-0 justify-center rounded-full border-[1.5px] px-1",
-                    n > 0 ? "border-amber-400 text-amber-300" : "border-muted-foreground/50 text-muted-foreground",
-                  )}
-                >
-                  {n}/{limit(d.id)}
-                </span>
-                <span className="rounded-full bg-muted px-1.5 py-0.5 font-normal text-muted-foreground" title={t("owned")}>
-                  ×{collection.cards[d.id]}
-                </span>
-                {n > 0 ? (
-                  <button
-                    type="button"
-                    aria-label={t("removeOne", { card: nameOf(d.id) })}
-                    title={t("removeOne", { card: nameOf(d.id) })}
-                    onClick={() => remove(d.id)}
-                    className="flex size-4 shrink-0 items-center justify-center rounded-full bg-rose-600 text-white transition-transform hover:scale-110"
-                  >
-                    <Minus className="size-2.5" strokeWidth={3.5} />
-                  </button>
-                ) : (
-                  <span className="size-4 shrink-0" />
-                )}
-              </div>
-            </div>
-          );
-        })}
+        {all.map((d) => (
+          <CatalogCard key={d.id} id={d.id} owned={collection.cards[d.id] ?? 0} n={inDeck[d.id] ?? 0} limit={limit(d.id)} onAdd={add} onRemove={remove} />
+        ))}
       </div>
     </section>
   );
 }
+
+/** A copy in the chosen deck: a tap takes it out. */
+const ChosenCard = memo(function ChosenCard({ id, onRemove }: { id: string; onRemove: (id: string) => void }) {
+  const take = useCallback(() => onRemove(id), [id, onRemove]);
+  return <CardFace card={id} onClick={take} />;
+});
+
+/**
+ * A card of the catalog. Off screen it is neither laid out nor painted (content-visibility), as the catalog holds every
+ * card a pack can give.
+ */
+const CatalogCard = memo(function CatalogCard({
+  id,
+  owned,
+  n,
+  limit,
+  onAdd,
+  onRemove,
+}: {
+  id: string;
+  owned: number;
+  /** Copies in the deck. */
+  n: number;
+  limit: number;
+  onAdd: (id: string) => void;
+  onRemove: (id: string) => void;
+}) {
+  const t = useTranslations("sacrifice");
+  const { nameOf } = useCards();
+  const add = useCallback(() => onAdd(id), [id, onAdd]);
+  const lazy = "[contain-intrinsic-size:auto_9rem] [content-visibility:auto]";
+  if (!owned)
+    return (
+      <div className={cn("flex flex-col items-center gap-1", lazy)} title={t("notOwned")}>
+        <CardFace card={id} className="opacity-40 grayscale" />
+        <span className="h-5 text-[0.6875rem] leading-5 text-muted-foreground">{t("notOwnedShort")}</span>
+      </div>
+    );
+  // The cards the deck holds in a gold frame. Under the card: copies in the deck of the limit in a hollow yellow ring, how many are owned in the middle and,
+  // once the deck holds one, the mark that takes one out.
+  return (
+    <div className={cn("flex flex-col gap-1", lazy)}>
+      <CardFace card={id} onClick={add} className={cn(n > 0 && "ring-2 ring-amber-400")} />
+      <div className="flex h-5 items-center justify-between gap-0.5 text-[0.625rem] leading-none font-bold tabular-nums">
+        <span
+          title={t("limitBadge", { n, limit })}
+          className={cn(
+            "flex h-4 min-w-4 items-center shrink-0 justify-center rounded-full border-[1.5px] px-1",
+            n > 0 ? "border-amber-400 text-amber-300" : "border-muted-foreground/50 text-muted-foreground",
+          )}
+        >
+          {n}/{limit}
+        </span>
+        <span className="rounded-full bg-muted px-1.5 py-0.5 font-normal text-muted-foreground" title={t("owned")}>
+          ×{owned}
+        </span>
+        {n > 0 ? (
+          <button
+            type="button"
+            aria-label={t("removeOne", { card: nameOf(id) })}
+            title={t("removeOne", { card: nameOf(id) })}
+            onClick={() => onRemove(id)}
+            className="flex size-4 shrink-0 items-center justify-center rounded-full bg-rose-600 text-white transition-transform hover:scale-110"
+          >
+            <Minus className="size-2.5" strokeWidth={3.5} />
+          </button>
+        ) : (
+          <span className="size-4 shrink-0" />
+        )}
+      </div>
+    </div>
+  );
+});
 
 /** The rarities a card can have, in their colors on any page background (the board's own colors are for the dark). */
 export const RARITY_LABEL: Record<Exclude<Rarity, "token">, string> = {

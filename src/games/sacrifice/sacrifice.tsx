@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Bot, Coins, Flag, Layers, Swords, Users } from "lucide-react";
-import { useEffect, useEffectEvent, useState, useSyncExternalStore } from "react";
+import { useEffect, useEffectEvent, useMemo, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,13 +17,13 @@ import { gameLayout } from "@/core/ui/game-layout";
 import { SiteHeader } from "@/core/ui/site-header";
 import { useGameStatus } from "@/core/player/use-game-status";
 import { cn } from "@/lib/utils";
-import { Board, FightLog } from "./board";
+import { Board, FightLog, type TurnClock } from "./board";
 import { CardsProvider } from "./card";
 import { DeckEditor, PackShop } from "./deck";
 import { ProofButton } from "./fairness";
 import { RulesBlock, SigilsBlock } from "./guide";
 import type { Action, Collection, Duel, MatchView, Offer, PackStatus, Proof, SacrificeLook, SacrificeRules, Solo } from "./rules";
-import { useDuelsStream, useSecondsLeft } from "./stream";
+import { useDuelsStream } from "./stream";
 
 // The Sacrifice, card duels after Inscryption in the Qzyrium mines, the game of nodes RemnaWeb has picked it for. Three tabs: a fight
 // against the robot (RemnaWeb's robot/*, kept there and resumed after a reload), fights against players (offers with
@@ -207,7 +207,7 @@ function Fight({
   them,
   looks,
   busy,
-  left,
+  clock,
   onAct,
 }: {
   rules: SacrificeRules;
@@ -217,13 +217,13 @@ function Fight({
   them: string;
   looks: { me?: SacrificeLook | null; them?: SacrificeLook | null };
   busy: boolean;
-  left?: number | null;
+  clock?: TurnClock | null;
   onAct: (a: Action) => void;
 }) {
   const over = view.phase === "over";
   return (
     <div className="flex flex-col gap-1">
-      <Board key={id} rules={rules} view={view} them={them} busy={busy || over} left={left} looks={looks} onAct={onAct} />
+      <Board key={id} rules={rules} view={view} them={them} busy={busy || over} clock={clock} looks={looks} onAct={onAct} />
       <div className="flex justify-end">
         <ProofButton id={id} proof={proof} />
       </div>
@@ -248,7 +248,9 @@ function DuelFight({
   onAct: (a: Action) => void;
 }) {
   const t = useTranslations("sacrifice");
-  const left = useSecondsLeft(duel.view.phase === "over" ? null : duel.deadline, serverNow);
+  const deadline = duel.view.phase === "over" ? null : duel.deadline;
+  // Counted down within the board's side bar (board.tsx), so its ticks re-render only the seconds.
+  const clock = useMemo<TurnClock>(() => ({ deadline, serverNow }), [deadline, serverNow]);
   return (
     <Fight
       rules={rules}
@@ -258,7 +260,7 @@ function DuelFight({
       them={duel.names[1] ?? t("anonymous")}
       looks={{ me: duel.looks?.[0] ?? mine, them: duel.looks?.[1] }}
       busy={busy}
-      left={left}
+      clock={clock}
       onAct={onAct}
     />
   );

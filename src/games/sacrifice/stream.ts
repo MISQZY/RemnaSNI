@@ -41,7 +41,7 @@ export function useDuelsStream(): DuelsStream {
       samples.current = [...samples.current, now - Date.now()].slice(-SAMPLES);
       offset.current = Math.max(...samples.current);
     }
-    if (isSnapshot(data)) setSnapshot(data);
+    if (isSnapshot(data)) setSnapshot((prev) => (prev ? shared(prev, data) : data));
   });
 
   useEffect(() => {
@@ -96,6 +96,18 @@ export function useDuelsStream(): DuelsStream {
 
   const serverNow = useCallback(() => Date.now() + offset.current, []);
   return { snapshot, online, full, serverNow };
+}
+
+/**
+ * `next` keeping the parts of `prev` it repeats: every change in the lobby, anyone's, sends the whole snapshot, and a
+ * fight that has not changed must not re-render (and re-replay) its board. `prev` itself when nothing changed.
+ */
+function shared(prev: DuelsSnapshot, next: DuelsSnapshot): DuelsSnapshot {
+  const same = <T>(a: T, b: T) => a === b || JSON.stringify(a) === JSON.stringify(b);
+  const lobby = same(prev.lobby, next.lobby) ? prev.lobby : next.lobby;
+  const offer = same(prev.offer, next.offer) ? prev.offer : next.offer;
+  const duel = same(prev.duel, next.duel) ? prev.duel : next.duel;
+  return lobby === prev.lobby && offer === prev.offer && duel === prev.duel ? prev : { now: next.now, lobby, offer, duel };
 }
 
 /** Seconds left until `deadline` by RemnaWeb's clock, ticking every quarter second; null without one. */
