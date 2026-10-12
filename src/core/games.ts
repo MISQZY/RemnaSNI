@@ -21,6 +21,21 @@ export const GAMES = {
     /** `crash/stream` is the round as it happens, which the proxy passes through as it comes. */
     api: ["crash", "crash/bet", "crash/cancel", "crash/cashout", "crash/stream"],
   },
+  sacrifice: {
+    routes: ["/"],
+    /** `sacrifice/stream` is the duels as they go, passed through as it comes, with the session's token. */
+    api: [
+      "sacrifice",
+      "sacrifice/deck",
+      "sacrifice/pack",
+      "sacrifice/robot/start",
+      "sacrifice/robot/move",
+      "sacrifice/duel/join",
+      "sacrifice/duel/leave",
+      "sacrifice/duel/move",
+      "sacrifice/stream",
+    ],
+  },
 } as const satisfies Record<string, { routes: readonly string[]; api: readonly string[] }>;
 
 /** A game id, also known to RemnaWeb (its lib/games.ts): a new one is added there too. */

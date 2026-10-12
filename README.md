@@ -1,6 +1,6 @@
 # RemnaSNI
 
-Self-SNI stub site for the nodes: one of the infrastructure games — the clicker, the snake, the fishing or the crash. RemnaWeb is the
+Self-SNI stub site for the nodes: one of the infrastructure games — the clicker, the snake, the fishing, the crash or the Sacrifice. RemnaWeb is the
 orchestrator: it picks the node's game and country and sends the rules; the site only plays.
 Progress lives in the visitor's `localStorage`; after signing in with Telegram it is also synced to RemnaWeb.
 Achievements and pets are not here: both are the profile's, in the RemnaWeb Mini App.
@@ -45,11 +45,23 @@ RemnaWeb runs the rounds, one for every viewer of every site that runs the crash
 and RemnaWeb's clock, so the curve runs in step everywhere. A round is colored by its multiplier, as the pets'
 rarities, grey to cosmic; the last ten are listed above the chart. Watching needs no account, betting does.
 
+The Sacrifice: card duels after Inscryption, in the Qzyrium mines (miners, drones, golems and machines; every card's
+art is drawn by hand as SVG in `src/games/sacrifice/art.tsx`, no emoji). Two sides of four spaces and a scale between
+them. Each turn brings a card from the deck and a spark (a free unit) when the hand holds none; a card is played in two
+taps (the card, then a highlighted space), paid in sacrifices (units of one's own, picked by themselves, the cheapest
+first) or debris (one per unit of one's own destroyed); Attack ends the turn: units strike the one across, or the scale.
+A lead of 5 wins. Nine sigils (airborne, intercept, rift, split…). Every player owns cards — a starter set, then packs
+bought with Qzr — and builds a deck of 10–20. Against the robot: a Qzr bet, a win pays ×1.9, the fight is kept in
+RemnaWeb and resumes after a reload. Against players: offers with a free range of bets (any whole Qzr, no top), seen in the lobby; two that meet fight for
+the highest bet both accept (or one takes the other's), the winner takes the pot less a 3% fee, a minute per turn. RemnaWeb runs the fights; the page follows its duel through
+`/api/sni/sacrifice/stream`, which goes with the session's token (read with `fetch`), so it carries this player's hand.
+The decks are shuffled from a seed whose hash is shown first and the seed after; the page checks the draws.
+
 ## Games and routes
 
 Every game lives in its own route subtree, `src/app/games/<id>`, with its own layout and title; the root layout holds
 only what all share (fonts, language, footer, toasts). `src/proxy.ts` gets the game at request time and rewrites the
-public paths to the node's game (`/` → `/games/clicker`, `/games/snake`, `/games/fishing` or `/games/crash`); the `/games/...` paths themselves are
+public paths to the node's game (`/` → `/games/clicker`, `/games/snake`, `/games/fishing`, `/games/crash` or `/games/sacrifice`); the `/games/...` paths themselves are
 404. So a node loads the JS of its own game only. The API proxy passes the calls of every game in the registry, so
 a tab left open on the previous game keeps saving after an admin switches the node's game in RemnaWeb.
 
@@ -107,6 +119,11 @@ its shortest fight, which the reel can never beat (it starts at 0.3 and fills at
 The crash's come under `crash` (`RemnaWeb/src/lib/crash-rules.ts`): how long bets are taken and a crash is shown, how
 fast the multiplier grows, the highest one, the smallest bet and auto cash-out, and where each color starts. The crash
 points themselves never leave RemnaWeb before the crash, and whether a cash-out came in time is up to its clock.
+
+The Sacrifice's come under `sacrifice` (`RemnaWeb/src/lib/sacrifice/`): the duel's numbers (scale, lanes, sparks,
+opening hand, turn limit and time), the decks' bounds and copies, the packs' price and odds, the bounds of the bets, and every card
+with its names, stats, costs and sigils. The duel itself is played by RemnaWeb only; `src/games/sacrifice/rules.ts`
+mirrors the shuffle (to check the draws) and the picking of sacrifices and the attack (to preview them).
 
 ## Telegram sign-in
 

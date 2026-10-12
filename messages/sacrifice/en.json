@@ -1,0 +1,168 @@
+{
+  "sacrifice": {
+    "meta": {
+      "title": "Sacrifice: {country}",
+      "description": "{country}: card duels in the Qzyrium mines — sacrifice units, gather debris and tip the scale. Against the robot or live players."
+    },
+    "subtitle": "Sacrifice",
+    "modes": {
+      "robot": "Robot",
+      "players": "Players",
+      "deck": "Deck"
+    },
+    "robot": "Robot",
+    "you": "You",
+    "anonymous": "Player",
+    "balance": "Balance",
+    "stake": "Bet",
+    "pot": "Pot",
+    "payout": "Payout",
+    "half": "½",
+    "twice": "×2",
+    "max": "Max",
+    "fight": "Fight for {qzr}",
+    "winPays": "A win brings {qzr} Qzr, a draw returns the bet.",
+    "concede": "Concede",
+    "nextFight": "New fight",
+    "won": "Victory!",
+    "lost": "Defeat",
+    "drawn": "Draw",
+    "cardsN": "{n, plural, one {# card} other {# cards}}",
+    "robotIntro": "Fight the robot with your own deck. A win pays the bet ×{payout}.",
+    "playersIntro": "Set the bets you are ready to play for, or take another player's offer.",
+    "waitingOpponent": "Looking for an opponent… Keep the page open.",
+    "deckSignIn": "Sign in to see your cards and build a deck.",
+    "signIn": "Sign in to play for Qzr and collect cards. The lobby can be watched without it.",
+    "connecting": "Connecting…",
+    "offline": "No connection to the game, reconnecting…",
+    "full": "Too many viewers, trying again shortly",
+    "failed": "That did not work, try again",
+    "saved": "Deck saved",
+    "duelHelp": "Bet anything your balance holds. When your range meets another's, the fight starts by itself, for the highest bet both accept and both have. The winner takes the pot less a {fee} fee, a draw returns the bets. {turn} s per turn; {missed} missed turns in a row lose.",
+    "attack": "Attack",
+    "cancel": "Cancel",
+    "seconds": "{s} s",
+    "bones": "Debris",
+    "deck": "Deck",
+    "sparks": "Sparks",
+    "toScale": "To the scale: {n}",
+    "toUnit": "Damage to a unit: {n}",
+    "scaleEven": "The scale is even",
+    "scaleUp": "Tipped your way: {n} of {max}",
+    "scaleDown": "Tipped their way: {n} of {max}",
+    "hint": {
+      "theirTurn": "{name} is playing",
+      "play": "Pick a card in your hand, or attack",
+      "attack": "Nothing to play: attack",
+      "lane": "Tap a highlighted space",
+      "laneSacrifice": "Pick a space: the marked units are sacrificed",
+      "noSacrifice": "Not enough units on the board to sacrifice",
+      "noBones": "Not enough debris"
+    },
+    "rarity": {
+      "token": "Token",
+      "common": "Common",
+      "uncommon": "Uncommon",
+      "rare": "Rare"
+    },
+    "costBlood": "{n, plural, one {# sacrifice} other {# sacrifices}}",
+    "costBones": "{n} debris",
+    "costFree": "free",
+    "stats": "attack {power}, durability {health}",
+    "evolves": "Grows into: {card}",
+    "logTitle": "The fight",
+    "log": {
+      "turn": "Turn {n}: {who}",
+      "draw": "You drew a card",
+      "spark": "You got a spark",
+      "play": "{who}: {card} to space {lane}",
+      "sacrifice": "{who} sacrifices {card}",
+      "survived": "{card} survived the sacrifice",
+      "evolve": "Grown up: {card}",
+      "direct": "{card} strikes the scale: {n}",
+      "hit": "{card} deals {n} damage (space {lane})",
+      "die": "Destroyed: {card}",
+      "back": "{card} was rebuilt and came back to hand",
+      "won": "{who} won",
+      "tie": "Draw"
+    },
+    "deckTitle": "Deck",
+    "deckSize": "{n} of {min}–{max}",
+    "deckHelp": "Tap a card to add it to the deck, \"−\" takes one out.",
+    "reset": "Undo",
+    "save": "Save",
+    "removeOne": "Take out {card}",
+    "owned": "How many you own",
+    "packTitle": "Card pack",
+    "packHelp": "{n} random cards, the odds of each rarity:",
+    "buyPack": "Buy a pack",
+    "rulesTitle": "Rules and sigils",
+    "rulesText": "Each side has four spaces and a scale lies between them. Each turn you get a card from your deck, and a spark if your hand holds none. To play a card, tap it, then a space. Cards cost sacrifices (units of yours on the board; a spark is free and fit to sacrifice) or debris: one for every unit of yours destroyed. Attack ends the turn: your units strike the one across, or the scale if the space is empty. A lead of {scale} wins. After {maxTurns} turns the side the scale leans to wins.",
+    "sigils": {
+      "airborne": {
+        "name": "Airborne",
+        "text": "flies over the unit across and strikes the scale"
+      },
+      "intercept": {
+        "name": "Intercept",
+        "text": "stops flying units"
+      },
+      "rift": {
+        "name": "Rift",
+        "text": "destroys any unit it damages"
+      },
+      "split": {
+        "name": "Split",
+        "text": "strikes the spaces left and right of the one across"
+      },
+      "resilient": {
+        "name": "Resilient",
+        "text": "survives being sacrificed and stays on the board"
+      },
+      "tripleCharge": {
+        "name": "Triple Charge",
+        "text": "counts as three when sacrificed"
+      },
+      "spikes": {
+        "name": "Spikes",
+        "text": "a unit striking it takes 1 damage"
+      },
+      "growth": {
+        "name": "Growth",
+        "text": "grows up at the start of your next turn"
+      },
+      "rebuild": {
+        "name": "Rebuild",
+        "text": "comes back to hand when destroyed"
+      }
+    },
+    "fair": {
+      "title": "Fairness of the fight",
+      "hash": "Hash",
+      "seed": "Seed",
+      "seedLater": "Shown once the fight is over",
+      "verified": "Fair: the seed's decks match the cards",
+      "mismatch": "Does not match!",
+      "unchecked": "The browser cannot check it",
+      "copied": "Copied",
+      "check": "Check the decks",
+      "how": "The hash is shown from the start, the seed after. The decks are shuffled from the seed alone (taken as text); cards are drawn from the top:"
+    },
+    "yourOffer": "Your offer",
+    "range": "{min}–{max}",
+    "from": "Bet from",
+    "to": "to",
+    "putOffer": "Put up an offer",
+    "updateOffer": "Change the offer",
+    "takeDown": "Take down",
+    "offerWaiting": "Your offer is up in the lobby. The fight starts once an opponent with a matching range turns up — keep the page open.",
+    "offers": "Players' offers",
+    "fightingNow": "fighting: {n}",
+    "take": "Take",
+    "noOffers": "Nobody is waiting yet. Put up an offer of your own.",
+    "upToAll": "Up to all",
+    "copiesTitle": "Copies of a card in the deck:",
+    "upTo": "up to {n}",
+    "packPaid": "Paid from the balance of this site's country."
+  }
+}
