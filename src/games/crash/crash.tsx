@@ -14,6 +14,7 @@ import { StatTile } from "@/core/ui/perk-shop";
 import { QzrIcon } from "@/core/ui/qzr-icon";
 import { gameLayout } from "@/core/ui/game-layout";
 import { SiteHeader } from "@/core/ui/site-header";
+import { fromControl } from "@/core/hotkey";
 import { useGameStatus } from "@/core/use-game-status";
 import { lookStyle } from "@/core/look";
 import { cn } from "@/lib/utils";
@@ -221,7 +222,7 @@ function BetPanel({ rules, snapshot, serverNow, online, mine, balance, busy, onB
     }
   };
   const onKey = useEffectEvent((e: KeyboardEvent) => {
-    if (e.code !== "Space" || e.repeat || (e.target as HTMLElement | null)?.closest("input, button")) return;
+    if (e.code !== "Space" || e.repeat || fromControl(e)) return;
     e.preventDefault();
     act();
   });

@@ -14,6 +14,7 @@ import { PerkShop, StatTile, type GamePerk } from "@/core/ui/perk-shop";
 import { QzrIcon } from "@/core/ui/qzr-icon";
 import { gameLayout } from "@/core/ui/game-layout";
 import { SiteHeader } from "@/core/ui/site-header";
+import { fromControl } from "@/core/hotkey";
 import { useGameStatus } from "@/core/use-game-status";
 import { cn } from "@/lib/utils";
 import { TICK, newReel, stepReel, type Reel, type ReelSetup } from "./reel";
@@ -303,7 +304,7 @@ export function FishingSite({ code, name, signIn, rules }: { code: string; name:
     holdingRef.current = false;
   };
   const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
-    if (e.code !== "Space" && e.code !== "Enter") return;
+    if ((e.code !== "Space" && e.code !== "Enter") || fromControl(e)) return;
     e.preventDefault();
     if (!e.repeat) press();
   });

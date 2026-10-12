@@ -11,6 +11,7 @@ import { session, useSession } from "@/core/session";
 import { storage } from "@/core/storage";
 import { AccountMenu } from "@/core/ui/account-menu";
 import { PerkShop, StatTile, type GamePerk } from "@/core/ui/perk-shop";
+import { fromControl } from "@/core/hotkey";
 import { useGameStatus } from "@/core/use-game-status";
 import { QzrIcon } from "@/core/ui/qzr-icon";
 import { gameLayout } from "@/core/ui/game-layout";
@@ -356,7 +357,7 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
     if (d) {
       e.preventDefault();
       steer(d);
-    } else if (e.code === "Space") {
+    } else if (e.code === "Space" && !fromControl(e)) {
       e.preventDefault();
       if (phase === "playing" || phase === "paused") togglePause();
       else start();
