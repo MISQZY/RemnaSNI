@@ -191,6 +191,10 @@
     "theirHand": "Opponent’s hand: {n, plural, one {# card} other {# cards}}",
     "theirHandHelp": "The opponent’s cards face down: you see how many, not which",
     "fxSacrifice": "Sacrifice",
-    "skip": "Skip"
+    "skip": "Skip",
+    "packsToday": "today: {n} of {limit}",
+    "packN": "#{n}",
+    "packLimitHelp": "Up to {n} packs a day, each {growth}× the price of the last. The count starts over at 00:00 UTC.",
+    "packsIn": "New packs in {h} h {m} min"
   }
 }

@@ -36,7 +36,10 @@ export type SacrificeRules = {
   deckMin: number;
   deckMax: number;
   copies: Record<Exclude<Rarity, "token">, number>;
+  /** The first pack of the day; each next one costs `packGrowth` times more, up to `packsPerDay` a day (UTC). */
   packPrice: number;
+  packGrowth: number;
+  packsPerDay: number;
   packSize: number;
   packOdds: Record<Exclude<Rarity, "token">, number>;
   robotPayout: number;
@@ -72,6 +75,9 @@ export type MatchView = {
   them: SideView<number>;
   log: GameEvent[];
 };
+
+/** The player's packs today (RemnaWeb's GET /api/sni/sacrifice): bought, the limit, the next one's price, the day's end (ms). */
+export type PackStatus = { bought: number; limit: number; price: number; resetAt: number };
 
 export type Proof = { hash: string; seed: string | null; decks: [string[], string[]] | null; drawn: [string[], string[]] | null };
 

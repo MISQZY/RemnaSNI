@@ -1,17 +1,17 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Info, Layers, PackageOpen, Save, Undo2 } from "lucide-react";
-import { useState } from "react";
+import { Check, Clock, Info, Layers, PackageOpen, Save, Undo2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useFormat } from "@/core/i18n/provider";
 import { QzrIcon } from "@/core/ui/qzr-icon";
 import { cn } from "@/lib/utils";
 import { CardFace, useCards } from "./card";
-import type { Collection, Rarity, SacrificeRules } from "./rules";
+import type { Collection, PackStatus, Rarity, SacrificeRules } from "./rules";
 
 // The player's cards and deck: every card they own with how many of it the deck holds (a tap adds one, the minus
-// takes one out), saved to RemnaWeb (POST /api/sni/sacrifice/deck); and packs of new cards for Qzr.
+// takes one out), saved to RemnaWeb (POST /api/sni/sacrifice/deck); and packs of new cards for Qzr, a few a day.
 
 const RARITY_ORDER: Rarity[] = ["common", "uncommon", "rare"];
 
@@ -125,24 +125,90 @@ function RarityList({ values }: { values: Record<Exclude<Rarity, "token">, strin
   );
 }
 
-/** Packs: the price, the odds, the button, and the cards the last one held. */
-export function PackShop({ rules, balance, busy, opened, onBuy }: { rules: SacrificeRules; balance: number | undefined; busy: boolean; opened: string[] | null; onBuy: () => void }) {
+/** The clock, a tick a minute: for the time left until the day's packs come back. */
+function useMinuteClock() {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
+}
+
+/**
+ * Packs: a few a day, each dearer than the last (RemnaWeb counts them, PackStatus): the day's prices as a ladder with
+ * the ones bought ticked off, the odds, the button with the next price, or the time left until the next day once
+ * they are all bought; and the cards the last pack held.
+ */
+export function PackShop({
+  rules,
+  balance,
+  packs,
+  busy,
+  opened,
+  onBuy,
+}: {
+  rules: SacrificeRules;
+  balance: number | undefined;
+  /** Missing without an account, or from a RemnaWeb that counts no packs: one price then, no limit. */
+  packs: PackStatus | undefined;
+  busy: boolean;
+  opened: string[] | null;
+  onBuy: () => void;
+}) {
   const t = useTranslations("sacrifice");
   const { num } = useFormat();
+  const now = useMinuteClock();
   const pct = (p: number) => `${Math.round(p * 100)}%`;
+  const limit = packs?.limit ?? rules.packsPerDay ?? 0;
+  const growth = rules.packGrowth ?? 1;
+  // The day may have turned since RemnaWeb counted: the count starts over then.
+  const bought = packs && now < packs.resetAt ? packs.bought : 0;
+  const ladder = Array.from({ length: limit }, (_, i) => Math.round(rules.packPrice * growth ** i));
+  const price = limit ? (ladder[bought] ?? ladder.at(-1)!) : rules.packPrice;
+  const left = limit ? limit - bought : Infinity;
+  const waitMin = packs ? Math.max(1, Math.ceil((packs.resetAt - now) / 60_000)) : 0;
   return (
     <section className="flex flex-col gap-3 rounded-2xl bg-card p-3 ring-1 ring-foreground/10">
       <p className="flex items-center gap-1.5 px-1 text-sm font-semibold">
         <PackageOpen className="size-4 text-muted-foreground" /> {t("packTitle")}
+        {limit > 0 && <span className="ml-auto text-xs font-normal text-muted-foreground tabular-nums">{t("packsToday", { n: bought, limit })}</span>}
       </p>
+      {limit > 0 && (
+        <div className="space-y-1.5">
+          <ol className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${limit}, minmax(0, 1fr))` }}>
+            {ladder.map((p, i) => (
+              <li
+                key={i}
+                className={cn(
+                  "flex flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-[11px] tabular-nums ring-1",
+                  i < bought ? "bg-muted/40 text-muted-foreground ring-foreground/5" : i === bought ? "bg-primary/10 font-semibold text-foreground ring-primary/50" : "text-muted-foreground ring-foreground/10",
+                )}
+              >
+                <span className="text-[10px] font-normal">{i < bought ? <Check className="size-3" /> : t("packN", { n: i + 1 })}</span>
+                <span className={cn("inline-flex items-center gap-0.5", i < bought && "line-through")}>
+                  <QzrIcon className="size-3" /> {num(p)}
+                </span>
+              </li>
+            ))}
+          </ol>
+          <p className="px-1 text-xs text-muted-foreground">{t("packLimitHelp", { n: limit, growth })}</p>
+        </div>
+      )}
       <div className="space-y-1 px-1 text-xs text-muted-foreground">
         <p>{t("packHelp", { n: rules.packSize })}</p>
         <RarityList values={{ common: pct(rules.packOdds.common), uncommon: pct(rules.packOdds.uncommon), rare: pct(rules.packOdds.rare) }} />
         <p>{t("packPaid")}</p>
       </div>
-      <Button size="lg" className="w-full tabular-nums" disabled={busy || (balance !== undefined && balance < rules.packPrice)} onClick={onBuy}>
-        <PackageOpen /> {t("buyPack")} · <QzrIcon className="size-4" /> {num(rules.packPrice)}
-      </Button>
+      {left > 0 ? (
+        <Button size="lg" className="w-full tabular-nums" disabled={busy || (balance !== undefined && balance < price)} onClick={onBuy}>
+          <PackageOpen /> {t("buyPack")} · <QzrIcon className="size-4" /> {num(price)}
+        </Button>
+      ) : (
+        <Button size="lg" variant="secondary" className="w-full tabular-nums" disabled>
+          <Clock /> {t("packsIn", { h: Math.floor(waitMin / 60), m: waitMin % 60 })}
+        </Button>
+      )}
       {opened && (
         <div className="grid grid-cols-3 gap-2">
           {opened.map((id, i) => (

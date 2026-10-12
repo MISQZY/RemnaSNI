@@ -22,7 +22,7 @@ import { CardsProvider } from "./card";
 import { DeckEditor, PackShop } from "./deck";
 import { ProofButton } from "./fairness";
 import { RulesBlock, SigilsBlock } from "./guide";
-import type { Action, Collection, Duel, MatchView, Offer, Proof, SacrificeRules, Solo } from "./rules";
+import type { Action, Collection, Duel, MatchView, Offer, PackStatus, Proof, SacrificeRules, Solo } from "./rules";
 import { useDuelsStream, useSecondsLeft } from "./stream";
 
 // The Sacrifice, card duels after Inscryption in the Qzyrium mines, the game of nodes RemnaWeb has picked it for. Three tabs: a fight
@@ -37,7 +37,7 @@ const RANGE_KEY = "sacrifice-range";
 
 type Mode = "robot" | "players" | "deck";
 /** What RemnaWeb's GET /api/sni/sacrifice tells: the country's Qzr, the cards and deck, the fight against the robot. */
-type Status = { balance: number; collection: Collection; solo: Solo | null };
+type Status = { balance: number; collection: Collection; packs: PackStatus; solo: Solo | null };
 
 const readMode = (): Mode => {
   const m = storage.get(MODE_KEY);
@@ -117,9 +117,9 @@ export function SacrificeSite({ code, name, signIn, rules }: { code: string; nam
       toast(t("saved"));
     });
   const buyPack = () =>
-    void call<{ cards: string[]; collection: Collection; balance: number }>("sacrifice/pack", undefined, (res) => {
+    void call<{ cards: string[]; collection: Collection; packs: PackStatus; balance: number }>("sacrifice/pack", undefined, (res) => {
       setOpened(res.cards);
-      setStatus((s) => (s ? { ...s, collection: res.collection, balance: res.balance } : s));
+      setStatus((s) => (s ? { ...s, collection: res.collection, packs: res.packs, balance: res.balance } : s));
     });
 
   return (
@@ -170,7 +170,7 @@ export function SacrificeSite({ code, name, signIn, rules }: { code: string; nam
           ) : mode === "players" ? (
             <QueuePanel rules={rules} code={code} balance={status?.balance} stream={stream} busy={busy} onConcede={() => actDuel({ type: "concede" })} />
           ) : (
-            <PackShop rules={rules} balance={status?.balance} busy={busy} opened={opened} onBuy={buyPack} />
+            <PackShop rules={rules} balance={status?.balance} packs={status?.packs} busy={busy} opened={opened} onBuy={buyPack} />
           )}
           {mode === "robot" && solo && <FightLog view={solo.view} them={t("robot")} />}
           {mode === "players" && duel && <FightLog view={duel.view} them={duel.names[1] ?? t("anonymous")} />}
