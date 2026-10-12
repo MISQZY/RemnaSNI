@@ -210,33 +210,24 @@ function draw(canvas: HTMLCanvasElement, rules: CrashRules, elapsedMs: number, t
   ctx.globalAlpha = crashed ? 0.5 : 1;
   ctx.fill();
 
-  // A cosmetic trail: a wide glow along the last part of the curve, in its colors.
+  // The line itself: in the colors of the height reached, or a cosmetic trail's along its whole length, the same thin
+  // line with a soft glow of its own.
   const trail = look?.trail;
+  let line: CanvasGradient = stroke;
   if (trail?.colors.length) {
-    const from = Math.floor(points.length * 0.6);
-    const glow = ctx.createLinearGradient(points[from][0], 0, endX, 0);
-    trail.colors.forEach((c, i) => glow.addColorStop(trail.colors.length === 1 ? 0 : i / (trail.colors.length - 1), c));
-    ctx.save();
-    ctx.globalAlpha = crashed ? 0.25 : 0.55;
-    ctx.strokeStyle = glow;
-    ctx.lineWidth = 11;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
+    line = ctx.createLinearGradient(pad.left, 0, endX, 0);
+    trail.colors.forEach((c, i) => line.addColorStop(trail.colors.length === 1 ? 0 : i / (trail.colors.length - 1), c));
     ctx.shadowColor = trail.colors[trail.colors.length - 1];
-    ctx.shadowBlur = 16;
-    ctx.beginPath();
-    points.slice(from).forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
-    ctx.stroke();
-    ctx.restore();
+    ctx.shadowBlur = 6;
   }
-
   ctx.beginPath();
   points.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
-  ctx.strokeStyle = stroke;
+  ctx.strokeStyle = line;
   ctx.lineWidth = 3;
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
   ctx.stroke();
+  ctx.shadowBlur = 0;
   ctx.globalAlpha = 1;
 
   // The tip: a glowing dot in flight, a cross where it crashed.

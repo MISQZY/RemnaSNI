@@ -42,7 +42,7 @@ export type CrashBet = { id: number; name: string | null; badge?: Look | null; a
 
 /** What flies at the tip of the curve (a cosmetic): a shape drawn here by its kind, glowing in its colors. */
 export type CrashHead = { kind: string; color: string; glow: string };
-/** A glow along the end of the curve in these colors, and sparks falling off the tip. */
+/** The curve's line in these colors in place of the height's, and sparks falling off the tip. */
 export type CrashTrail = { colors: string[]; sparks: boolean };
 
 /** The player's cosmetics of the crash (RemnaWeb's GET /api/sni/crash, `crash`); null for the plain ones. */
