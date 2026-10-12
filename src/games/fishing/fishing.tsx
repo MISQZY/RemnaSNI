@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Cable, Fish, Gauge, Magnet, RotateCcw, Wheat } from "lucide-react";
-import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore, type RefObject } from "react";
+import { useEffect, useEffectEvent, useRef, useState, type RefObject } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ApiError, api } from "@/core/api";
@@ -16,6 +16,7 @@ import { gameLayout } from "@/core/ui/game-layout";
 import { SiteHeader } from "@/core/ui/site-header";
 import { fromControl } from "@/core/hotkey";
 import { useGameStatus } from "@/core/use-game-status";
+import { useHydrated } from "@/core/use-hydrated";
 import { cn } from "@/lib/utils";
 import { TICK, newReel, stepReel, type Reel, type ReelSetup } from "./reel";
 import { fishValue, localBiteMs, localReel, rollCatch, type Catch, type FishingRules, type Rarity } from "./rules";
@@ -74,7 +75,6 @@ const RARITY_COLOR: Record<Rarity, string> = {
 
 const readBest = () => Number(storage.get(BEST_KEY)) || 0;
 const readLocal = () => Math.max(0, Math.floor(Number(storage.get(LOCAL_KEY)) || 0));
-const noop = () => () => {};
 
 /**
  * Keeps a long press on `ref` a press: no text selection, magnifier, callout or double-tap zoom on phones, which a
@@ -104,7 +104,7 @@ export function FishingSite({ code, name, signIn, rules }: { code: string; name:
   const account = useSession();
   const { status, setStatus, reload } = useGameStatus<Status>("fishing", code);
   // False while hydrating, so values kept in the browser do not differ from the server's markup.
-  const hydrated = useSyncExternalStore(noop, () => true, () => false);
+  const hydrated = useHydrated();
   const [phase, setPhase] = useState<Phase>("ready");
   const [lost, setLost] = useState<Lost>("escaped");
   /** The fish landed last, and whether RemnaWeb bought it (not without an account). */

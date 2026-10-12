@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Gamepad2, Gauge, Heart, Pause, Play, RotateCcw, Sparkles, Turtle } from "lucide-react";
-import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ApiError, api } from "@/core/api";
@@ -13,6 +13,7 @@ import { AccountMenu } from "@/core/ui/account-menu";
 import { PerkShop, StatTile, type GamePerk } from "@/core/ui/perk-shop";
 import { fromControl } from "@/core/hotkey";
 import { useGameStatus } from "@/core/use-game-status";
+import { useHydrated } from "@/core/use-hydrated";
 import { QzrIcon } from "@/core/ui/qzr-icon";
 import { gameLayout } from "@/core/ui/game-layout";
 import { SiteHeader } from "@/core/ui/site-header";
@@ -97,7 +98,6 @@ const snakeApi = <T,>(country: string, body?: object, path = "snake") => api<T>(
 const readPad = () => storage.get(PAD_KEY) === "1";
 const readBest = () => Number(storage.get(BEST_KEY)) || 0;
 
-const noop = () => () => {};
 
 /** Icons of the snake bonuses. */
 const PERK_ICONS: Record<string, typeof Sparkles> = { golden: Sparkles, life: Heart, slow: Turtle };
@@ -109,7 +109,7 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
   const { num, fixed } = useFormat();
   const account = useSession();
   // False while hydrating, so values kept in the browser do not differ from the server's markup.
-  const hydrated = useSyncExternalStore(noop, () => true, () => false);
+  const hydrated = useHydrated();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameRef = useRef<Game | null>(null);
   const swipeRef = useRef<{ x: number; y: number } | null>(null);
