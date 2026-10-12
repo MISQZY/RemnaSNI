@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowBigUp, Cog, Feather, Hammer, Recycle, Shield, ShieldPlus, Sprout, Swords, Split, Triangle, Zap, type LucideIcon } from "lucide-react";
+import { BowArrow, Cog, Feather, Mountain, Recycle, Shield, ShieldPlus, Sprout, Swords, Split, Triangle, Zap, type LucideIcon } from "lucide-react";
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { QzrIcon } from "@/core/ui/qzr-icon";
@@ -14,12 +14,12 @@ import type { CardBackLook, CardDef, Rarity, Sigil } from "./rules";
 
 export const SIGIL_ICONS: Record<Sigil, LucideIcon> = {
   airborne: Feather,
-  intercept: ArrowBigUp,
+  intercept: BowArrow,
   rift: Zap,
   split: Split,
   resilient: ShieldPlus,
   tripleCharge: Triangle,
-  spikes: Hammer,
+  spikes: Mountain,
   growth: Sprout,
   rebuild: Recycle,
 };
