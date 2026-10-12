@@ -1,17 +1,18 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Check, Clock, Gem, Info, Layers, PackageOpen, Recycle, Save, Undo2 } from "lucide-react";
+import { Check, Clock, Gem, Info, Layers, Minus, PackageOpen, Recycle, Save, Undo2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useFormat } from "@/core/i18n/provider";
 import { QzrIcon } from "@/core/ui/qzr-icon";
 import { cn } from "@/lib/utils";
 import { CardFace, useCards } from "./card";
-import { spareOf, type Collection, type PackStatus, type Rarity, type SacrificeRules } from "./rules";
+import { spareOf, type CardDef, type Collection, type PackStatus, type Rarity, type SacrificeRules } from "./rules";
 
-// The player's cards and deck: every card they own with how many of it the deck holds (a tap adds one, the minus
-// takes one out), saved to RemnaWeb (POST /api/sni/sacrifice/deck); and packs of new cards for Qzr, a few a day, or
+// The player's cards and deck: the deck on top card by card (a tap takes one out), then every card of the catalog —
+// the ones not owned grey and out of reach, the owned with how many of it the deck holds (a tap adds one, the minus
+// takes one out) — saved to RemnaWeb (POST /api/sni/sacrifice/deck); and packs of new cards for Qzr, a few a day, or
 // for the shards of the copies a deck has no room for.
 
 const RARITY_ORDER: Rarity[] = ["common", "uncommon", "rare"];
@@ -32,9 +33,15 @@ export function DeckEditor({ rules, collection, busy, onSave }: Props) {
   const [deck, setDeck] = useState(collection.deck);
 
   const inDeck = countOf(deck);
-  const owned = [...cards.values()]
-    .filter((d) => d.rarity !== "token" && (collection.cards[d.id] ?? 0) > 0)
-    .sort((a, b) => RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity) || a.blood + a.bones / 3 - (b.blood + b.bones / 3));
+  const order = (a: CardDef, b: CardDef) => RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity) || a.blood + a.bones / 3 - (b.blood + b.bones / 3);
+  // Every card a pack can hold, owned or not: the ones not owned are shown grey, to see what is still to be found.
+  const all = [...cards.values()].filter((d) => d.rarity !== "token").sort(order);
+  const ownedCount = all.filter((d) => (collection.cards[d.id] ?? 0) > 0).length;
+  // The deck card by card, each copy on its own, in the collection's order.
+  const chosen = deck
+    .map((id, i) => ({ id, i, def: cards.get(id) }))
+    .filter((c): c is { id: string; i: number; def: CardDef } => !!c.def)
+    .sort((a, b) => order(a.def, b.def) || a.i - b.i);
   const limit = (id: string) => Math.min(collection.cards[id] ?? 0, rules.copies[cards.get(id)!.rarity as Exclude<Rarity, "token">] ?? 0);
   const changed = deck.join() !== collection.deck.join();
   const sizeOk = deck.length >= rules.deckMin && deck.length <= rules.deckMax;
@@ -72,28 +79,64 @@ export function DeckEditor({ rules, collection, busy, onSave }: Props) {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
-        {owned.map((d) => {
+      <div className="flex flex-col gap-2 rounded-xl bg-muted/40 p-2 ring-1 ring-foreground/5">
+        <p className="px-1 text-xs font-semibold text-muted-foreground">{t("deckChosen")}</p>
+        {chosen.length > 0 ? (
+          <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-7">
+            {chosen.map((c) => (
+              <CardFace key={c.i} card={c.id} onClick={() => remove(c.id)} />
+            ))}
+          </div>
+        ) : (
+          <p className="px-1 pb-1 text-xs text-muted-foreground">{t("deckEmpty")}</p>
+        )}
+      </div>
+
+      <p className="flex items-center justify-between gap-2 px-1 text-xs font-semibold text-muted-foreground">
+        {t("allCards")}
+        <span className="font-normal tabular-nums">{t("collected", { n: ownedCount, total: all.length })}</span>
+      </p>
+      <div className="grid grid-cols-4 gap-x-3 gap-y-2 sm:grid-cols-5">
+        {all.map((d) => {
           const n = inDeck[d.id] ?? 0;
+          if (!collection.cards[d.id])
+            return (
+              <div key={d.id} className="flex flex-col items-center gap-1" title={t("notOwned")}>
+                <CardFace card={d.id} className="opacity-40 grayscale" />
+                <span className="h-5 text-[0.6875rem] leading-5 text-muted-foreground">{t("notOwnedShort")}</span>
+              </div>
+            );
+          // The cards the deck holds in a gold frame. Under the card: copies in the deck of the limit in a hollow yellow ring, how many are owned in the middle and,
+          // once the deck holds one, the mark that takes one out.
           return (
             <div key={d.id} className="flex flex-col gap-1">
-              <CardFace card={d.id} dim={n === 0} onClick={() => add(d.id)} />
-              <div className="flex items-center justify-between gap-1 text-[0.6875rem] tabular-nums">
-                <button
-                  type="button"
-                  aria-label={t("removeOne", { card: nameOf(d.id) })}
-                  disabled={n === 0}
-                  onClick={() => remove(d.id)}
-                  className="size-5 rounded-md bg-muted font-bold disabled:opacity-40"
+              <CardFace card={d.id} onClick={() => add(d.id)} className={cn(n > 0 && "ring-2 ring-amber-400")} />
+              <div className="flex h-5 items-center justify-between gap-0.5 text-[0.625rem] leading-none font-bold tabular-nums">
+                <span
+                  title={t("limitBadge", { n, limit: limit(d.id) })}
+                  className={cn(
+                    "flex h-4 min-w-4 items-center shrink-0 justify-center rounded-full border-[1.5px] border-amber-400 px-1",
+                    n > 0 ? "text-amber-300" : "text-amber-400/70",
+                  )}
                 >
-                  −
-                </button>
-                <span className={cn(n > 0 && "font-semibold text-foreground", "text-muted-foreground")}>
                   {n}/{limit(d.id)}
                 </span>
-                <span className="text-muted-foreground" title={t("owned")}>
+                <span className="rounded-full bg-muted px-1.5 py-0.5 font-normal text-muted-foreground" title={t("owned")}>
                   ×{collection.cards[d.id]}
                 </span>
+                {n > 0 ? (
+                  <button
+                    type="button"
+                    aria-label={t("removeOne", { card: nameOf(d.id) })}
+                    title={t("removeOne", { card: nameOf(d.id) })}
+                    onClick={() => remove(d.id)}
+                    className="flex size-4 shrink-0 items-center justify-center rounded-full bg-rose-600 text-white transition-transform hover:scale-110"
+                  >
+                    <Minus className="size-2.5" strokeWidth={3.5} />
+                  </button>
+                ) : (
+                  <span className="size-4 shrink-0" />
+                )}
               </div>
             </div>
           );
@@ -217,7 +260,7 @@ export function PackShop({
       )}
       {collection && rules.shardValue && rules.shardPack && <TradeBox rules={rules} shardValue={rules.shardValue} shardPack={rules.shardPack} collection={collection} busy={busy} onTrade={onTrade} />}
       {opened && (
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-5 gap-1.5">
           {opened.map((id, i) => (
             <div key={i} className="animate-in fade-in zoom-in-90" style={{ animationDelay: `${i * 120}ms`, animationFillMode: "both" }}>
               <CardFace card={id} />
