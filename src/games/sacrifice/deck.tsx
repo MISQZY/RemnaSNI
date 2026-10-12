@@ -361,8 +361,20 @@ function TradeBox({
       ) : (
         <p className="px-1 text-xs text-muted-foreground">{t("tradeNone")}</p>
       )}
-      <Button size="lg" variant="secondary" className="w-full tabular-nums" disabled={busy || have < shardPack} onClick={onTrade}>
-        <PackageOpen /> {t("tradeButton")} · <Gem className="size-4" /> {t("tradeHave", { have, need: shardPack })}
+      {/* Two parts that never break inside: on a narrow phone the shards go onto a second line and the button grows to fit. */}
+      <Button
+        size="lg"
+        variant="secondary"
+        className="h-fit min-h-10 w-full flex-wrap gap-x-3 gap-y-0.5 py-2 whitespace-normal tabular-nums"
+        disabled={busy || have < shardPack}
+        onClick={onTrade}
+      >
+        <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+          <PackageOpen /> {t("tradeButton")}
+        </span>
+        <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+          <Gem className="size-4" /> {t("tradeHave", { have, need: shardPack })}
+        </span>
       </Button>
     </div>
   );
