@@ -206,6 +206,8 @@ function BetPanel({ rules, snapshot, serverNow, online, mine, balance, busy, onB
   const autoValid = autoValue === null || (Number.isFinite(autoValue) && autoValue >= rules.minAuto && autoValue <= rules.maxCrash);
   const amountValid = Number.isInteger(amount) && amount >= rules.minBet && (balance === undefined || amount <= balance);
 
+  /** The amount as typed, until the field is left. */
+  const [draft, setDraft] = useState<string | null>(null);
   const setBet = (n: number) => {
     const v = Math.max(rules.minBet, Math.floor(n));
     setAmount(v);
@@ -272,9 +274,14 @@ function BetPanel({ rules, snapshot, serverNow, online, mine, balance, busy, onB
             inputMode="numeric"
             min={rules.minBet}
             step={1}
-            value={amount}
+            value={draft ?? amount}
             disabled={locked}
-            onChange={(e) => setBet(Number(e.target.value) || 0)}
+            // Typed freely (cleared, a digit at a time), set within the limits once the field is left.
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={() => {
+              if (draft !== null) setBet(Number(draft) || 0);
+              setDraft(null);
+            }}
             className={cn(
               "h-10 w-full min-w-0 rounded-xl border bg-background px-3 text-base font-semibold tabular-nums outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60",
               !amountValid && !locked && "border-destructive",

@@ -305,6 +305,8 @@ function SoloPanel({
   const [stake, setStake] = useState(() => Math.min(cap, readStake()));
   const balance = status?.balance;
   const valid = Number.isInteger(stake) && stake >= 1 && stake <= cap && (balance === undefined || stake <= balance);
+  /** The bet as typed, until the field is left. */
+  const [draft, setDraft] = useState<string | null>(null);
   const setBet = (n: number) => {
     const v = Math.min(cap, Math.max(1, Math.floor(n) || 1));
     setStake(v);
@@ -349,8 +351,13 @@ function SoloPanel({
           type="number"
           inputMode="numeric"
           min={1}
-          value={stake}
-          onChange={(e) => setBet(Number(e.target.value) || 0)}
+          value={draft ?? stake}
+          // Typed freely (cleared, a digit at a time), set within the limits once the field is left.
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => {
+            if (draft !== null) setBet(Number(draft) || 0);
+            setDraft(null);
+          }}
           className={cn(
             "h-10 w-full min-w-0 rounded-xl border bg-background px-3 text-base font-semibold tabular-nums outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
             !valid && "border-destructive",
