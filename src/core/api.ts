@@ -26,6 +26,9 @@ type Options = {
   keepalive?: boolean;
 };
 
+/** A call still unanswered after this has failed: the site's own server may hang, not only RemnaWeb. */
+const TIMEOUT_MS = 15_000;
+
 /** Calls `/api/sni/<path>`; null when signed out. Throws ApiError on any other failure. */
 export async function api<T>(path: string, { method = "GET", body, country, keepalive }: Options = {}): Promise<T | null> {
   const token = session.getSnapshot().token;
@@ -39,6 +42,7 @@ export async function api<T>(path: string, { method = "GET", body, country, keep
       body: body !== undefined ? JSON.stringify(body) : undefined,
       keepalive,
       cache: "no-store",
+      signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch {
     throw new ApiError(0, tr()("session.offline"));

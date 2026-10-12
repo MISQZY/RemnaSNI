@@ -131,7 +131,12 @@ export const session = {
     const token = state.token;
     if (!token) return {};
     try {
-      const res = await fetch("/api/sni/auth/logout", { method: "POST", headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+      const res = await fetch("/api/sni/auth/logout", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+        signal: AbortSignal.timeout(15_000),
+      });
       // 401: that session is over already.
       if (!res.ok && res.status !== 401) return { error: tr()("session.tryLater") };
     } catch {

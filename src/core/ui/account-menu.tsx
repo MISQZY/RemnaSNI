@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { LogOut, MonitorX, Send, Settings } from "lucide-react";
-import type { ComponentProps, ReactNode } from "react";
+import { useState, type ComponentProps, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -27,6 +27,7 @@ type Props = {
 export function AccountMenu({ signIn, status, actions, settings, note }: Props) {
   const { token, account } = useSession();
   const t = useTranslations();
+  const [signingOut, setSigningOut] = useState(false);
 
   if (!token) {
     return (
@@ -74,8 +75,11 @@ export function AccountMenu({ signIn, status, actions, settings, note }: Props) 
           </MenuButton>
           <MenuButton
             destructive
+            disabled={signingOut}
             onClick={async () => {
+              setSigningOut(true);
               const { error } = await session.signOutEverywhere();
+              setSigningOut(false);
               if (error) toast.error(error);
             }}
           >
