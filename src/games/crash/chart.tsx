@@ -290,7 +290,8 @@ export function CrashChart({ rules, snapshot, serverNow, online, full, look = nu
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const tip = useRef<Tip>(null);
-  const now = useFrameNow(serverNow, !!snapshot?.round);
+  // Frozen while the stream is down: the curve must not climb on past a crash the page has not heard of.
+  const now = useFrameNow(serverNow, !!snapshot?.round && online);
 
   const round = snapshot?.round ?? null;
   const crashed = round?.crash != null;

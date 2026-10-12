@@ -54,7 +54,7 @@ export function CrashSite({ code, name, signIn, rules }: { code: string; name: s
   const t = useTranslations();
   const { num } = useFormat();
   const account = useSession();
-  const { status, setStatus } = useGameStatus<Status>("crash", code);
+  const { status, setStatus, reload } = useGameStatus<Status>("crash", code);
   const { snapshot, online, full, serverNow } = useCrashStream();
   const [busy, setBusy] = useState(false);
 
@@ -72,44 +72,28 @@ export function CrashSite({ code, name, signIn, rules }: { code: string; name: s
     );
   }, [autoPaid, setStatus]);
 
-  const placeBet = async (amount: number, auto: number | null) => {
+  /**
+   * A bet, its cancel or its cash-out. Whatever went wrong, the bet and the balance are asked for again: an answer
+   * lost on the way may hide a bet RemnaWeb took (it would ride with no button to cash it out) or a cash-out it paid.
+   */
+  const act = async <T extends object>(path: string, body?: object, done?: (res: T) => void) => {
     setBusy(true);
     try {
-      const res = await api<BetResult>("crash/bet", { method: "POST", body: { amount, auto }, country: code });
-      if (res) setStatus((s) => ({ ...s, ...res }));
-    } catch (err) {
-      toast.error(err instanceof ApiError && err.status !== 0 ? err.message : t("crash.failed"));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const cancel = async () => {
-    setBusy(true);
-    try {
-      const res = await api<{ bet: null; balance: number }>("crash/cancel", { method: "POST", country: code });
-      if (res) setStatus((s) => ({ ...s, ...res }));
-    } catch (err) {
-      toast.error(err instanceof ApiError && err.status !== 0 ? err.message : t("crash.failed"));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const cashOut = async () => {
-    setBusy(true);
-    try {
-      const res = await api<BetResult>("crash/cashout", { method: "POST", country: code });
+      const res = await api<T>(path, { method: "POST", body, country: code });
       if (res) {
-        setStatus((s) => ({ ...s, ...res }));
-        navigator.vibrate?.(25);
+        setStatus((s) => ({ ...s, ...res }) as Status);
+        done?.(res);
       }
     } catch (err) {
       toast.error(err instanceof ApiError && err.status !== 0 ? err.message : t("crash.failed"));
+      reload();
     } finally {
       setBusy(false);
     }
   };
+  const placeBet = (amount: number, auto: number | null) => void act<BetResult>("crash/bet", { amount, auto });
+  const cancel = () => void act<{ bet: null; balance: number }>("crash/cancel");
+  const cashOut = () => void act<BetResult>("crash/cashout", undefined, () => navigator.vibrate?.(25));
 
   const total = snapshot?.bets.reduce((sum, b) => sum + b.amount, 0) ?? 0;
 
@@ -130,7 +114,7 @@ export function CrashSite({ code, name, signIn, rules }: { code: string; name: s
 
         <div className={gameLayout.side}>
           {signedIn ? (
-            <BetPanel rules={rules} snapshot={snapshot} serverNow={serverNow} mine={mine} balance={status?.balance} busy={busy} onBet={placeBet} onCancel={cancel} onCashOut={cashOut} />
+            <BetPanel rules={rules} snapshot={snapshot} serverNow={serverNow} online={online} mine={mine} balance={status?.balance} busy={busy} onBet={placeBet} onCancel={cancel} onCashOut={cashOut} />
           ) : (
             <div className="flex flex-col items-center gap-3 rounded-2xl bg-card p-4 text-center ring-1 ring-foreground/10">
               <p className="text-sm text-muted-foreground">{t("crash.signInToBet")}</p>
@@ -185,6 +169,8 @@ type PanelProps = {
   rules: CrashRules;
   snapshot: CrashSnapshot | null;
   serverNow: () => number;
+  /** Whether the stream is up: without it the flight shown may be past the crash already. */
+  online: boolean;
   mine: MyBet | null;
   balance: number | undefined;
   busy: boolean;
@@ -197,7 +183,7 @@ const readAmount = (min: number) => Math.max(min, Math.floor(Number(storage.get(
 const readAuto = () => storage.get(AUTO_KEY) ?? "";
 
 /** The bet: its amount, an optional cash-out of its own, and the one button that bets or cashes out. */
-function BetPanel({ rules, snapshot, serverNow, mine, balance, busy, onBet, onCancel, onCashOut }: PanelProps) {
+function BetPanel({ rules, snapshot, serverNow, online, mine, balance, busy, onBet, onCancel, onCashOut }: PanelProps) {
   const t = useTranslations("crash");
   const { num } = useFormat();
   const mult = useMultiplier();
@@ -208,7 +194,7 @@ function BetPanel({ rules, snapshot, serverNow, mine, balance, busy, onBet, onCa
   const crashed = round?.crash != null;
   const flying = !!round && !crashed && snapshot?.phase === "flying";
   const canBet = !!round && snapshot?.phase === "betting" && !mine;
-  const canCashOut = flying && !!mine && mine.cashout == null;
+  const canCashOut = flying && online && !!mine && mine.cashout == null;
   // Taken back until the start, by RemnaWeb's clock as well.
   const canCancel = !!round && snapshot?.phase === "betting" && !!mine && mine.cashout == null;
   // The payout on the button follows the multiplier while the bet can be cashed out.
