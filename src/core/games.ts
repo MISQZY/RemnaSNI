@@ -28,6 +28,7 @@ export const GAMES = {
       "sacrifice",
       "sacrifice/deck",
       "sacrifice/pack",
+      "sacrifice/trade",
       "sacrifice/robot/start",
       "sacrifice/robot/move",
       "sacrifice/duel/join",

@@ -123,6 +123,11 @@ export function SacrificeSite({ code, name, signIn, rules }: { code: string; nam
       setOpened(res.cards);
       setStatus((s) => (s ? { ...s, collection: res.collection, packs: res.packs, balance: res.balance } : s));
     });
+  const tradePack = () =>
+    void call<{ cards: string[]; collection: Collection }>("sacrifice/trade", undefined, (res) => {
+      setOpened(res.cards);
+      setStatus((s) => (s ? { ...s, collection: res.collection } : s));
+    });
 
   return (
     <CardsProvider cards={rules.cards}>
@@ -172,7 +177,7 @@ export function SacrificeSite({ code, name, signIn, rules }: { code: string; nam
           ) : mode === "players" ? (
             <QueuePanel rules={rules} code={code} balance={status?.balance} stream={stream} busy={busy} onConcede={() => actDuel({ type: "concede" })} />
           ) : (
-            <PackShop rules={rules} balance={status?.balance} packs={status?.packs} busy={busy} opened={opened} onBuy={buyPack} />
+            <PackShop rules={rules} balance={status?.balance} packs={status?.packs} busy={busy} opened={opened} onBuy={buyPack} collection={status?.collection} onTrade={tradePack} />
           )}
           {mode === "robot" && solo && <FightLog view={solo.view} them={t("robot")} />}
           {mode === "players" && duel && <FightLog view={duel.view} them={duel.names[1] ?? t("anonymous")} />}

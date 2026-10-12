@@ -58,7 +58,8 @@
       "laneSacrifice": "Pick a space: the marked units are sacrificed",
       "noSacrifice": "Crystals needed: {need}, on the board: {have}. Put units down (a spark at least) to have something to sacrifice",
       "noBones": "Debris needed: {need}, you have: {have}",
-      "replay": "Playing: {name}"
+      "replay": "Playing: {name}",
+      "firstTurn": "The fight's first turn has no attack: put your units down and end the turn"
     },
     "rarity": {
       "token": "Token",
@@ -98,7 +99,7 @@
     "packHelp": "{n} random cards, the odds of each rarity:",
     "buyPack": "Buy a pack",
     "rulesTitle": "Rules",
-    "rulesText": "Each side has four spaces and a scale lies between them. Each turn you get a card from your deck, and a spark if your hand holds none. To play a card, tap it, then a space. Cards cost crystals (units of yours sacrificed from the board) or debris (one for every unit of yours destroyed). Attack ends the turn: your units strike the one across, or the scale if the space is empty. A lead of {scale} wins. After {maxTurns} turns the side the scale leans to wins.",
+    "rulesText": "Each side has four spaces and a scale lies between them. Each turn you get a card from your deck, and a spark if your hand holds none. To play a card, tap it, then a space. Cards cost crystals (units of yours sacrificed from the board) or debris (one for every unit of yours destroyed). Attack ends the turn: your units strike the one across, or the scale if the space is empty. The very first turn of the fight has no attack: the other side has had no chance to put a unit down yet. A lead of {scale} wins. After {maxTurns} turns the side the scale leans to wins.",
     "sigils": {
       "airborne": {
         "name": "Airborne",
@@ -195,6 +196,15 @@
     "packsToday": "today: {n} of {limit}",
     "packN": "#{n}",
     "packLimitHelp": "Up to {n} packs a day, each {growth}× the price of the last. The count starts over at 00:00 UTC.",
-    "packsIn": "New packs in {h} h {m} min"
+    "packsIn": "New packs in {h} h {m} min",
+    "endTurn": "End turn",
+    "tradeTitle": "Trade spare copies",
+    "tradeHelp": "Copies past what a deck may hold are of no use in a fight: break them down into shards and trade them for a pack. Packs for shards don't count against the daily limit.",
+    "shardValues": "Shards per copy:",
+    "shardsN": "{n, plural, one {# shard} other {# shards}}",
+    "tradeSpare": "Spare copies: {n}",
+    "tradeHave": "Shards: {have} of {need}",
+    "tradeNone": "No spare copies yet: they come when packs give more copies than a deck may hold.",
+    "tradeButton": "Trade for a pack"
   }
 }

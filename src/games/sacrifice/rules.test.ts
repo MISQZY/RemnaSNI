@@ -1,6 +1,6 @@
 import { createHash, createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { deckMessage, isSacrificeRules, shuffle, uFromHmac, verifyProof } from "./rules";
+import { deckMessage, isSacrificeRules, shuffle, spareOf, uFromHmac, verifyProof, type CardDef, type SacrificeRules } from "./rules";
 
 // The mirror of RemnaWeb's lib/game/sacrifice/fair.ts: the same shuffle of a seed, so the page checks RemnaWeb's draws.
 
@@ -34,5 +34,19 @@ describe("rules from RemnaWeb", () => {
     const base = { scaleToWin: 5, lanes: 4, turnMs: 60000, deckMin: 10, deckMax: 20, packPrice: 1500, robotPayout: 1.9, fee: 0.03 };
     expect(isSacrificeRules({ ...base, cards: [{ id: "stoat", power: 1, health: 3, sigils: [] }] })).toBe(true);
     expect(isSacrificeRules({ ...base, cards: [] })).toBe(false);
+  });
+});
+
+describe("spare copies", () => {
+  const def = (id: string, rarity: CardDef["rarity"]): [string, CardDef] => [id, { id, name: { ru: id, en: id }, power: 1, health: 1, blood: 0, bones: 0, sigils: [], rarity }];
+  const defs = new Map([def("a", "common"), def("b", "uncommon"), def("c", "rare")]);
+  const rules = { copies: { common: 3, uncommon: 2, rare: 1 }, shardValue: { common: 1, uncommon: 3, rare: 10 } } as SacrificeRules;
+
+  it("are the copies past the deck's limit, worth shards by rarity, as RemnaWeb counts them", () => {
+    expect(spareOf(rules, defs, { a: 5, b: 2, c: 3, gone: 4 })).toEqual({ spare: { a: 2, c: 2 }, shards: 22 });
+  });
+
+  it("are none from a RemnaWeb that trades nothing", () => {
+    expect(spareOf({ ...rules, shardValue: undefined }, defs, { a: 5 })).toEqual({ spare: {}, shards: 0 });
   });
 });

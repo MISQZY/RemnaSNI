@@ -45,6 +45,9 @@ export type SacrificeRules = {
   packsPerDay: number;
   packSize: number;
   packOdds: Record<Exclude<Rarity, "token">, number>;
+  /** Shards a spare copy (past what a deck may hold) breaks down into, by rarity, and the shards a pack costs; an older RemnaWeb sends none and trades nothing. */
+  shardValue?: Record<Exclude<Rarity, "token">, number>;
+  shardPack?: number;
   robotPayout: number;
   /** The highest bet against the robot; an older RemnaWeb sends none and takes any. */
   robotMaxStake?: number;
@@ -136,7 +139,23 @@ export type DuelsSnapshot = {
   duel: Duel | null;
 };
 
-export type Collection = { cards: Record<string, number>; deck: string[] };
+/** The cards owned, `{ id: count }`, the deck and the shards left over from trades (none from an older RemnaWeb). */
+export type Collection = { cards: Record<string, number>; deck: string[]; shards?: number };
+
+/** The copies past what a deck may hold, `{ id: count }`, and the shards they break down into, as RemnaWeb's spareOf counts them. */
+export function spareOf(rules: SacrificeRules, defs: Defs, cards: Record<string, number>) {
+  const spare: Record<string, number> = {};
+  let shards = 0;
+  for (const [id, n] of Object.entries(cards)) {
+    const rarity = defs.get(id)?.rarity;
+    if (!rarity || rarity === "token" || !rules.shardValue) continue;
+    const extra = n - rules.copies[rarity];
+    if (extra <= 0) continue;
+    spare[id] = extra;
+    shards += extra * rules.shardValue[rarity];
+  }
+  return { spare, shards };
+}
 
 export type Action = { type: "play"; hand: number; lane: number; sacrifices?: number[] } | { type: "bell" } | { type: "concede" };
 

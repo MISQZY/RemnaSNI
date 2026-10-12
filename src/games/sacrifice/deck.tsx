@@ -1,17 +1,18 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Check, Clock, Info, Layers, PackageOpen, Save, Undo2 } from "lucide-react";
+import { Check, Clock, Gem, Info, Layers, PackageOpen, Recycle, Save, Undo2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useFormat } from "@/core/i18n/provider";
 import { QzrIcon } from "@/core/ui/qzr-icon";
 import { cn } from "@/lib/utils";
 import { CardFace, useCards } from "./card";
-import type { Collection, PackStatus, Rarity, SacrificeRules } from "./rules";
+import { spareOf, type Collection, type PackStatus, type Rarity, type SacrificeRules } from "./rules";
 
 // The player's cards and deck: every card they own with how many of it the deck holds (a tap adds one, the minus
-// takes one out), saved to RemnaWeb (POST /api/sni/sacrifice/deck); and packs of new cards for Qzr, a few a day.
+// takes one out), saved to RemnaWeb (POST /api/sni/sacrifice/deck); and packs of new cards for Qzr, a few a day, or
+// for the shards of the copies a deck has no room for.
 
 const RARITY_ORDER: Rarity[] = ["common", "uncommon", "rare"];
 
@@ -138,7 +139,7 @@ function useMinuteClock() {
 /**
  * Packs: a few a day, each dearer than the last (RemnaWeb counts them, PackStatus): the day's prices as a ladder with
  * the ones bought ticked off, the odds, the button with the next price, or the time left until the next day once
- * they are all bought; and the cards the last pack held.
+ * they are all bought; the trade of the spare copies for a pack (TradeBox); and the cards the last pack held.
  */
 export function PackShop({
   rules,
@@ -147,6 +148,8 @@ export function PackShop({
   busy,
   opened,
   onBuy,
+  collection,
+  onTrade,
 }: {
   rules: SacrificeRules;
   balance: number | undefined;
@@ -155,6 +158,9 @@ export function PackShop({
   busy: boolean;
   opened: string[] | null;
   onBuy: () => void;
+  /** Missing without an account. */
+  collection: Collection | undefined;
+  onTrade: () => void;
 }) {
   const t = useTranslations("sacrifice");
   const { num } = useFormat();
@@ -209,6 +215,7 @@ export function PackShop({
           <Clock /> {t("packsIn", { h: Math.floor(waitMin / 60), m: waitMin % 60 })}
         </Button>
       )}
+      {collection && rules.shardValue && rules.shardPack && <TradeBox rules={rules} shardValue={rules.shardValue} shardPack={rules.shardPack} collection={collection} busy={busy} onTrade={onTrade} />}
       {opened && (
         <div className="grid grid-cols-3 gap-2">
           {opened.map((id, i) => (
@@ -219,5 +226,58 @@ export function PackShop({
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * The trade of the spare copies: those past what a deck may hold, as cards with their counts, break down into shards
+ * by rarity (RemnaWeb's POST /api/sni/sacrifice/trade), and enough of them buy a pack outside the day's limit.
+ */
+function TradeBox({
+  rules,
+  shardValue,
+  shardPack,
+  collection,
+  busy,
+  onTrade,
+}: {
+  rules: SacrificeRules;
+  shardValue: Record<Exclude<Rarity, "token">, number>;
+  shardPack: number;
+  collection: Collection;
+  busy: boolean;
+  onTrade: () => void;
+}) {
+  const t = useTranslations("sacrifice");
+  const { cards, nameOf } = useCards();
+  const { spare, shards } = spareOf(rules, cards, collection.cards);
+  const copies = Object.values(spare).reduce((a, b) => a + b, 0);
+  const have = (collection.shards ?? 0) + shards;
+  return (
+    <div className="flex flex-col gap-2 border-t border-foreground/10 pt-3">
+      <p className="flex items-center gap-1.5 px-1 text-sm font-semibold">
+        <Recycle className="size-4 text-muted-foreground" /> {t("tradeTitle")}
+      </p>
+      <div className="space-y-1 px-1 text-xs text-muted-foreground">
+        <p>{t("tradeHelp")}</p>
+        <p>{t("shardValues")}</p>
+        <RarityList values={{ common: t("shardsN", { n: shardValue.common }), uncommon: t("shardsN", { n: shardValue.uncommon }), rare: t("shardsN", { n: shardValue.rare }) }} />
+      </div>
+      {copies > 0 ? (
+        <div className="space-y-1 rounded-xl bg-muted/60 px-3 py-2 text-xs ring-1 ring-foreground/5">
+          <p className="font-semibold">{t("tradeSpare", { n: copies })}</p>
+          <p className="text-muted-foreground">
+            {Object.entries(spare)
+              .map(([id, n]) => `${nameOf(id)} ×${n}`)
+              .join(", ")}
+          </p>
+        </div>
+      ) : (
+        <p className="px-1 text-xs text-muted-foreground">{t("tradeNone")}</p>
+      )}
+      <Button size="lg" variant="secondary" className="w-full tabular-nums" disabled={busy || have < shardPack} onClick={onTrade}>
+        <PackageOpen /> {t("tradeButton")} · <Gem className="size-4" /> {t("tradeHave", { have, need: shardPack })}
+      </Button>
+    </div>
   );
 }

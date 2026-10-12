@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { ChevronDown, Cog, FastForward, Layers, Scale as ScaleIcon, ScrollText, Sparkle, Swords, X } from "lucide-react";
+import { ChevronDown, Cog, FastForward, Layers, Redo2, Scale as ScaleIcon, ScrollText, Sparkle, Swords, X } from "lucide-react";
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -110,6 +110,8 @@ export function Board({ rules, view, them, busy, left, looks, onAct }: Props) {
   const [picked, setPicked] = useState<number | null>(null);
   const over = view.phase === "over";
   const mine = view.active === view.you && !over;
+  // The fight's first turn has no attack (RemnaWeb's engine): the other side has not played yet.
+  const quiet = view.turn === 1;
   const canPlay = mine && !busy && !replaying;
 
   // A new state (a move made, a turn passed) drops the pick.
@@ -167,7 +169,7 @@ export function Board({ rules, view, them, busy, left, looks, onAct }: Props) {
   if (replaying) hint = t("hint.replay", { name: step.fx.who === "me" ? t("you") : them });
   else if (!over) {
     if (!mine) hint = t("hint.theirTurn", { name: them });
-    else if (!pickedDef) hint = view.me.hand.some((h) => playable(h.card)) ? t("hint.play") : t("hint.attack");
+    else if (!pickedDef) hint = quiet ? t("hint.firstTurn") : view.me.hand.some((h) => playable(h.card)) ? t("hint.play") : t("hint.attack");
     else if (!targets.some(Boolean))
       hint = pickedDef.bones > view.me.bones ? t("hint.noBones", { need: pickedDef.bones, have: view.me.bones }) : t("hint.noSacrifice", { need: pickedDef.blood, have: charge });
     else hint = pickedDef.blood > 0 && board.some(Boolean) ? t("hint.laneSacrifice") : t("hint.lane");
@@ -213,7 +215,7 @@ export function Board({ rules, view, them, busy, left, looks, onAct }: Props) {
 
       <Lanes rules={rules} who="them" board={shown.them} foil={looks?.them?.foil} />
       <Scale rules={rules} scale={shown.scale} skin={looks?.me?.scale} />
-      <Previews mine={shown.me} theirs={shown.them} hidden={replaying} />
+      <Previews mine={shown.me} theirs={shown.them} hidden={replaying || quiet} />
       <Lanes rules={rules} who="me" board={shown.me} foil={looks?.me?.foil} targets={targets} marked={preview} onPick={pickLane} />
 
       <SideBar
@@ -235,7 +237,7 @@ export function Board({ rules, view, them, busy, left, looks, onAct }: Props) {
       ) : mine && (
         <div className="flex gap-1.5">
           <Button size="lg" className="h-11 flex-1 font-heading text-base uppercase" disabled={busy} onClick={() => onAct({ type: "bell" })}>
-            <Swords /> {t("attack")}
+            {quiet ? <><Redo2 /> {t("endTurn")}</> : <><Swords /> {t("attack")}</>}
           </Button>
           {pickedDef && (
             <Button
