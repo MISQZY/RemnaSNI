@@ -140,19 +140,19 @@ export function CardFace({ card, power, health, selected, marked, dim, foil, onC
       )}
     >
       <span className="relative flex h-full flex-col overflow-hidden rounded-[8px] bg-neutral-900 bg-[radial-gradient(circle_at_50%_42%,rgb(46_224_106/0.13),transparent_65%)] text-neutral-100">
-        <span className="flex h-[clamp(10px,15cqw,18px)] items-center px-1 pt-1 text-[clamp(8px,11cqw,13px)] leading-none">
+        <span className="flex h-[clamp(0.625rem,15cqw,1.125rem)] items-center px-1 pt-1 text-[clamp(0.5rem,11cqw,0.8125rem)] leading-none">
           <Cost def={d} className="py-px" />
         </span>
         {d.sigils.length > 0 && (
-          <span className="absolute top-[3%] right-[4%] z-10 flex gap-[3cqw] text-[clamp(6px,10cqw,12px)]">
+          <span className="absolute top-[3%] right-[4%] z-10 flex gap-[3cqw] text-[clamp(0.375rem,10cqw,0.75rem)]">
             {d.sigils.map((s) => (
               <SigilBadge key={s} sigil={s} className="bg-neutral-950/80 shadow-[0_0_8px_-1px] shadow-current" />
             ))}
           </span>
         )}
         <CardArt card={card} className={cn("min-h-0 w-full flex-1 px-[8%] py-[2%]", r.art)} />
-        <span className="line-clamp-2 px-0.5 text-center font-heading text-[clamp(6.5px,9cqw,11px)] leading-[1.05] font-semibold tracking-tight break-words uppercase">{nameOf(card)}</span>
-        <span className="flex items-center justify-between px-1 pt-0.5 pb-1 font-heading text-[clamp(9px,13cqw,15px)] leading-none font-bold tabular-nums">
+        <span className="line-clamp-2 px-0.5 text-center font-heading text-[clamp(0.40625rem,9cqw,0.6875rem)] leading-[1.05] font-semibold tracking-tight break-words uppercase">{nameOf(card)}</span>
+        <span className="flex items-center justify-between px-1 pt-0.5 pb-1 font-heading text-[clamp(0.5625rem,13cqw,0.9375rem)] leading-none font-bold tabular-nums">
           <span className="inline-flex items-center gap-0.5">
             <Swords className="size-[0.8em] text-neutral-400" />
             {power ?? d.power}
@@ -164,7 +164,7 @@ export function CardFace({ card, power, health, selected, marked, dim, foil, onC
         </span>
         {foil && foil.length > 0 && <Sheen colors={foil.map((c) => `${c}80`)} seconds={3.6} />}
         {marked && (
-          <span className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 bg-rose-950/70 text-[clamp(7px,9cqw,11px)] font-semibold text-rose-100">
+          <span className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 bg-rose-950/70 text-[clamp(0.4375rem,9cqw,0.6875rem)] font-semibold text-rose-100">
             <ChargeIcon className="size-[2.2em] opacity-90" />
           </span>
         )}
@@ -252,14 +252,14 @@ export function CardInfo({ card }: { card: string }) {
     <div className="flex flex-col gap-1 rounded-xl bg-neutral-900/80 p-2.5 text-xs ring-1 ring-white/10">
       <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="font-heading text-sm font-semibold uppercase">{nameOf(card)}</span>
-        <span className={cn("text-[11px]", RARITY_TEXT[d.rarity])}>{t(`rarity.${d.rarity}`)}</span>
+        <span className={cn("text-[0.6875rem]", RARITY_TEXT[d.rarity])}>{t(`rarity.${d.rarity}`)}</span>
         <span className="ml-auto text-neutral-400">
           {d.blood ? t("costBlood", { n: d.blood }) : d.bones ? t("costBones", { n: d.bones }) : t("costFree")} · {t("stats", { power: d.power, health: d.health })}
         </span>
       </p>
       {d.sigils.map((s) => (
         <p key={s} className="flex items-center gap-2 text-neutral-300">
-          <SigilBadge sigil={s} className="text-[11px]" />
+          <SigilBadge sigil={s} className="text-[0.6875rem]" />
           <span>
             <span className="font-semibold text-neutral-100">{t(`sigils.${s}.name`)}</span> — {t(`sigils.${s}.text`)}
           </span>

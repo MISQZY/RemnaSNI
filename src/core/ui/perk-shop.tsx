@@ -76,7 +76,7 @@ export function PerkShop({ keys, progress, perks, icons, effect, locked, buying,
         return (
           <div key={p.id} className="flex items-center gap-3 rounded-xl bg-card p-2.5 ring-1 ring-foreground/10">
             <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg", p.level ? "bg-primary/12 text-primary" : "bg-muted text-muted-foreground")}>
-              <Icon className="size-[18px]" />
+              <Icon className="size-[1.125rem]" />
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium">
@@ -107,7 +107,7 @@ export function PerkShop({ keys, progress, perks, icons, effect, locked, buying,
 export function StatTile({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="min-w-0 rounded-lg bg-muted/60 px-2 py-1.5">
-      <p className="truncate text-[11px] text-muted-foreground">{label}</p>
+      <p className="truncate text-[0.6875rem] text-muted-foreground">{label}</p>
       <p className="truncate font-heading text-sm font-semibold tabular-nums">{value}</p>
     </div>
   );

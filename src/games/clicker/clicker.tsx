@@ -33,7 +33,7 @@ export function Clicker({ code, name }: { code: string; name: string }) {
     // On wide screens the game fills the window exactly: the side panel scrolls inside itself, never the page.
     <div
       data-fit-screen
-      className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-6 px-4 py-6 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_380px] lg:grid-rows-[minmax(0,1fr)] lg:items-start"
+      className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-6 px-4 py-6 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_23.75rem] lg:grid-rows-[minmax(0,1fr)] lg:items-start"
     >
       <section className="space-y-6">
         <Card size="sm" className="relative z-10">

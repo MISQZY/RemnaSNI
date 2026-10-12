@@ -8,7 +8,7 @@
 
 type Point = [number, number];
 
-/** The drawing of one corner, in px: drawn at this size, never scaled, so the lines stay one pixel wide. */
+/** The drawing of one corner, in px at the default 16px rem; it grows with the rem, as the page does on large screens. */
 const WIDTH = 480;
 const HEIGHT = 360;
 /** The distance between the lines of a bus, and the least room kept between buses. */
@@ -54,8 +54,7 @@ export function CircuitBackdrop({ className = "" }: { className?: string }) {
       {CORNERS.map(({ corner, className: extra = "" }, i) => (
         <svg
           key={corner}
-          width={WIDTH}
-          height={HEIGHT}
+          style={{ width: `${WIDTH / 16}rem`, height: `${HEIGHT / 16}rem` }}
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
           fill="none"
           className={`absolute max-w-none [mask-image:radial-gradient(circle_at_0_0,black_15%,transparent_70%)] ${PLACE[corner]} ${extra}`}

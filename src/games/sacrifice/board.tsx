@@ -201,7 +201,7 @@ export function Board({ rules, view, them, busy, left, looks, onAct }: Props) {
         active={replaying ? step.fx.who === "them" : view.active !== view.you && !over}
       />
       <div className="flex h-8 items-center justify-center gap-2" title={t("theirHandHelp")}>
-        <span className="text-[11px] text-neutral-500">{t("theirHand", { n: view.them.hand })}</span>
+        <span className="text-[0.6875rem] text-neutral-500">{t("theirHand", { n: view.them.hand })}</span>
         {view.them.hand > 0 && (
           <div className="flex">
             {Array.from({ length: Math.min(view.them.hand, 8) }, (_, i) => (
@@ -316,7 +316,7 @@ function SideBar({
         <span key={s.key} title={t(`stat.${s.key}`)} className="inline-flex items-center gap-1 rounded-full bg-white/[0.06] px-1.5 py-0.5 ring-1 ring-white/10">
           {s.icon}
           <span className={cn("font-semibold tabular-nums", s.accent)}>{s.n}</span>
-          <span className="hidden text-[10px] sm:inline">{t(`statShort.${s.key}`)}</span>
+          <span className="hidden text-[0.625rem] sm:inline">{t(`statShort.${s.key}`)}</span>
         </span>
       ))}
     </div>
@@ -377,7 +377,7 @@ function Previews({ mine, theirs, hidden }: { mine: (Creature | null)[]; theirs:
       {mine.map((_, lane) => {
         const p = strikePreview(cards, mine, theirs, lane);
         return (
-          <span key={lane} className="flex h-4 items-center justify-center gap-1 text-[10px] font-semibold tabular-nums">
+          <span key={lane} className="flex h-4 items-center justify-center gap-1 text-[0.625rem] font-semibold tabular-nums">
             {p.scale > 0 && (
               <span className="inline-flex items-center gap-0.5 text-primary" title={t("toScale", { n: p.scale })}>
                 <ScaleIcon className="size-3" /> {p.scale}
@@ -416,7 +416,7 @@ function Scale({ rules, scale, skin }: { rules: SacrificeRules; scale: number; s
         ))}
       </div>
       <Balance lead={Math.max(-max, Math.min(max, scale))} max={max} skin={skin} />
-      <p className={cn("font-heading text-[11px] font-semibold tracking-wide uppercase tabular-nums", scale > 0 ? "text-primary" : scale < 0 ? "text-rose-400" : "text-neutral-500")}>
+      <p className={cn("font-heading text-[0.6875rem] font-semibold tracking-wide uppercase tabular-nums", scale > 0 ? "text-primary" : scale < 0 ? "text-rose-400" : "text-neutral-500")}>
         {scale === 0 ? t("scaleEven") : scale > 0 ? t("scaleUp", { n: Math.min(scale, max), max }) : t("scaleDown", { n: Math.min(-scale, max), max })}
       </p>
     </div>

@@ -206,6 +206,10 @@
   }
   html {
     @apply font-sans;
+    /* Large screens scale the whole page: everything is sized in rem, and the rem grows with the window from the
+       browser's own size (16px) at 1280×800, by whichever side is shorter, up to 1.75 times. Phones, tablets and
+       laptops keep 16px. */
+    font-size: clamp(100%, min(1.25vw, 2vh), 175%);
     -webkit-tap-highlight-color: transparent;
   }
   h1,

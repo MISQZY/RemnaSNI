@@ -91,7 +91,7 @@ export function HumanCheckOverlay() {
               </button>
             ))}
           </div>
-          <p className="text-[11px] text-muted-foreground">{t("human.notCounted")}</p>
+          <p className="text-[0.6875rem] text-muted-foreground">{t("human.notCounted")}</p>
         </>
       ) : check ? (
         <p className="text-sm tabular-nums">{t("human.blocked", { time: `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` })}</p>

@@ -6,7 +6,7 @@
 export const gameLayout = {
   /** The header's width, the same as the page's. */
   header: "max-w-md lg:max-w-5xl",
-  main: "mx-auto flex w-full max-w-md flex-1 flex-col gap-3 px-4 pt-4 pb-6 lg:grid lg:max-w-5xl lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-6",
+  main: "mx-auto flex w-full max-w-md flex-1 flex-col gap-3 px-4 pt-4 pb-6 lg:grid lg:max-w-5xl lg:grid-cols-[minmax(0,1fr)_22.5rem] lg:items-start lg:gap-6",
   /** The game itself: the board, the lake, the chart with what belongs to it. */
   play: "flex flex-col gap-3 lg:sticky lg:top-6 lg:mx-auto lg:w-full",
   /** The right column. On phones its blocks stand in the page's column, around the game. */

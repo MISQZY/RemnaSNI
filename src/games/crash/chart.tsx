@@ -170,6 +170,9 @@ function gradient(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: num
 /** Color stops spread evenly over a gradient. */
 const spread = (colors: string[]): [number, string][] => colors.map((c, i) => [colors.length === 1 ? 0 : i / (colors.length - 1), c]);
 
+/** The root font size over the default 16px: wide screens scale the page up (globals.css), the labels with it. */
+let unit = 1;
+
 function draw(canvas: HTMLCanvasElement, rules: CrashRules, elapsedMs: number, top: number, colors: string[], crashed: boolean, look: CrashLook | null): Tip {
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
@@ -179,12 +182,13 @@ function draw(canvas: HTMLCanvasElement, rules: CrashRules, elapsedMs: number, t
   if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
+    unit = parseFloat(getComputedStyle(document.documentElement).fontSize) / 16 || 1;
   }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, w, h);
 
   // The right edge leaves room for the tip only, so the curve runs up to it.
-  const pad = { left: 40, right: 10, top: 16, bottom: 16 };
+  const pad = { left: 40 * unit, right: 10, top: 16, bottom: 16 };
   const plotW = w - pad.left - pad.right;
   const plotH = h - pad.top - pad.bottom;
   // The scale grows with the round, so the curve always fills most of the chart.
@@ -195,7 +199,7 @@ function draw(canvas: HTMLCanvasElement, rules: CrashRules, elapsedMs: number, t
 
   // The grid, with the multipliers it marks.
   const step = STEPS.find((s) => (maxY - 1) / s <= 4) ?? STEPS[STEPS.length - 1];
-  ctx.font = "11px ui-sans-serif, system-ui, sans-serif";
+  ctx.font = `${11 * unit}px ui-sans-serif, system-ui, sans-serif`;
   ctx.textAlign = "right";
   ctx.textBaseline = "middle";
   for (let m = 1; m <= maxY; m += step) {
@@ -206,7 +210,7 @@ function draw(canvas: HTMLCanvasElement, rules: CrashRules, elapsedMs: number, t
     ctx.lineTo(w - pad.right, y(m));
     ctx.stroke();
     ctx.fillStyle = "rgba(255,255,255,0.4)";
-    ctx.fillText(`×${Number(m.toFixed(2))}`, pad.left - 6, y(m));
+    ctx.fillText(`×${Number(m.toFixed(2))}`, pad.left - 6 * unit, y(m));
   }
   if (elapsedMs <= 0) return null;
 

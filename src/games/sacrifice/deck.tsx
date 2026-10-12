@@ -78,7 +78,7 @@ export function DeckEditor({ rules, collection, busy, onSave }: Props) {
           return (
             <div key={d.id} className="flex flex-col gap-1">
               <CardFace card={d.id} dim={n === 0} onClick={() => add(d.id)} />
-              <div className="flex items-center justify-between gap-1 text-[11px] tabular-nums">
+              <div className="flex items-center justify-between gap-1 text-[0.6875rem] tabular-nums">
                 <button
                   type="button"
                   aria-label={t("removeOne", { card: nameOf(d.id) })}
@@ -187,11 +187,11 @@ export function PackShop({
               <li
                 key={i}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-[11px] tabular-nums ring-1",
+                  "flex flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-[0.6875rem] tabular-nums ring-1",
                   i < bought ? "bg-muted/40 text-muted-foreground ring-foreground/5" : i === bought ? "bg-primary/10 font-semibold text-foreground ring-primary/50" : "text-muted-foreground ring-foreground/10",
                 )}
               >
-                <span className="text-[10px] font-normal">{i < bought ? <Check className="size-3" /> : t("packN", { n: i + 1 })}</span>
+                <span className="text-[0.625rem] font-normal">{i < bought ? <Check className="size-3" /> : t("packN", { n: i + 1 })}</span>
                 <span className={cn("inline-flex items-center gap-0.5", i < bought && "line-through")}>
                   <QzrIcon className="size-3" /> {num(p)}
                 </span>
