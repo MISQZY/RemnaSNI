@@ -69,9 +69,9 @@ export function isNewer(a: GameState, b: GameState): boolean {
   if (a.resetAt !== b.resetAt) return a.resetAt > b.resetAt;
   if (a.totalEarned !== b.totalEarned) return a.totalEarned > b.totalEarned;
   if (shopActivity(a) !== shopActivity(b)) return shopActivity(a) > shopActivity(b);
+  if ((a.lastSeen ?? 0) !== (b.lastSeen ?? 0)) return (a.lastSeen ?? 0) > (b.lastSeen ?? 0);
   return a.totalEarned - a.points > b.totalEarned - b.points;
 }
-
 
 // A tiny external store for useSyncExternalStore, persisted to localStorage.
 
