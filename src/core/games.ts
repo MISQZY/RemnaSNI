@@ -37,6 +37,10 @@ export const GAMES = {
       "sacrifice/stream",
     ],
   },
+  gems: {
+    routes: ["/"],
+    api: ["gems", "gems/start", "gems/perks"],
+  },
 } as const satisfies Record<string, { routes: readonly string[]; api: readonly string[] }>;
 
 /** A game id, also known to RemnaWeb (its lib/game/games.ts): a new one is added there too. */

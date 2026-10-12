@@ -98,6 +98,88 @@
   --animate-bob: bob 2.4s ease-in-out infinite;
   --animate-bite: bite 0.35s ease-in-out infinite;
   --animate-ripple: ripple 1.8s ease-out infinite;
+  /* Gems: a cleared gem bursting, one dropping in from above the board (--drop rows), a hinted one pulsing. */
+  --animate-gem-pop: gem-pop 0.38s ease-in forwards;
+  /* What a wave brought: pops in over it, stays readable, then floats away; its particles fly slower than the clicker's. */
+  --animate-gem-float: gem-float 1.7s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+  --animate-gem-burst: flag-burst 1.3s cubic-bezier(0.15, 0.6, 0.35, 1) forwards;
+  --animate-gem-drop: gem-drop 0.26s cubic-bezier(0.4, 0, 0.9, 0.6) both;
+  --animate-gem-hint: gem-hint 1s ease-in-out infinite;
+  /* A line gem or a star: a white glow coming and going, so they stand out among the plain ones. */
+  --animate-gem-charge: gem-charge 1.8s ease-in-out infinite;
+
+  @keyframes gem-charge {
+    0%,
+    100% {
+      filter: drop-shadow(0 0 1px rgb(255 255 255 / 0.2));
+    }
+    50% {
+      filter: drop-shadow(0 0 3px rgb(255 255 255 / 0.55));
+    }
+  }
+
+  @keyframes gem-pop {
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    25% {
+      transform: scale(1.22);
+      opacity: 1;
+      filter: brightness(1.9) drop-shadow(0 0 6px #fff);
+    }
+    55% {
+      transform: scale(1.12);
+      opacity: 1;
+      filter: brightness(1.6) drop-shadow(0 0 8px #fff);
+    }
+    100% {
+      transform: scale(0.15);
+      opacity: 0;
+      filter: brightness(2) drop-shadow(0 0 2px #fff);
+    }
+  }
+
+  @keyframes gem-float {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.6);
+    }
+    10% {
+      opacity: 1;
+      transform: translate(-50%, -75%) scale(1.2);
+    }
+    22% {
+      transform: translate(-50%, -90%) scale(1);
+    }
+    70% {
+      opacity: 1;
+      transform: translate(-50%, -150%) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-50%, -230%) scale(0.95);
+    }
+  }
+
+  @keyframes gem-drop {
+    0% {
+      transform: translateY(calc(var(--drop, 1) * -100%));
+    }
+    100% {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes gem-hint {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(0.84);
+    }
+  }
 
   @keyframes bob {
     0%,

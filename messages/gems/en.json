@@ -1,0 +1,22 @@
+{
+  "gems": {
+    "meta": {
+      "title": "{country} Gems",
+      "description": "Gems on the {country} node: swap gems, line up three of a kind and earn Qzr."
+    },
+    "subtitle": "Gems",
+    "cleared": "Cleared",
+    "best": "Best cascade",
+    "price": "{qzr} a gem, rising",
+    "turbo": "turbo ×{boost} · +{percent}%",
+    "demo": "Sign in to earn Qzr",
+    "hint": "Swap neighbouring gems: swipe or click two",
+    "cascade": "Cascade ×{n}",
+    "shuffled": "No moves left — shuffling",
+    "loading": "Loading the board…",
+    "keys": "+{n} Qzr {n, plural, one {key} other {keys}}",
+    "failed": "The moves were not saved, the board is updated",
+    "stale": "The board is updated",
+    "buyFailed": "The bonus was not bought"
+  }
+}

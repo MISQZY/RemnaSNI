@@ -7,6 +7,8 @@ import crashEn from "../../../messages/crash/en.json";
 import crashRu from "../../../messages/crash/ru.json";
 import fishingEn from "../../../messages/fishing/en.json";
 import fishingRu from "../../../messages/fishing/ru.json";
+import gemsEn from "../../../messages/gems/en.json";
+import gemsRu from "../../../messages/gems/ru.json";
 import sacrificeEn from "../../../messages/sacrifice/en.json";
 import sacrificeRu from "../../../messages/sacrifice/ru.json";
 import snakeEn from "../../../messages/snake/en.json";
@@ -23,10 +25,11 @@ export const CATALOGS = {
   fishing: { en: fishingEn, ru: fishingRu },
   crash: { en: crashEn, ru: crashRu },
   sacrifice: { en: sacrificeEn, ru: sacrificeRu },
+  gems: { en: gemsEn, ru: gemsRu },
 };
 
-const en = { ...coreEn, ...clickerEn, ...snakeEn, ...fishingEn, ...crashEn, ...sacrificeEn };
-const ru = { ...coreRu, ...clickerRu, ...snakeRu, ...fishingRu, ...crashRu, ...sacrificeRu };
+const en = { ...coreEn, ...clickerEn, ...snakeEn, ...fishingEn, ...crashEn, ...sacrificeEn, ...gemsEn };
+const ru = { ...coreRu, ...clickerRu, ...snakeRu, ...fishingRu, ...crashRu, ...sacrificeRu, ...gemsRu };
 
 export type Messages = typeof en;
 
