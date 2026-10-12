@@ -15,6 +15,10 @@
 		dns cloudflare {$CF_API_TOKEN}
 		resolvers 1.1.1.1
 	}
+	# The games' calls are small (the site refuses more than 64 KB too): a bigger body is cut off here, before Node.
+	request_body {
+		max_size 64KB
+	}
 	# Not the streams (the crash's, the Sacrifice's): compressing them would hold the events back.
 	@compress not path /api/sni/crash/stream /api/sni/sacrifice/stream
 	encode @compress zstd gzip
