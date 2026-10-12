@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
-import { useSession } from "@/core/session";
+import { useSession } from "@/core/player/session";
 import { isSnapshot, type DuelsSnapshot } from "./rules";
 
 // The duels as RemnaWeb runs them: GET /api/sni/sacrifice/stream through this site's proxy, as server-sent events.

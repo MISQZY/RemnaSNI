@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useEffectEvent, useRef } from "react";
-import { playBurst, type Burst } from "@/core/burst";
+import { playBurst, type Burst } from "@/core/cosmetics/burst";
 import { useFormat } from "@/core/i18n/provider";
 import { cn } from "@/lib/utils";
 import { msToReach, multiplierAt, tierOf, type CrashHead, type CrashLook, type CrashRules, type CrashSnapshot, type CrashTier } from "./rules";

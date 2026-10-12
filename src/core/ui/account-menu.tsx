@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-import { session, useSession } from "@/core/session";
+import { session, useSession } from "@/core/player/session";
 import { ProfileAvatar, ProfileName } from "@/core/ui/profile-avatar";
 import { cn } from "@/lib/utils";
 
@@ -97,7 +97,7 @@ export function AccountMenu({ signIn, status, actions, settings, note }: Props) 
   );
 }
 
-/** Starts the Telegram sign-in through RemnaWeb (core/session.ts). */
+/** Starts the Telegram sign-in through RemnaWeb (core/player/session.ts). */
 export function SignInButton(props: ComponentProps<typeof Button>) {
   const t = useTranslations();
   return (

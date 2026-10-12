@@ -1,8 +1,8 @@
 import { getTranslations } from "next-intl/server";
 import { pageMessages } from "@/core/i18n/messages";
 import { I18nProvider } from "@/core/i18n/provider";
-import { gameRouteMetadata } from "@/core/game-route";
-import { nodePage } from "@/core/page";
+import { gameRouteMetadata } from "@/core/server/game-route";
+import { nodePage } from "@/core/server/page";
 import { SiteHeader } from "@/core/ui/site-header";
 import { Unavailable } from "@/core/ui/unavailable";
 import { ClickerAccount } from "@/games/clicker/account";

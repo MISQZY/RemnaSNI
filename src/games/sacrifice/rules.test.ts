@@ -2,7 +2,7 @@ import { createHash, createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { deckMessage, isSacrificeRules, shuffle, uFromHmac, verifyProof } from "./rules";
 
-// The mirror of RemnaWeb's lib/sacrifice/fair.ts: the same shuffle of a seed, so the page checks RemnaWeb's draws.
+// The mirror of RemnaWeb's lib/game/sacrifice/fair.ts: the same shuffle of a seed, so the page checks RemnaWeb's draws.
 
 const seed = "5ac1f1ce".repeat(8);
 const hash = createHash("sha256").update(seed).digest("hex");

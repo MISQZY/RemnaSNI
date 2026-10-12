@@ -2,8 +2,8 @@ import "server-only";
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { getLocale } from "next-intl/server";
-import { siteCountry } from "@/core/country";
-import { remnaWebUrl } from "@/core/remnaweb";
+import { siteCountry } from "@/core/server/country";
+import { remnaWebUrl } from "@/core/server/remnaweb";
 
 /**
  * What a game's layout and pages start with: the page's language, the node's country named in it and whether

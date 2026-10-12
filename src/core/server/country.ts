@@ -1,12 +1,12 @@
 import "server-only";
 import type { Locale } from "@/core/i18n/locales";
-import { loadSite } from "@/core/site";
+import { loadSite } from "@/core/server/site";
 
 export type Country = { code: string; name: string };
 
 const FALLBACK: Country = { code: "xx", name: "Nowhere" };
 
-/** Country of this node as RemnaWeb tells (core/site.ts), named in `locale`. */
+/** Country of this node as RemnaWeb tells (core/server/site.ts), named in `locale`. */
 export async function siteCountry(locale: Locale = "en"): Promise<Country> {
   const { country: code } = await loadSite();
   if (code === "xx") return FALLBACK;

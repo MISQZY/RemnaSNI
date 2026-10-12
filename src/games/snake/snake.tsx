@@ -5,14 +5,14 @@ import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Gamepad2, Gauge, Heart, Paus
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { ApiError, api } from "@/core/api";
+import { ApiError, api } from "@/core/player/api";
 import { useFormat } from "@/core/i18n/provider";
-import { session, useSession } from "@/core/session";
+import { session, useSession } from "@/core/player/session";
 import { storage } from "@/core/storage";
 import { AccountMenu } from "@/core/ui/account-menu";
 import { PerkShop, StatTile, type GamePerk } from "@/core/ui/perk-shop";
 import { fromControl } from "@/core/hotkey";
-import { useGameStatus } from "@/core/use-game-status";
+import { useGameStatus } from "@/core/player/use-game-status";
 import { useHydrated } from "@/core/use-hydrated";
 import { QzrIcon } from "@/core/ui/qzr-icon";
 import { gameLayout } from "@/core/ui/game-layout";
@@ -92,7 +92,7 @@ function readPending(): Run[] {
 /** Without storage the runs last until the page closes. */
 const writePending = (runs: Run[]) => storage.setJSON(PENDING_KEY, runs.length ? runs : null);
 
-/** RemnaWeb's snake API (core/api.ts): the status with a GET, a run or a purchase with a POST. */
+/** RemnaWeb's snake API (core/player/api.ts): the status with a GET, a run or a purchase with a POST. */
 const snakeApi = <T,>(country: string, body?: object, path = "snake") => api<T>(path, { method: body ? "POST" : "GET", body, country });
 
 const readPad = () => storage.get(PAD_KEY) === "1";

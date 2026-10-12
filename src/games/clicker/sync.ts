@@ -1,12 +1,12 @@
-import { api } from "@/core/api";
+import { api } from "@/core/player/api";
 import { tr } from "@/core/i18n/client";
-import type { Look } from "@/core/look";
-import { session, type Account } from "@/core/session";
+import type { Look } from "@/core/cosmetics/look";
+import { session, type Account } from "@/core/player/session";
 import { game, isNewer, type GameState } from "@/games/clicker/game";
 import { human, type HumanCheck } from "@/games/clicker/human";
 
-// Two-way sync of the clicker's progress with RemnaWeb (core/api.ts). The Telegram session is the core's
-// (core/session.ts), shared with the other games; its token and account are mirrored here.
+// Two-way sync of the clicker's progress with RemnaWeb (core/player/api.ts). The Telegram session is the core's
+// (core/player/session.ts), shared with the other games; its token and account are mirrored here.
 
 const PUSH_EVERY_MS = 10_000;
 /** After failed syncs the pushes back off up to this interval. */
@@ -29,7 +29,7 @@ export type SyncState = {
   traffic: Traffic | null;
   /** Particles of the tapped flag bought in the RemnaWeb Mini App shop; null for the default mini flags. */
   effect: string[] | null;
-  /** The color of the tap numbers bought there, as CSS (core/look.ts); null for white. */
+  /** The color of the tap numbers bought there, as CSS (core/cosmetics/look.ts); null for white. */
   tapColor: Look | null;
   status: SyncStatus;
   syncedAt: number | null;

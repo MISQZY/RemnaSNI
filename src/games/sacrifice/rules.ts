@@ -1,10 +1,10 @@
-// How the Sacrifice plays. RemnaWeb is the source of truth (src/lib/sacrifice/ there): it keeps the cards, shuffles,
+// How the Sacrifice plays. RemnaWeb is the source of truth (src/lib/game/sacrifice/ there): it keeps the cards, shuffles,
 // plays the duel and the robot and pays; its numbers and every card come with the other games' rules from
 // GET /api/sni/config under `sacrifice` (config-server.ts), the duels through the stream (stream.ts). These types
 // mirror its answers; only the shuffle is mirrored as code, to check the draws (verifyProof).
 
-import type { Burst } from "@/core/burst";
-import type { Look } from "@/core/look";
+import type { Burst } from "@/core/cosmetics/burst";
+import type { Look } from "@/core/cosmetics/look";
 
 export type Sigil = "airborne" | "intercept" | "rift" | "split" | "resilient" | "tripleCharge" | "spikes" | "growth" | "rebuild";
 
@@ -102,7 +102,7 @@ export type Duel = {
   view: MatchView;
 };
 
-// The cosmetics of the Sacrifice, bought in the RemnaWeb Mini App shop (its lib/looks.ts): shapes drawn here by their
+// The cosmetics of the Sacrifice, bought in the RemnaWeb Mini App shop (its lib/shop/looks.ts): shapes drawn here by their
 // kind, in colors that come as data. A kind unknown here draws the plain look.
 
 /** The back of one's cards, as the other sees the hand: the frame's gradient, the ground, an emblem. */
@@ -158,7 +158,7 @@ export function isSacrificeRules(v: unknown): v is SacrificeRules {
 export const isSnapshot = (v: unknown): v is DuelsSnapshot =>
   !!v && typeof v === "object" && isNum((v as DuelsSnapshot).now) && Array.isArray((v as DuelsSnapshot).lobby?.offers);
 
-// The sacrifices and the strikes, as RemnaWeb's lib/sacrifice/engine.ts counts them: to show what a play would give
+// The sacrifices and the strikes, as RemnaWeb's lib/game/sacrifice/engine.ts counts them: to show what a play would give
 // up and what an attack would do before it is made. RemnaWeb decides; these only preview.
 
 type Defs = Map<string, CardDef>;
@@ -214,7 +214,7 @@ export function strikePreview(defs: Defs, mine: (Creature | null)[], theirs: (Cr
   return { scale, hit };
 }
 
-// Provably fair decks, as RemnaWeb's lib/sacrifice/fair.ts: side s's deck is shuffled from the seed alone, for i from
+// Provably fair decks, as RemnaWeb's lib/game/sacrifice/fair.ts: side s's deck is shuffled from the seed alone, for i from
 // its last card down to 1 swapping card i with card ⌊u × (i + 1)⌋, u the first 52 bits of
 // HMAC-SHA256(key: seed, message: "deck:" + s + ":" + i) / 2^52.
 

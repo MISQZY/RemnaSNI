@@ -1,15 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api } from "@/core/api";
-import { session, useSession, type Account } from "@/core/session";
+import { api } from "@/core/player/api";
+import { session, useSession, type Account } from "@/core/player/session";
 
 /** What RemnaWeb sends with every game's status: the player, and a renewed session when the current one gets old. */
 export type StatusExtras = { user: Account; session?: string | null };
 
 /**
- * A game's status from RemnaWeb (`GET /api/sni/<path>`, core/api.ts) for the signed-in player: loaded when the page
- * opens, on sign-in and when the Mini App frame hands over its session. It starts the session (core/session.ts) and
+ * A game's status from RemnaWeb (`GET /api/sni/<path>`, core/player/api.ts) for the signed-in player: loaded when the page
+ * opens, on sign-in and when the Mini App frame hands over its session. It starts the session (core/player/session.ts) and
  * keeps a renewed token and the account for the header.
  *
  * `status` is null until loaded and while signed out; `setStatus` takes the answers of the game's other calls.

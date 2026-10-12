@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 import { DEFAULT_LOCALE, LOCALE_COOKIE, LOCALE_HEADER, isLocale } from "@/core/i18n/locales";
 import { CORE_API, GAMES } from "@/core/games";
-import { remnaWebUrl } from "@/core/remnaweb";
-import { SITE_HEADER, siteHost } from "@/core/site";
+import { remnaWebUrl } from "@/core/server/remnaweb";
+import { SITE_HEADER, siteHost } from "@/core/server/site";
 
 // RemnaWeb's SNI API behind this site's own origin: the page never names RemnaWeb, so a visitor or a
 // probe sees a standalone game. Only the calls the games make (core/games.ts) are passed through: those of every
@@ -17,7 +17,7 @@ type Ctx = { params: Promise<{ path: string[] }> };
 
 /**
  * An answer of the proxy itself: without an `error` text, so the page shows its own message in its language
- * (core/api.ts) rather than these internals.
+ * (core/player/api.ts) rather than these internals.
  */
 const fail = (status: number) => Response.json({}, { status });
 

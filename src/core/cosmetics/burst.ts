@@ -1,4 +1,4 @@
-// Bursts of particles over a game, bought as cosmetics in the RemnaWeb Mini App shop (RemnaWeb's lib/looks.ts): the
+// Bursts of particles over a game, bought as cosmetics in the RemnaWeb Mini App shop (RemnaWeb's lib/shop/looks.ts): the
 // crash's cash-out and crash, the Sacrifice's win. A burst is a shape the code here knows (`kind`, an unknown one
 // throws shards) and colors that come as data, so a new variant needs no redeploy. Played with the Web Animations API
 // in a box of the page; the particles are made here and removed once played. Nothing plays for those who ask the

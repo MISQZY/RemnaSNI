@@ -1,4 +1,4 @@
-import { playBurst } from "@/core/burst";
+import { playBurst } from "@/core/cosmetics/burst";
 import type { Fx, Who } from "./replay";
 import { BEAT } from "./replay";
 import type { StrikeLook } from "./rules";
@@ -59,7 +59,7 @@ function ring(root: HTMLElement, at: Element, cls: string, out: Animation[]) {
   out.push(a);
 }
 
-/** The bursts of the cosmetic strikes by kind (core/burst.ts); a bolt also flashes a lightning over the target. */
+/** The bursts of the cosmetic strikes by kind (core/cosmetics/burst.ts); a bolt also flashes a lightning over the target. */
 const STRIKE_BURSTS: Record<string, string> = { flame: "smoke", shards: "shards", frost: "stars", void: "ring", bolt: "shards" };
 
 function strikeBurst(root: HTMLElement, at: Element, s: StrikeLook, out: Animation[]) {

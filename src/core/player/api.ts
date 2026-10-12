@@ -1,6 +1,6 @@
 import { toast } from "sonner";
 import { tr } from "@/core/i18n/client";
-import { session } from "@/core/session";
+import { session } from "@/core/player/session";
 
 // RemnaWeb's SNI API as the signed-in player, through this site's own /api/sni proxy (app/api/sni): every game
 // calls it through here. A 401 means the session is over: the player is signed out on this device, told so,

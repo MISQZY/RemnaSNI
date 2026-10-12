@@ -1,4 +1,4 @@
-import { nodePage } from "@/core/page";
+import { nodePage } from "@/core/server/page";
 import { Clicker } from "@/games/clicker/clicker";
 
 export default async function Page() {

@@ -5,8 +5,8 @@ import { ChevronDown, Cog, FastForward, Layers, Scale as ScaleIcon, ScrollText, 
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { playBurst } from "@/core/burst";
-import { lookStyle } from "@/core/look";
+import { playBurst } from "@/core/cosmetics/burst";
+import { lookStyle } from "@/core/cosmetics/look";
 import { cn } from "@/lib/utils";
 import { ChargeIcon } from "./art";
 import { CardBack, CardFace, CardInfo, useCards } from "./card";

@@ -1,6 +1,6 @@
 import "server-only";
 import { connection } from "next/server";
-import { REMNAWEB_TIMEOUT_MS, remnaWebUrl, remoteValue } from "@/core/remnaweb";
+import { REMNAWEB_TIMEOUT_MS, remnaWebUrl, remoteValue } from "@/core/server/remnaweb";
 
 /**
  * A loader of a game's rules from RemnaWeb's GET /api/sni/config (one answer holds the rules of every game):

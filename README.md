@@ -18,7 +18,7 @@ Achievements and pets are not here: both are the profile's, in the RemnaWeb Mini
 ## Game and country
 
 RemnaWeb decides what the node runs. The server asks `REMNAWEB_URL/api/sni/site` with `x-sni-site: <DOMAIN>` and gets
-`{ game, country }` (`src/core/site.ts`): the game an admin picked for this site in RemnaWeb (Админка → Игра → Игровые
+`{ game, country }` (`src/core/server/site.ts`): the game an admin picked for this site in RemnaWeb (Админка → Игра → Игровые
 сайты; the clicker until one is picked) and the country of the panel host with this domain as its SNI. The answer
 is kept for a minute, so a switch in RemnaWeb reaches the node without a redeploy; while RemnaWeb is down the last one
 keeps serving. The API proxy passes `x-sni-site` with every call, so RemnaWeb keeps progress in that country whatever
@@ -95,17 +95,17 @@ A new game: its code in `src/games/<id>` (rules loaded with `remoteConfig`, the 
 `SiteHeader` and `AccountMenu`, the status through `useGameStatus`, bonuses through `PerkShop`, calls through `api`,
 storage through `storage`), its pages in `src/app/games/<id>`,
 its texts in `messages/<id>/{en,ru}.json` listed in `src/core/i18n/messages.ts`, and its entry in `src/core/games.ts`
-(and RemnaWeb's `lib/games.ts`).
+(and RemnaWeb's `lib/game/games.ts`).
 
 ## Game rules
 
 RemnaWeb is the source of truth for the clicker: upgrades (prices, effects, icons), prestige perks, their names and
 descriptions in both languages, crit and offline-income constants all live in
-`RemnaWeb/src/lib/clicker/config.ts`. The server fetches them from `REMNAWEB_URL/api/sni/config`
+`RemnaWeb/src/lib/game/clicker/config.ts`. The server fetches them from `REMNAWEB_URL/api/sni/config`
 (`src/games/clicker/config-server.ts`), refreshes them every minute and keeps serving the last ones while RemnaWeb is down; until
 they have been fetched once the site shows a "temporarily unavailable" stub. So a balance or text change in RemnaWeb
 (an admin tunes the numbers in Админка → Игра → Настройки) reaches every node within a minute, without a redeploy. What stays here is code: `src/games/clicker/rules.ts` applies the config and mirrors
-`RemnaWeb/src/lib/clicker/rules.ts` — a new rule type or formula has to be added to both.
+`RemnaWeb/src/lib/game/clicker/rules.ts` — a new rule type or formula has to be added to both.
 
 The snake's rules come with them, under `snake` (`RemnaWeb/src/lib/snake-rules.ts`): the board size, the start and
 fastest step, the speed-up per crystal, the crystal price and the golden multiplier. RemnaWeb derives its run checks from
@@ -120,7 +120,7 @@ The crash's come under `crash` (`RemnaWeb/src/lib/crash-rules.ts`): how long bet
 fast the multiplier grows, the highest one, the smallest bet and auto cash-out, and where each color starts. The crash
 points themselves never leave RemnaWeb before the crash, and whether a cash-out came in time is up to its clock.
 
-The Sacrifice's come under `sacrifice` (`RemnaWeb/src/lib/sacrifice/`): the duel's numbers (scale, lanes, sparks,
+The Sacrifice's come under `sacrifice` (`RemnaWeb/src/lib/game/sacrifice/`): the duel's numbers (scale, lanes, sparks,
 opening hand, turn limit and time), the decks' bounds and copies, the packs' price and odds, the bounds of the bets, and every card
 with its names, stats, costs and sigils. The duel itself is played by RemnaWeb only; `src/games/sacrifice/rules.ts`
 mirrors the shuffle (to check the draws) and the picking of sacrifices and the attack (to preview them).
@@ -162,12 +162,12 @@ Prestige (`src/games/clicker/prestige.tsx`) trades Qzr and upgrade levels for Qz
 keys buy perks. Keys are shared with the other games: RemnaWeb counts those they brought and spent (`keysShopEarned`,
 `keysShopSpent` in the progress), and the free ones are the same everywhere. Formulas are in `rules.ts`, mirroring RemnaWeb. A tap effect bought
 in the RemnaWeb Mini App shop comes with `/api/sni/progress` as `effect` and replaces the mini flags thrown by a tap;
-the color of the tap numbers comes as `tapColor` (CSS, `src/core/look.ts`). The snake gets its bought skin (canvas colors)
+the color of the tap numbers comes as `tapColor` (CSS, `src/core/cosmetics/look.ts`). The snake gets its bought skin (canvas colors)
 and the particles of an eaten crystal with `GET /api/sni/snake` as `snake.skin` and `snake.effect`.
 
 The profile's other cosmetics from that shop — the title, the avatar frame, the name color and the glow — come with
 the player (`user.look` of `/api/sni/progress` and `/api/sni/snake`) as plain CSS, so a new look needs no redeploy here;
-`src/core/ui/profile-avatar.tsx` draws them with `src/core/look.ts`, and the look-* keyframes of `globals.css` animate them.
+`src/core/ui/profile-avatar.tsx` draws them with `src/core/cosmetics/look.ts`, and the look-* keyframes of `globals.css` animate them.
 
 On the RemnaWeb side set `TELEGRAM_LOGIN_CLIENT_SECRET` and add this site's origin to `SNI_ORIGINS`.
 

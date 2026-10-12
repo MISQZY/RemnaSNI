@@ -1,4 +1,4 @@
-// How the crash plays. RemnaWeb is the source of truth (lib/crash-rules.ts and lib/crash.ts there): it makes the
+// How the crash plays. RemnaWeb is the source of truth (lib/game/crash/rules.ts and lib/game/crash/game.ts there): it makes the
 // rounds, rolls where each crashes and pays the bets; its numbers come with the other games' from GET /api/sni/config
 // under `crash` (config-server.ts) and the rounds through the stream (stream.ts). These types and formulas mirror it.
 // Multipliers are in hundredths: 243 is ×2.43.
@@ -7,8 +7,8 @@
 // comes from the seed alone, u = the first 52 bits of HMAC-SHA256(key: seed, message: "crash") / 2^52, so the page
 // checks every crashed round itself (verifyRound).
 
-import type { Burst } from "@/core/burst";
-import type { Look } from "@/core/look";
+import type { Burst } from "@/core/cosmetics/burst";
+import type { Look } from "@/core/cosmetics/look";
 
 /** The colors of the rounds, as the rarities of RemnaWeb's pets, from grey to cosmic. */
 export type CrashTier = "common" | "rare" | "epic" | "legendary" | "mythic" | "cosmic";

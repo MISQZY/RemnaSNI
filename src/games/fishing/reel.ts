@@ -3,7 +3,7 @@
 // while it is out. Landed at 1, lost at 0. Positions run from 0 (bottom) to 1 (top).
 //
 // The fight runs in fixed ticks off a seeded generator, so it is the same wherever it runs: the site plays it, and
-// RemnaWeb replays the holds the site sends with the catch (its lib/fishing.ts) and pays only for a fish that really
+// RemnaWeb replays the holds the site sends with the catch (its lib/game/fishing/game.ts) and pays only for a fish that really
 // came in. This file is a copy of RemnaWeb's lib/fishing-reel.ts: change both, or no catch is paid.
 
 /** What a fight is played with: picked by RemnaWeb at the cast (by the site without an account). */

@@ -38,7 +38,7 @@ export const GAMES = {
   },
 } as const satisfies Record<string, { routes: readonly string[]; api: readonly string[] }>;
 
-/** A game id, also known to RemnaWeb (its lib/games.ts): a new one is added there too. */
+/** A game id, also known to RemnaWeb (its lib/game/games.ts): a new one is added there too. */
 export type GameId = keyof typeof GAMES;
 
 /** What the sites run until an admin picks a game in RemnaWeb. */

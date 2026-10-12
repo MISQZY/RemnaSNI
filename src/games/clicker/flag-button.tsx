@@ -7,7 +7,7 @@ import { useSync } from "@/games/clicker/game-runtime";
 import { useFormat } from "@/core/i18n/provider";
 import { game } from "@/games/clicker/game";
 import { human } from "@/games/clicker/human";
-import { lookStyle } from "@/core/look";
+import { lookStyle } from "@/core/cosmetics/look";
 import { cn } from "@/lib/utils";
 
 type Pop = { id: number; x: number; y: number; value: number; crit: boolean; drift: number };

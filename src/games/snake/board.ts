@@ -22,7 +22,7 @@ export const KEYS: Record<string, Dir> = {
 /** A crystal on the board; a golden one (the golden bonus) is worth five. */
 export type Food = Cell & { golden: boolean };
 
-/** What the bonuses bought give a run (see SNAKE_PERKS in RemnaWeb lib/snake.ts). */
+/** What the bonuses bought give a run (see the perks in RemnaWeb lib/game/snake/rules.ts). */
 export type Boosts = { goldenChance: number; lives: number; speedup: number };
 export const noBoosts = (rules: SnakeRules): Boosts => ({ goldenChance: 0, lives: 0, speedup: rules.speedupMs });
 

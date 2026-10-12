@@ -1,5 +1,5 @@
 import "server-only";
-import { remoteConfig } from "@/core/remote-config";
+import { remoteConfig } from "@/core/server/remote-config";
 import { isCrashRules } from "./rules";
 
 /** The crash's rules from RemnaWeb; null until they have come once (or while RemnaWeb is too old to send them). */

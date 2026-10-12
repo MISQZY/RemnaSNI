@@ -1,4 +1,4 @@
-import { gamePage } from "@/core/game-route";
+import { gamePage } from "@/core/server/game-route";
 import { loadCrashRules } from "@/games/crash/config-server";
 import { CrashSite } from "@/games/crash/crash";
 

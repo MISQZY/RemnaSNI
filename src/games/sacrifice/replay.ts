@@ -2,7 +2,7 @@ import type { CardDef, Creature, GameEvent, MatchView } from "./rules";
 
 // The replay of a fight between two of its states: RemnaWeb sends the fight as it stands after a move, the turn of the
 // robot and the attacks already played out; the events in its log since the last state shown are stepped through on
-// the board seen last, as RemnaWeb's lib/sacrifice/engine.ts applies them, so each strike, death and play can be shown
+// the board seen last, as RemnaWeb's lib/game/sacrifice/engine.ts applies them, so each strike, death and play can be shown
 // (fx.ts) before the board snaps to RemnaWeb's state.
 
 /** The side of the board as this player sees it. */

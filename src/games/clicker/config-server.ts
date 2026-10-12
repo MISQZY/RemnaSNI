@@ -1,5 +1,5 @@
 import "server-only";
-import { remoteConfig } from "@/core/remote-config";
+import { remoteConfig } from "@/core/server/remote-config";
 import { isGameConfig, withDefaults } from "./config";
 
 /** The clicker's rules from RemnaWeb; null until they have come once. */

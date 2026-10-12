@@ -96,7 +96,7 @@ export function rollCatch(r: FishingRules, n: number, locale: Locale, rand = Mat
 /** The wait for a bite without an account, ms. */
 export const localBiteMs = (r: FishingRules, rand = Math.random) => Math.round(r.biteMinMs + (r.biteMaxMs - r.biteMinMs) * rand());
 
-/** The fight with a fish of `strength` without an account (RemnaWeb picks it otherwise, lib/fishing.ts there). */
+/** The fight with a fish of `strength` without an account (RemnaWeb picks it otherwise, lib/game/fishing/game.ts there). */
 export const localReel = (r: FishingRules, strength: number, rand = Math.random): ReelSetup => ({
   seed: Math.floor(rand() * 2 ** 31),
   strength,

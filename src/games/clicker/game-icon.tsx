@@ -28,7 +28,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-// Icons of the game config RemnaWeb sends (its lib/clicker/config.ts), imported one by one: lucide's
+// Icons of the game config RemnaWeb sends (its lib/game/clicker/config.ts), imported one by one: lucide's
 // DynamicIcon ships a loader for every icon lucide has and fetches each one after render. Keep in step
 // with RemnaWeb's components/clicker/game-icon.tsx.
 const ICONS: Record<string, LucideIcon> = {

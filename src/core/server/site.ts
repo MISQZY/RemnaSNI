@@ -1,5 +1,5 @@
 import { DEFAULT_GAME, isGame, type GameId } from "@/core/games";
-import { REMNAWEB_TIMEOUT_MS, remnaWebUrl, remoteValue } from "@/core/remnaweb";
+import { REMNAWEB_TIMEOUT_MS, remnaWebUrl, remoteValue } from "@/core/server/remnaweb";
 
 // RemnaWeb is the orchestrator: it picks the game of each node and knows the country of the panel host the
 // node stands behind. The server asks it for both (GET /api/sni/site, naming the site by DOMAIN) and keeps
@@ -9,7 +9,7 @@ import { REMNAWEB_TIMEOUT_MS, remnaWebUrl, remoteValue } from "@/core/remnaweb";
 /** What this node runs: the game and the country (lowercase ISO 3166-1 alpha-2, "xx" for none). */
 export type Site = { game: GameId; country: string };
 
-/** Header RemnaWeb knows the site by: its host (SITE_HEADER in RemnaWeb's lib/sni.ts). */
+/** Header RemnaWeb knows the site by: its host (SITE_HEADER in RemnaWeb's lib/game/sni.ts). */
 export const SITE_HEADER = "x-sni-site";
 
 const countryOf = (v: unknown) => (typeof v === "string" && /^[a-z]{2}$/.test(v.toLowerCase()) ? v.toLowerCase() : "xx");

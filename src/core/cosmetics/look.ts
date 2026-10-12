@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 
 // The cosmetics of the player's profile, bought in the RemnaWeb Mini App shop: a title, and the avatar frame,
-// name color and glow as plain CSS (RemnaWeb's lib/looks.ts), so a new look needs no redeploy here. These
+// name color and glow as plain CSS (RemnaWeb's lib/shop/looks.ts), so a new look needs no redeploy here. These
 // types and lookStyle mirror it; the animations are the look-* keyframes of globals.css.
 
 export type Look = {

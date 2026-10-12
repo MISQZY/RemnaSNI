@@ -63,7 +63,7 @@ const shopActivity = (s: GameState) => (s.shopSpent ?? 0) + (s.shopEarned ?? 0) 
 /**
  * Whether `a` is further along than `b`: a later reset (or move) wins, then more points earned,
  * then more RemnaWeb purchases and sales seen, then more points spent (buying an upgrade does not
- * change totalEarned). Mirrors isNewer in RemnaWeb/src/lib/clicker/state.ts.
+ * change totalEarned). Mirrors isNewer in RemnaWeb/src/lib/game/clicker/state.ts.
  */
 export function isNewer(a: GameState, b: GameState): boolean {
   if (a.resetAt !== b.resetAt) return a.resetAt > b.resetAt;

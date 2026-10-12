@@ -1,5 +1,5 @@
-// Spots auto-clicker tapping on the client; RemnaWeb has the same file (lib/clicker/tap-guard.ts). A finding only
-// asks RemnaWeb for a human check (its lib/human-check.ts), never punishes by itself: a person caught by
+// Spots auto-clicker tapping on the client; RemnaWeb has the same file (lib/game/clicker/tap-guard.ts). A finding only
+// asks RemnaWeb for a human check (its lib/game/human-check.ts), never punishes by itself: a person caught by
 // mistake just answers one question. Programs that imitate people pass these rules; the checks the
 // server hands out every few thousand taps catch those.
 

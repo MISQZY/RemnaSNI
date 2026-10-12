@@ -3,7 +3,7 @@ import { TapGuard, type Suspicion } from "@/games/clicker/tap-guard";
 
 // Human checks against auto-clickers: whether one is due (taps do not count until it is passed) and the
 // guard that asks for one early. Signed in, RemnaWeb gives and grades the checks and will not save
-// progress without them (its lib/human-check.ts); signed out, the site does it itself, and the progress
+// progress without them (its lib/game/human-check.ts); signed out, the site does it itself, and the progress
 // made meanwhile still meets RemnaWeb's checks at the first save.
 
 export type HumanCheck = { token: string; target: string; options: string[] } | { blockedUntil: string };

@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { LOCALE_COOKIE, isLocale } from "@/core/i18n/locales";
 import { GAMES } from "@/core/games";
-import { siteGame } from "@/core/site";
+import { siteGame } from "@/core/server/site";
 
 /**
- * Serves the node's game (picked in RemnaWeb, core/site.ts) at its public paths by rewriting them to
+ * Serves the node's game (picked in RemnaWeb, core/server/site.ts) at its public paths by rewriting them to
  * app/games/<id>, so each node loads the code of its own game only; paths of other games are 404.
  *
  * `?lang=ru` picks the language, used by the RemnaWeb Mini App that opens the site in a frame: there the

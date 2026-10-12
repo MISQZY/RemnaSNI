@@ -4,7 +4,7 @@ import type { ComponentType, ReactNode } from "react";
 import { getTranslations } from "next-intl/server";
 import { pageMessages } from "@/core/i18n/messages";
 import { I18nProvider } from "@/core/i18n/provider";
-import { gameMetadata, nodePage } from "@/core/page";
+import { gameMetadata, nodePage } from "@/core/server/page";
 import { Unavailable } from "@/core/ui/unavailable";
 
 // The route files of a game (src/app/games/<id>/), the same for every game but its id, rules and site: its title

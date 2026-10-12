@@ -1,7 +1,7 @@
 import type { GameConfig, PerkDef, PerkKind, UpgradeDef, UpgradeKind } from "@/games/clicker/config";
 import type { GameState as Progress } from "@/games/clicker/game";
 
-// How the game applies the GameConfig loaded from RemnaWeb. Mirrors RemnaWeb/src/lib/clicker/rules.ts, which applies
+// How the game applies the GameConfig loaded from RemnaWeb. Mirrors RemnaWeb/src/lib/game/clicker/rules.ts, which applies
 // the same config in the Mini App; keep both in step when a formula or a rule type changes.
 
 export const level = (s: Progress, id: string) => s.levels[id] ?? 0;

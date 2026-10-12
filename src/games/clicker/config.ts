@@ -1,6 +1,6 @@
 import type { Locale } from "@/core/i18n/locales";
 
-// Rules and texts of the clicker. RemnaWeb is the source of truth (lib/clicker/config.ts there): the server
+// Rules and texts of the clicker. RemnaWeb is the source of truth (lib/game/clicker/config.ts there): the server
 // loads them from GET /api/sni/config (config-server.ts) and hands them to the page. These types mirror it.
 
 export type Text = { ru: string; en: string };
