@@ -162,18 +162,7 @@ export function CardFace({ card, power, health, selected, marked, dim, foil, onC
             <Shield className="size-[0.8em] text-neutral-400" />
           </span>
         </span>
-        {foil && foil.length > 0 && (
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-0 mix-blend-screen"
-            style={{
-              background: `linear-gradient(115deg, transparent 25%, ${foil.map((c) => `${c}66`).join(", ")}, transparent 75%)`,
-              backgroundSize: "300% 100%",
-              animation: "look-flow 3.2s linear infinite",
-              ["--look-flow-to" as string]: "300% 0",
-            }}
-          />
-        )}
+        {foil && foil.length > 0 && <Sheen colors={foil.map((c) => `${c}80`)} seconds={3.6} />}
         {marked && (
           <span className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 bg-rose-950/70 text-[clamp(7px,9cqw,11px)] font-semibold text-rose-100">
             <ChargeIcon className="size-[2.2em] opacity-90" />
@@ -211,6 +200,24 @@ function BackEmblem({ back }: { back: CardBackLook }) {
 }
 
 /**
+ * A band of light sweeping over a card (a foil, a shimmering back): it starts wholly off the left edge and ends wholly
+ * off the right, then rests (sacrifice-sheen in globals.css), so the loop never shows its seam.
+ */
+function Sheen({ colors, seconds }: { colors: string[]; seconds: number }) {
+  return (
+    <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden mix-blend-screen">
+      <span
+        className="absolute inset-y-[-20%] left-0 w-[250%] motion-reduce:hidden"
+        style={{
+          background: `linear-gradient(90deg, transparent 40%, ${colors.join(", ")}, transparent 60%)`,
+          animation: `sacrifice-sheen ${seconds}s ease-in-out infinite`,
+        }}
+      />
+    </span>
+  );
+}
+
+/**
  * The back of a card: the other's hand, a deck. Its owner's cosmetic back if they wear one (the frame's gradient, the
  * ground, an emblem, a sweeping shimmer), else the project's crystal.
  */
@@ -222,17 +229,7 @@ export function CardBack({ back, className }: { back?: CardBackLook | null; clas
           <rect x="3" y="3" width="24" height="34" rx="2" fill="none" stroke={back.mark} strokeOpacity="0.35" />
           <BackEmblem back={back} />
         </svg>
-        {back.shimmer && (
-          <span
-            className="absolute inset-0 mix-blend-screen"
-            style={{
-              background: "linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 0.45), transparent 70%)",
-              backgroundSize: "300% 100%",
-              animation: "look-flow 2.6s linear infinite",
-              ["--look-flow-to" as string]: "300% 0",
-            }}
-          />
-        )}
+        {back.shimmer && <Sheen colors={["rgb(255 255 255 / 0.5)"]} seconds={3} />}
       </div>
     );
   }

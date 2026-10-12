@@ -250,6 +250,16 @@
     opacity: 0.8;
   }
 }
+/* The sheen over the Sacrifice's cards (games/sacrifice/card.tsx): a band from off the left edge to off the right, then a rest. */
+@keyframes sacrifice-sheen {
+  from {
+    transform: translateX(-70%) skewX(-20deg);
+  }
+  65%,
+  to {
+    transform: translateX(10%) skewX(-20deg);
+  }
+}
 @keyframes look-turn {
   to {
     transform: rotate(1turn);
