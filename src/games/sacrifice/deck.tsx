@@ -115,8 +115,8 @@ export function DeckEditor({ rules, collection, busy, onSave }: Props) {
                 <span
                   title={t("limitBadge", { n, limit: limit(d.id) })}
                   className={cn(
-                    "flex h-4 min-w-4 items-center shrink-0 justify-center rounded-full border-[1.5px] border-amber-400 px-1",
-                    n > 0 ? "text-amber-300" : "text-amber-400/70",
+                    "flex h-4 min-w-4 items-center shrink-0 justify-center rounded-full border-[1.5px] px-1",
+                    n > 0 ? "border-amber-400 text-amber-300" : "border-muted-foreground/50 text-muted-foreground",
                   )}
                 >
                   {n}/{limit(d.id)}
