@@ -101,7 +101,7 @@ export function FishingSite({ code, name, signIn, rules }: { code: string; name:
   const t = useTranslations();
   const { num, fixed, locale } = useFormat();
   const account = useSession();
-  const { status, setStatus } = useGameStatus<Status>("fishing", code);
+  const { status, setStatus, reload } = useGameStatus<Status>("fishing", code);
   // False while hydrating, so values kept in the browser do not differ from the server's markup.
   const hydrated = useSyncExternalStore(noop, () => true, () => false);
   const [phase, setPhase] = useState<Phase>("ready");
@@ -206,8 +206,15 @@ export function FishingSite({ code, name, signIn, rules }: { code: string; name:
     setPhase("landing");
     let fish: Catch;
     if (c.id) {
-      // The catch goes once RemnaWeb has taken the hook; a hook it refused has lost the fish already.
-      if (!(await hookedRef.current)) return;
+      // The catch goes once RemnaWeb has taken the hook; a hook it refused has lost the fish already, and one
+      // that went unanswered (signed out on the way) loses it here, rather than leave the line stuck landing.
+      if (!(await hookedRef.current)) {
+        if (castRef.current === c) {
+          castRef.current = null;
+          lose("missed");
+        }
+        return;
+      }
       castRef.current = null;
       try {
         const res = await api<Landed>("fishing/catch", { method: "POST", body: { id: c.id, flips: flipsRef.current }, country: code });
@@ -219,6 +226,8 @@ export function FishingSite({ code, name, signIn, rules }: { code: string; name:
         fish = res.caught;
       } catch (err) {
         toast.error(err instanceof ApiError && err.status !== 0 ? err.message : t("fishing.failed"));
+        // The answer may have been lost after RemnaWeb paid for the fish: the balance is asked for again.
+        if (!(err instanceof ApiError) || err.status === 0 || err.status >= 500) reload();
         setPhase("ready");
         return;
       }
