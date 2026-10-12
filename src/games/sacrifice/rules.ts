@@ -50,8 +50,6 @@ export type SacrificeRules = {
   shardValue?: Record<Exclude<Rarity, "token">, number>;
   shardPack?: number;
   robotPayout: number;
-  /** The highest bet against the robot; an older RemnaWeb sends none and takes any. */
-  robotMaxStake?: number;
   fee: number;
   cards: CardDef[];
 };
