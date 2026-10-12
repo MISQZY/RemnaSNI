@@ -1,14 +1,14 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Cog, Layers, Scale as ScaleIcon, ScrollText, Swords, X } from "lucide-react";
+import { ChevronDown, Cog, Layers, Scale as ScaleIcon, ScrollText, Sparkle, Swords, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { ChargeIcon } from "./art";
 import { CardBack, CardFace, CardInfo, useCards } from "./card";
-import { autoSacrifices, strikePreview, type Action, type Creature, type GameEvent, type MatchView, type SacrificeRules } from "./rules";
+import { autoSacrifices, chargeOf, strikePreview, type Action, type CardDef, type Creature, type GameEvent, type MatchView, type SacrificeRules } from "./rules";
 
 // The duel's table: the other's side above (their hand face down), the scale, this player's side and hand below.
 // Playing takes two taps: a card in the hand, then a highlighted space. The sacrifices are picked by themselves, the
@@ -71,23 +71,37 @@ export function Board({ rules, view, them, busy, left, onAct }: Props) {
     onAct({ type: "play", hand: picked, lane, sacrifices });
   };
 
+  const charge = chargeOnBoard(cards, board);
   let hint = "";
   if (view.phase !== "over") {
     if (!mine) hint = t("hint.theirTurn", { name: them });
     else if (!pickedDef) hint = view.me.hand.some((h) => playable(h.card)) ? t("hint.play") : t("hint.attack");
-    else if (!targets.some(Boolean)) hint = pickedDef.bones > view.me.bones ? t("hint.noBones") : t("hint.noSacrifice");
+    else if (!targets.some(Boolean))
+      hint = pickedDef.bones > view.me.bones ? t("hint.noBones", { need: pickedDef.bones, have: view.me.bones }) : t("hint.noSacrifice", { need: pickedDef.blood, have: charge });
     else hint = pickedDef.blood > 0 && board.some(Boolean) ? t("hint.laneSacrifice") : t("hint.lane");
   }
 
   return (
     <div className="flex flex-col gap-2 rounded-2xl bg-neutral-950 bg-[radial-gradient(ellipse_at_50%_50%,rgb(46_224_106/0.08),transparent_70%)] p-2.5 text-neutral-100 ring-1 ring-white/10 sm:p-3">
-      <SideBar name={them} bones={view.them.bones} deck={view.them.deck} sparks={view.them.sparks} active={view.active !== view.you && view.phase !== "over"} />
-      <div className="flex h-7 justify-center gap-1">
-        {Array.from({ length: Math.min(view.them.hand, 8) }, (_, i) => (
-          <div key={i} className="w-5">
-            <CardBack />
+      <SideBar
+        name={them}
+        charge={chargeOnBoard(cards, view.them.board)}
+        bones={view.them.bones}
+        deck={view.them.deck}
+        sparks={view.them.sparks}
+        active={view.active !== view.you && view.phase !== "over"}
+      />
+      <div className="flex h-8 items-center justify-center gap-2" title={t("theirHandHelp")}>
+        <span className="text-[11px] text-neutral-500">{t("theirHand", { n: view.them.hand })}</span>
+        {view.them.hand > 0 && (
+          <div className="flex">
+            {Array.from({ length: Math.min(view.them.hand, 8) }, (_, i) => (
+              <div key={i} className={cn("w-5 drop-shadow-[0_1px_2px_rgb(0_0_0/0.6)]", i > 0 && "-ml-2")} style={{ transform: `rotate(${(i - (Math.min(view.them.hand, 8) - 1) / 2) * 5}deg)` }}>
+                <CardBack />
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
 
       <Lanes rules={rules} board={view.them.board} />
@@ -95,7 +109,7 @@ export function Board({ rules, view, them, busy, left, onAct }: Props) {
       <Previews view={view} />
       <Lanes rules={rules} board={board} targets={targets} marked={preview} onPick={pickLane} />
 
-      <SideBar name={t("you")} bones={view.me.bones} deck={view.me.deck} sparks={view.me.sparks} active={mine} left={mine ? left : null} />
+      <SideBar name={t("you")} charge={charge} bones={view.me.bones} deck={view.me.deck} sparks={view.me.sparks} active={mine} left={mine ? left : null} />
 
       {pickedDef && <CardInfo card={pickedDef.id} />}
       {hint && <p className="text-center text-xs text-neutral-400">{hint}</p>}
@@ -131,24 +145,51 @@ export function Board({ rules, view, them, busy, left, onAct }: Props) {
   );
 }
 
-function SideBar({ name, bones, deck, sparks, active, left }: { name: string; bones: number; deck: number; sparks: number; active: boolean; left?: number | null }) {
+/** The crystals a side's board would give as sacrifices: one a unit, three for Triple Charge. */
+const chargeOnBoard = (cards: Map<string, CardDef>, board: (Creature | null)[]) => board.reduce((sum, c) => sum + (c ? chargeOf(cards, c.card) : 0), 0);
+
+/**
+ * A side's name and what it has: crystals (what its units on the board would give as sacrifices, as card costs count
+ * them), debris, cards left in the deck and sparks left for the fight. Each with its name in words, past a phone's width.
+ */
+function SideBar({
+  name,
+  charge,
+  bones,
+  deck,
+  sparks,
+  active,
+  left,
+}: {
+  name: string;
+  charge: number;
+  bones: number;
+  deck: number;
+  sparks: number;
+  active: boolean;
+  left?: number | null;
+}) {
   const t = useTranslations("sacrifice");
+  const stats = [
+    { key: "charge", icon: <ChargeIcon className="size-3.5" />, n: charge, accent: "text-emerald-300" },
+    { key: "bones", icon: <Cog className="size-3.5 text-neutral-400" />, n: bones, accent: "text-neutral-100" },
+    { key: "deck", icon: <Layers className="size-3.5 text-neutral-400" />, n: deck, accent: "text-neutral-100" },
+    { key: "sparks", icon: <Sparkle className="size-3.5 text-emerald-200" />, n: sparks, accent: "text-neutral-100" },
+  ] as const;
   return (
-    <div className="flex items-center gap-2.5 px-1 text-xs text-neutral-400">
+    <div className="flex items-center gap-1.5 px-1 text-xs text-neutral-400">
       <span className={cn("min-w-0 flex-1 truncate font-heading font-semibold text-neutral-200", active && "text-primary")}>
         {active && <span className="mr-1 inline-block size-1.5 animate-pulse rounded-full bg-primary align-middle" />}
         {name}
         {left != null && <span className="ml-1.5 font-sans font-normal text-neutral-400 tabular-nums">{t("seconds", { s: left })}</span>}
       </span>
-      <span className="inline-flex items-center gap-0.5 tabular-nums" title={t("bones")}>
-        <Cog className="size-3" /> {bones}
-      </span>
-      <span className="inline-flex items-center gap-0.5 tabular-nums" title={t("deck")}>
-        <Layers className="size-3" /> {deck}
-      </span>
-      <span className="inline-flex items-center gap-0.5 tabular-nums" title={t("sparks")}>
-        <ChargeIcon className="size-3" /> {sparks}
-      </span>
+      {stats.map((s) => (
+        <span key={s.key} title={t(`stat.${s.key}`)} className="inline-flex items-center gap-1 rounded-full bg-white/[0.06] px-1.5 py-0.5 ring-1 ring-white/10">
+          {s.icon}
+          <span className={cn("font-semibold tabular-nums", s.accent)}>{s.n}</span>
+          <span className="hidden text-[10px] sm:inline">{t(`statShort.${s.key}`)}</span>
+        </span>
+      ))}
     </div>
   );
 }
@@ -245,10 +286,11 @@ function Scale({ rules, scale }: { rules: SacrificeRules; scale: number }) {
   );
 }
 
-/** What happened lately, newest first, in words. */
+/** The whole fight in words, newest turn first: folds away, scrolls within its height. */
 export function FightLog({ view, them }: { view: MatchView; them: string }) {
   const t = useTranslations("sacrifice");
   const { nameOf } = useCards();
+  const [open, setOpen] = useState(true);
   const who = (side: number) => (side === view.you ? t("you") : them);
   const line = (e: GameEvent): string | null => {
     switch (e.t) {
@@ -278,22 +320,27 @@ export function FightLog({ view, them }: { view: MatchView; them: string }) {
   }
   const lines = turns
     .reverse()
-    .slice(0, 3)
     .flat()
     .map((e, i) => ({ e, i, text: line(e) }))
     .filter((l) => l.text);
   return (
     <section className="rounded-2xl bg-card p-3 ring-1 ring-foreground/10">
-      <p className="mb-1.5 flex items-center gap-1.5 px-1 text-sm font-semibold">
+      <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="flex w-full items-center gap-1.5 rounded-md px-1 text-left text-sm font-semibold">
         <ScrollText className="size-4 text-muted-foreground" /> {t("logTitle")}
-      </p>
-      <ul className="flex flex-col gap-0.5 px-1 text-xs text-muted-foreground">
-        {lines.map(({ e, i, text }) => (
-          <li key={`${view.turn}:${i}`} className={cn(e.t === "turn" && "mt-1 font-semibold text-foreground", e.t === "end" && "font-semibold text-foreground")}>
-            {text}
-          </li>
-        ))}
-      </ul>
+        <span className="ml-auto text-xs font-normal text-muted-foreground tabular-nums">{t("logTurn", { n: view.turn })}</span>
+        <ChevronDown className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-180")} />
+      </button>
+      {open && (
+        <ScrollArea className="mt-1.5" viewportClassName="h-auto max-h-72 overscroll-contain">
+          <ul className="flex flex-col gap-0.5 px-1 pr-3 text-xs text-muted-foreground">
+            {lines.map(({ e, i, text }) => (
+              <li key={`${view.log.length}:${i}`} className={cn(e.t === "turn" && "mt-1 font-semibold text-foreground first:mt-0", e.t === "end" && "font-semibold text-foreground")}>
+                {text}
+              </li>
+            ))}
+          </ul>
+        </ScrollArea>
+      )}
     </section>
   );
 }

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useFormat } from "@/core/i18n/provider";
 import { QzrIcon } from "@/core/ui/qzr-icon";
 import { cn } from "@/lib/utils";
-import { CardFace, SIGIL_ICONS, useCards } from "./card";
+import { CardFace, useCards } from "./card";
 import type { Collection, Rarity, SacrificeRules } from "./rules";
 
 // The player's cards and deck: every card they own with how many of it the deck holds (a tap adds one, the minus
@@ -153,25 +153,5 @@ export function PackShop({ rules, balance, busy, opened, onBuy }: { rules: Sacri
         </div>
       )}
     </section>
-  );
-}
-
-/** Every sigil with what it does, for the rules block. */
-export function SigilList() {
-  const t = useTranslations("sacrifice.sigils");
-  return (
-    <ul className="grid gap-1.5 text-xs">
-      {(Object.keys(SIGIL_ICONS) as (keyof typeof SIGIL_ICONS)[]).map((s) => {
-        const Icon = SIGIL_ICONS[s];
-        return (
-          <li key={s} className="flex gap-2">
-            <Icon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
-            <span>
-              <span className="font-semibold">{t(`${s}.name`)}</span> — <span className="text-muted-foreground">{t(`${s}.text`)}</span>
-            </span>
-          </li>
-        );
-      })}
-    </ul>
   );
 }

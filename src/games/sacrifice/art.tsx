@@ -344,6 +344,294 @@ const ART: Record<string, ReactNode> = {
       <path d="M16 41 L12 39 L15 36" fill="none" stroke={C.mid} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </>
   ),
+
+  druse: (
+    <>
+      <Glow cy={34} r={25} o={0.2} />
+      <path d="M6 58 Q10 47 20 48 Q32 44 44 48 Q54 47 58 58 Z" {...plate} />
+      <Shard x={14} y={54} h={16} w={7} r={-34} />
+      <Shard x={50} y={54} h={16} w={7} r={34} />
+      <Shard x={22} y={51} h={26} w={9} r={-16} />
+      <Shard x={42} y={51} h={24} w={9} r={17} />
+      <Shard x={32} y={50} h={36} w={11} />
+    </>
+  ),
+
+  sprout: (
+    <>
+      <Glow cy={30} r={14} color={C.light} o={0.18} />
+      <Shard x={32} y={44} h={22} w={8} />
+      <Shard x={26} y={44} h={10} w={5} r={-38} />
+      <Shard x={38} y={44} h={9} w={5} r={40} />
+      <path d="M18 44 L46 44 L42 58 L22 58 Z" {...plate} />
+      <line x1="16" y1="44" x2="48" y2="44" {...metal} strokeWidth="2.4" />
+      <path d="M24 50 L40 50" {...metal} strokeWidth="1" opacity="0.6" />
+    </>
+  ),
+
+  pickman: (
+    <>
+      <Glow cx={24} cy={24} r={16} color={C.light} o={0.14} />
+      <line x1="14" y1="56" x2="42" y2="20" {...metal} strokeWidth="3.2" />
+      <path d="M22 12 Q40 8 56 22 L52 24 Q40 15 26 17 Z" {...plate} fillOpacity={0.35} />
+      <rect x="38" y="15" width="7" height="8" rx="1.5" transform="rotate(38 41.5 19)" {...plate} />
+      <Shard x={22} y={44} h={14} w={7} r={-20} />
+      <Shard x={30} y={50} h={10} w={5} r={14} />
+      <path d="M8 58 L36 58" {...metal} strokeWidth="1.5" opacity="0.6" />
+    </>
+  ),
+
+  lamplighter: (
+    <>
+      <Glow cy={36} r={20} color={C.light} o={0.22} />
+      <path d="M32 4 L32 12" {...metal} strokeWidth="1.6" />
+      <path d="M26 12 Q32 8 38 12" {...metal} fill="none" />
+      <path d="M24 16 L40 16 L42 20 L22 20 Z" {...plate} />
+      <path d="M24 20 L40 20 L40 46 L24 46 Z" {...plate} fillOpacity={0.08} />
+      <path d="M24 20 L24 46 M40 20 L40 46 M32 20 L32 24 M32 42 L32 46" {...metal} strokeWidth="1.4" />
+      <Shard x={32} y={42} h={18} w={7} />
+      <path d="M22 46 L42 46 L40 51 L24 51 Z" {...plate} />
+      <path d="M12 26 L6 22 M12 36 L5 36 M52 26 L58 22 M52 36 L59 36" stroke={C.bright} strokeWidth="1.5" strokeLinecap="round" opacity="0.7" />
+    </>
+  ),
+
+  lineman: (
+    <>
+      <path d="M20 8 L8 58 M44 8 L56 58" {...metal} strokeWidth="2.4" />
+      {[14, 24, 35, 47].map((y, i) => (
+        <rect key={y} x={16 - i * 2.5} y={y} width={32 + i * 5} height="4" rx="1" {...plate} fillOpacity={0.25} />
+      ))}
+      {[18, 28, 39, 51].map((y, i) =>
+        [-1, 1].map((s) => <polygon key={`${y}${s}`} points={`${32 + s * (7 + i * 3) - 2.5},${y - 0.5} ${32 + s * (7 + i * 3) + 2.5},${y - 0.5} ${32 + s * (7 + i * 3)},${y - 7}`} fill={C.mid} />),
+      )}
+    </>
+  ),
+
+  driller: (
+    <>
+      <Glow cy={50} r={14} color={MOLTEN} o={0.12} />
+      <rect x="20" y="6" width="24" height="5" rx="2.5" {...plate} fillOpacity={0.35} />
+      <path d="M26 11 L38 11 L40 32 L24 32 Z" {...plate} />
+      <path d="M27 17 L37 17 M27 23 L37 23" {...metal} strokeWidth="1" opacity="0.6" />
+      <rect x="28" y="32" width="8" height="6" {...plate} fillOpacity={0.3} />
+      <path d="M29 38 L35 38 L32 52 Z" {...plate} fillOpacity={0.4} />
+      <Shard x={18} y={60} h={10} w={6} r={-30} />
+      <Shard x={46} y={60} h={10} w={6} r={30} />
+      <path d="M24 54 L20 50 M40 54 L44 50 M32 56 L32 60" stroke={MOLTEN} strokeWidth="1.6" strokeLinecap="round" />
+    </>
+  ),
+
+  scout: (
+    <>
+      <line x1="14" y1="16" x2="50" y2="16" {...metal} strokeWidth="2" />
+      <ellipse cx="32" cy="16" rx="22" ry="2" fill="currentColor" opacity="0.15" />
+      <line x1="32" y1="16" x2="32" y2="24" {...metal} />
+      <circle cx="32" cy="34" r="10" {...plate} />
+      <circle cx="32" cy="34" r="5" fill={C.deep} stroke={C.light} strokeWidth="1" />
+      <circle cx="32" cy="34" r="2.4" fill={C.light} />
+      <path d="M24 42 L20 50 M40 42 L44 50" {...metal} strokeWidth="1.5" />
+      <path d="M26 50 L32 58 L38 50" fill="none" stroke={C.mid} strokeWidth="1.2" strokeDasharray="2 2" />
+    </>
+  ),
+
+  junk_golem: (
+    <>
+      <path d="M24 10 L38 8 L41 18 L26 20 Z" {...plate} />
+      <circle cx="30" cy="14" r="2" fill={C.mid} />
+      <circle cx="36" cy="13" r="1.4" fill={MOLTEN} />
+      <path d="M16 22 L44 20 L48 34 L42 46 L20 46 L14 34 Z" {...plate} />
+      <path d="M20 28 L30 34 M36 26 L42 34 M24 40 L38 38" {...metal} strokeWidth="1" opacity="0.6" />
+      <circle cx="31" cy="31" r="3" fill={C.deep} stroke={C.light} strokeWidth="0.8" />
+      <path d="M14 26 L6 38 L10 44 M48 26 L56 34 L54 44" {...metal} strokeWidth="3" fill="none" />
+      <rect x="20" y="46" width="9" height="12" rx="1" transform="rotate(-6 24 52)" {...plate} />
+      <rect x="34" y="46" width="9" height="12" rx="1" transform="rotate(5 38 52)" {...plate} />
+    </>
+  ),
+
+  welder: (
+    <>
+      <Glow cx={44} cy={46} r={14} color={MOLTEN} o={0.2} />
+      <path d="M14 14 Q32 4 50 14 L50 38 Q32 46 14 38 Z" {...plate} />
+      <rect x="20" y="20" width="24" height="9" rx="2" fill={C.deep} stroke={C.light} strokeWidth="1" />
+      <line x1="22" y1="24.5" x2="42" y2="24.5" stroke={C.bright} strokeWidth="1.5" opacity="0.7" />
+      <path d="M22 34 L42 34" {...metal} strokeWidth="1" opacity="0.6" />
+      <line x1="30" y1="58" x2="44" y2="46" {...metal} strokeWidth="2.6" />
+      {[0, 50, 100, 150, 200, 250, 300].map((a) => (
+        <line key={a} x1="44" y1="46" x2="44" y2="39" transform={`rotate(${a} 44 46)`} stroke={MOLTEN} strokeWidth="1.4" strokeLinecap="round" />
+      ))}
+      <circle cx="44" cy="46" r="2" fill="#fff" />
+    </>
+  ),
+
+  phase_drone: (
+    <>
+      <g stroke={C.bright} strokeWidth="1.3" strokeDasharray="3 2.2" fill="none" strokeLinejoin="round">
+        <polygon points={ring(32, 28, 11, 6, Math.PI / 6)} />
+        <path d="M22 26 L11 20 M42 26 L53 20" />
+        <ellipse cx="11" cy="18" rx="8" ry="2.2" />
+        <ellipse cx="53" cy="18" rx="8" ry="2.2" />
+      </g>
+      <polygon points={ring(30, 30, 11, 6, Math.PI / 6)} {...plate} fillOpacity={0.1} opacity="0.6" />
+      <circle cx="32" cy="28" r="4" fill={C.mid} stroke={C.light} strokeWidth="1" />
+      {[42, 47, 52].map((y) => (
+        <line key={y} x1="20" y1={y} x2="44" y2={y} stroke={C.light} strokeWidth="0.7" opacity="0.4" />
+      ))}
+    </>
+  ),
+
+  twin_drill: (
+    <>
+      <rect x="16" y="6" width="32" height="12" rx="3" {...plate} />
+      <circle cx="32" cy="12" r="3" fill={C.mid} />
+      {[-1, 1].map((s) => (
+        <g key={s} transform={`rotate(${-s * 16} 32 18)`}>
+          <rect x={32 + s * 9 - 4} y="18" width="8" height="6" {...plate} fillOpacity={0.3} />
+          <path d={`M${32 + s * 9 - 5} 24 L${32 + s * 9 + 5} 24 L${32 + s * 9} 52 Z`} {...plate} fillOpacity={0.35} />
+          <path d={`M${32 + s * 9 - 4} 30 L${32 + s * 9 + 3.5} 28 M${32 + s * 9 - 3} 37 L${32 + s * 9 + 2.5} 35 M${32 + s * 9 - 2} 44 L${32 + s * 9 + 1.5} 42.5`} {...metal} strokeWidth="1" />
+        </g>
+      ))}
+      <path d="M6 58 L16 52 M58 58 L48 52" stroke={C.mid} strokeWidth="1.6" strokeLinecap="round" />
+    </>
+  ),
+
+  warden: (
+    <>
+      <Glow cy={14} r={12} color={C.light} o={0.2} />
+      <path d="M26 14 L6 4 M38 14 L58 4" stroke={C.bright} strokeWidth="1.4" opacity="0.5" />
+      <path d="M24 10 L40 10 L38 18 L26 18 Z" {...plate} />
+      <circle cx="32" cy="14" r="2.5" fill={C.light} />
+      <path d="M14 22 L50 22 L50 38 Q50 52 32 58 Q14 52 14 38 Z" {...plate} />
+      <path d="M20 28 L44 28 L44 38 Q44 47 32 51 Q20 47 20 38 Z" fill="none" {...metal} strokeWidth="1.1" opacity="0.6" />
+      <path d="M24 38 L32 32 L40 38 M24 45 L32 39 L40 45" fill="none" stroke={C.mid} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+
+  foreman: (
+    <>
+      <Glow cy={30} r={20} o={0.12} />
+      <path d="M12 34 C12 20 21 12 32 12 C43 12 52 20 52 34 Z" {...plate} />
+      <path d="M26 13 L26 34 M38 13 L38 34" {...metal} strokeWidth="1.4" opacity="0.7" />
+      <rect x="6" y="33" width="52" height="5" rx="2.5" {...plate} fillOpacity={0.35} />
+      <polygon points={ring(32, 24, 4.5, 6)} fill={C.deep} stroke={C.light} strokeWidth="1" />
+      {[14, 22, 30, 38, 46].map((x) => (
+        <polygon key={x} points={`${x},44 ${x + 4},44 ${x + 2},52`} {...plate} fillOpacity={0.35} />
+      ))}
+      <path d="M12 44 L52 44" {...metal} strokeWidth="2" />
+    </>
+  ),
+
+  amber_cell: (
+    <>
+      <Glow cy={36} r={20} color={MOLTEN} o={0.16} />
+      <rect x="26" y="6" width="12" height="5" rx="1.5" {...plate} />
+      <rect x="18" y="11" width="28" height="46" rx="4" {...plate} fillOpacity={0.1} />
+      <rect x="21" y="26" width="22" height="28" rx="2" fill={MOLTEN} opacity="0.75" />
+      <path d="M21 30 Q32 26 43 30" fill="none" stroke="#fde68a" strokeWidth="1.2" opacity="0.8" />
+      {[34, 41, 48].map((y) => (
+        <polygon key={y} points={`32,${y - 3} 35,${y} 32,${y + 3} 29,${y}`} fill="#fff7d6" />
+      ))}
+      <path d="M18 18 L46 18" {...metal} strokeWidth="1" opacity="0.6" />
+    </>
+  ),
+
+  spike_wall: (
+    <>
+      {[10, 20, 30, 40, 50].map((x) => (
+        <polygon key={x} points={`${x - 3},24 ${x + 3},24 ${x},8`} {...plate} fillOpacity={0.35} />
+      ))}
+      <rect x="6" y="24" width="52" height="34" rx="1.5" {...plate} />
+      <path d="M6 35 L58 35 M6 46 L58 46 M19 24 L19 35 M37 24 L37 35 M28 35 L28 46 M46 35 L46 46 M19 46 L19 58 M37 46 L37 58" {...metal} strokeWidth="1.1" opacity="0.7" />
+      <Shard x={28} y={58} h={9} w={5} r={-10} />
+    </>
+  ),
+
+  saboteur: (
+    <>
+      <Glow cx={48} cy={14} r={10} color={MOLTEN} o={0.25} />
+      {[20, 28, 36].map((x) => (
+        <rect key={x} x={x} y="24" width="8" height="32" rx="3" {...plate} fillOpacity={0.3} />
+      ))}
+      <path d="M18 34 L46 34 M18 46 L46 46" {...metal} strokeWidth="2.4" />
+      <path d="M32 24 Q34 14 44 15 Q48 15 48 12" fill="none" {...metal} strokeWidth="1.4" />
+      <path d="M48 12 L50 6 M48 12 L54 10 M48 12 L44 8" stroke={MOLTEN} strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M8 60 L14 50 L11 47 L18 38" fill="none" stroke={C.mid} strokeWidth="1.8" strokeLinejoin="round" />
+    </>
+  ),
+
+  excavator: (
+    <>
+      <path d="M8 46 L36 46 L36 34 L20 34 L16 40 L8 40 Z" {...plate} />
+      <rect x="22" y="36" width="8" height="5" fill={C.deep} stroke={C.light} strokeWidth="0.8" />
+      <rect x="6" y="48" width="34" height="9" rx="4.5" {...plate} fillOpacity={0.3} />
+      {[11, 18, 25, 32].map((x) => (
+        <circle key={x} cx={x + 1} cy="52.5" r="2" fill="currentColor" opacity="0.6" />
+      ))}
+      <path d="M34 36 L44 14 L56 26" {...metal} strokeWidth="3.6" fill="none" />
+      <path d="M50 26 L60 26 L58 40 L48 36 Z" {...plate} />
+      <path d="M50 40 L52 44 M54 41 L56 45" {...metal} strokeWidth="1.4" />
+      <Shard x={54} y={36} h={8} w={4} r={8} />
+    </>
+  ),
+
+  airship: (
+    <>
+      <Glow cy={22} r={22} o={0.1} />
+      <ellipse cx="30" cy="22" rx="24" ry="12" {...plate} />
+      <path d="M8 22 L52 22 M14 14 Q30 18 46 14 M14 30 Q30 26 46 30" {...metal} strokeWidth="1" opacity="0.6" />
+      <path d="M52 16 L60 10 L60 34 L52 28" {...plate} />
+      <path d="M22 33 L24 42 M38 33 L36 42" {...metal} strokeWidth="1.2" />
+      <rect x="20" y="42" width="20" height="8" rx="2" {...plate} />
+      <circle cx="26" cy="46" r="1.6" fill={C.light} />
+      <circle cx="34" cy="46" r="1.6" fill={C.light} />
+      <path d="M40 46 L46 46 M46 41 L46 51" {...metal} strokeWidth="1.6" />
+      <Shard x={30} y={60} h={8} w={4} />
+    </>
+  ),
+
+  fortress: (
+    <>
+      <Glow cy={34} r={26} o={0.1} />
+      <path d="M6 58 L6 18 L10 18 L10 14 L14 14 L14 18 L18 18 L18 58 Z" {...plate} />
+      <path d="M46 58 L46 18 L50 18 L50 14 L54 14 L54 18 L58 18 L58 58 Z" {...plate} />
+      <path d="M18 58 L18 28 L46 28 L46 58 Z" {...plate} fillOpacity={0.24} />
+      {[22, 28, 34, 40].map((x) => (
+        <polygon key={x} points={`${x},28 ${x + 4},28 ${x + 2},20`} {...plate} fillOpacity={0.35} />
+      ))}
+      <path d="M26 58 L26 46 Q32 38 38 46 L38 58" {...plate} fillOpacity={0.35} />
+      <Shard x={32} y={44} h={10} w={5} />
+      <path d="M10 26 L14 26 M50 26 L54 26 M10 36 L14 36 M50 36 L54 36" stroke={C.mid} strokeWidth="2" strokeLinecap="round" />
+      <line x1="2" y1="58" x2="62" y2="58" {...metal} strokeWidth="2.2" />
+    </>
+  ),
+
+  void_crystal: (
+    <>
+      <Glow r={24} color="#a855f7" o={0.14} />
+      <ellipse cx="32" cy="34" rx="26" ry="7" fill="none" stroke={C.mid} strokeWidth="1.2" strokeDasharray="4 3" transform="rotate(-18 32 34)" />
+      <polygon points="32,6 46,30 32,58 18,30" fill="#0b0f12" stroke="#c084fc" strokeWidth="1.3" strokeLinejoin="round" />
+      <polygon points="32,6 26,30 32,58" fill="#1a1426" />
+      <polygon points="32,6 38,30 32,58" fill="#07060b" />
+      <path d="M30 14 L34 24 L29 31 L35 40 L31 50" fill="none" stroke={C.light} strokeWidth="1.2" strokeLinejoin="round" />
+      <circle cx="54" cy="25" r="2.4" fill={C.light} />
+      <path d="M11 44 L7 40 L12 38" fill="none" stroke={C.mid} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+
+  drill_titan: (
+    <>
+      <Glow cy={30} r={26} color={MOLTEN} o={0.1} />
+      <path d="M14 6 L50 6 L32 44 Z" {...plate} fillOpacity={0.3} />
+      <path d="M17 13 L47 10 M21 21 L44 17 M24 29 L40 25 M28 37 L36 34" {...metal} strokeWidth="1.6" />
+      <path d="M32 44 L32 50" {...metal} strokeWidth="2" />
+      <path d="M8 46 L56 46 L52 58 L12 58 Z" {...plate} />
+      {[16, 24, 32, 40, 48].map((x) => (
+        <circle key={x} cx={x} cy="52" r="2.4" fill="currentColor" opacity="0.6" />
+      ))}
+      <Shard x={6} y={44} h={12} w={6} r={-30} />
+      <Shard x={58} y={44} h={12} w={6} r={30} />
+      <path d="M26 46 L22 40 M38 46 L42 40" stroke={MOLTEN} strokeWidth="1.6" strokeLinecap="round" />
+    </>
+  ),
 };
 
 /** A card's art, sized by its box. */

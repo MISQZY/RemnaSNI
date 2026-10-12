@@ -9,8 +9,8 @@ import { CardArt, ChargeIcon } from "./art";
 import type { CardDef, Rarity, Sigil } from "./rules";
 
 // A card of the Sacrifice in the project's look: dark, framed in the color of its rarity (as RemnaWeb's pets: grey,
-// blue, gold), its art drawn in art.tsx, its cost in sacrifices (a crystal) or debris (a cog), its sigils, power and
-// health. The catalog comes with the rules from RemnaWeb and is shared through CardsProvider.
+// blue, gold), its art drawn in art.tsx, its cost in sacrifices (a crystal) or debris (a cog), its sigils as round
+// badges in their own colors in the top right corner, power and health. The catalog comes with the rules from RemnaWeb and is shared through CardsProvider.
 
 export const SIGIL_ICONS: Record<Sigil, LucideIcon> = {
   airborne: Feather,
@@ -23,6 +23,30 @@ export const SIGIL_ICONS: Record<Sigil, LucideIcon> = {
   growth: Sprout,
   rebuild: Recycle,
 };
+
+/** Each sigil's own color, so it stands out on a card: `board` on the dark table, `page` on any page background. */
+export const SIGIL_TONE: Record<Sigil, { board: string; page: string }> = {
+  airborne: { board: "bg-sky-500/25 text-sky-300 ring-sky-400/60", page: "bg-sky-500/15 text-sky-600 ring-sky-500/40 dark:text-sky-300" },
+  intercept: { board: "bg-violet-500/25 text-violet-300 ring-violet-400/60", page: "bg-violet-500/15 text-violet-600 ring-violet-500/40 dark:text-violet-300" },
+  rift: { board: "bg-fuchsia-500/25 text-fuchsia-300 ring-fuchsia-400/60", page: "bg-fuchsia-500/15 text-fuchsia-600 ring-fuchsia-500/40 dark:text-fuchsia-300" },
+  split: { board: "bg-orange-500/25 text-orange-300 ring-orange-400/60", page: "bg-orange-500/15 text-orange-600 ring-orange-500/40 dark:text-orange-300" },
+  resilient: { board: "bg-yellow-500/25 text-yellow-200 ring-yellow-400/60", page: "bg-yellow-500/15 text-yellow-700 ring-yellow-500/40 dark:text-yellow-200" },
+  tripleCharge: { board: "bg-emerald-500/25 text-emerald-300 ring-emerald-400/60", page: "bg-emerald-500/15 text-emerald-600 ring-emerald-500/40 dark:text-emerald-300" },
+  spikes: { board: "bg-rose-500/25 text-rose-300 ring-rose-400/60", page: "bg-rose-500/15 text-rose-600 ring-rose-500/40 dark:text-rose-300" },
+  growth: { board: "bg-lime-500/25 text-lime-300 ring-lime-400/60", page: "bg-lime-500/15 text-lime-700 ring-lime-500/40 dark:text-lime-300" },
+  rebuild: { board: "bg-cyan-500/25 text-cyan-300 ring-cyan-400/60", page: "bg-cyan-500/15 text-cyan-600 ring-cyan-500/40 dark:text-cyan-300" },
+};
+
+/** A sigil as a round badge in its color; its size comes from the font size (or `className`). */
+export function SigilBadge({ sigil, tone = "board", className }: { sigil: Sigil; tone?: "board" | "page"; className?: string }) {
+  const t = useTranslations("sacrifice.sigils");
+  const Icon = SIGIL_ICONS[sigil];
+  return (
+    <span role="img" aria-label={t(`${sigil}.name`)} className={cn("inline-flex size-[2em] shrink-0 items-center justify-center rounded-full ring-1", SIGIL_TONE[sigil][tone], className)}>
+      <Icon className="size-[62%]" strokeWidth={2.4} />
+    </span>
+  );
+}
 
 /** The frame and the art's metal, by rarity. */
 const RARITY: Record<Rarity, { frame: string; art: string; glow: string }> = {
@@ -55,9 +79,12 @@ export function useCards() {
 
 /** A card's cost: crystals for sacrifices, a cog for debris; nothing for a free card. */
 export function Cost({ def, className }: { def: CardDef; className?: string }) {
+  const t = useTranslations("sacrifice");
   if (!def.blood && !def.bones) return null;
   return (
-    <span className={cn("inline-flex items-center gap-0.5 rounded-full bg-black/60 px-1 font-heading font-bold tabular-nums ring-1 ring-white/10", className)}>
+    <span
+      title={def.blood > 0 ? t("costBloodTitle", { n: def.blood }) : t("costBonesTitle", { n: def.bones })}
+      className={cn("inline-flex items-center gap-0.5 rounded-full bg-black/60 px-1 font-heading font-bold tabular-nums ring-1 ring-white/10", className)}>
       {def.blood > 0 ? (
         <>
           <span className="text-emerald-300">{def.blood}</span>
@@ -111,17 +138,16 @@ export function CardFace({ card, power, health, selected, marked, dim, onClick, 
       )}
     >
       <span className="relative flex h-full flex-col overflow-hidden rounded-[8px] bg-neutral-900 bg-[radial-gradient(circle_at_50%_42%,rgb(46_224_106/0.13),transparent_65%)] text-neutral-100">
-        <span className="flex items-center justify-between gap-0.5 px-1 pt-1 text-[clamp(7px,9cqw,11px)] leading-none">
+        <span className="flex h-[clamp(10px,15cqw,18px)] items-center px-1 pt-1 text-[clamp(8px,11cqw,13px)] leading-none">
           <Cost def={d} className="py-px" />
-          {d.sigils.length > 0 && (
-            <span className="flex gap-px text-neutral-300">
-              {d.sigils.map((s) => {
-                const Icon = SIGIL_ICONS[s];
-                return <Icon key={s} className="size-[1.25em]" aria-label={t(`${s}.name`)} />;
-              })}
-            </span>
-          )}
         </span>
+        {d.sigils.length > 0 && (
+          <span className="absolute top-[3%] right-[4%] z-10 flex gap-[3cqw] text-[clamp(6px,10cqw,12px)]">
+            {d.sigils.map((s) => (
+              <SigilBadge key={s} sigil={s} className="bg-neutral-950/80 shadow-[0_0_8px_-1px] shadow-current" />
+            ))}
+          </span>
+        )}
         <CardArt card={card} className={cn("min-h-0 w-full flex-1 px-[8%] py-[2%]", r.art)} />
         <span className="line-clamp-2 px-0.5 text-center font-heading text-[clamp(6.5px,9cqw,11px)] leading-[1.05] font-semibold tracking-tight break-words uppercase">{nameOf(card)}</span>
         <span className="flex items-center justify-between px-1 pt-0.5 pb-1 font-heading text-[clamp(9px,13cqw,15px)] leading-none font-bold tabular-nums">
@@ -170,17 +196,14 @@ export function CardInfo({ card }: { card: string }) {
           {d.blood ? t("costBlood", { n: d.blood }) : d.bones ? t("costBones", { n: d.bones }) : t("costFree")} · {t("stats", { power: d.power, health: d.health })}
         </span>
       </p>
-      {d.sigils.map((s) => {
-        const Icon = SIGIL_ICONS[s];
-        return (
-          <p key={s} className="flex gap-1.5 text-neutral-300">
-            <Icon className="mt-px size-3.5 shrink-0 text-emerald-400" />
-            <span>
-              <span className="font-semibold text-neutral-100">{t(`sigils.${s}.name`)}</span> — {t(`sigils.${s}.text`)}
-            </span>
-          </p>
-        );
-      })}
+      {d.sigils.map((s) => (
+        <p key={s} className="flex items-center gap-2 text-neutral-300">
+          <SigilBadge sigil={s} className="text-[11px]" />
+          <span>
+            <span className="font-semibold text-neutral-100">{t(`sigils.${s}.name`)}</span> — {t(`sigils.${s}.text`)}
+          </span>
+        </p>
+      ))}
       {d.evolves && <p className="text-neutral-400">{t("evolves", { card: nameOf(d.evolves) })}</p>}
     </div>
   );

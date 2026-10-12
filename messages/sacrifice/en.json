@@ -56,8 +56,8 @@
       "attack": "Nothing to play: attack",
       "lane": "Tap a highlighted space",
       "laneSacrifice": "Pick a space: the marked units are sacrificed",
-      "noSacrifice": "Not enough units on the board to sacrifice",
-      "noBones": "Not enough debris"
+      "noSacrifice": "Crystals needed: {need}, on the board: {have}. Put units down (a spark at least) to have something to sacrifice",
+      "noBones": "Debris needed: {need}, you have: {have}"
     },
     "rarity": {
       "token": "Token",
@@ -96,8 +96,8 @@
     "packTitle": "Card pack",
     "packHelp": "{n} random cards, the odds of each rarity:",
     "buyPack": "Buy a pack",
-    "rulesTitle": "Rules and sigils",
-    "rulesText": "Each side has four spaces and a scale lies between them. Each turn you get a card from your deck, and a spark if your hand holds none. To play a card, tap it, then a space. Cards cost sacrifices (units of yours on the board; a spark is free and fit to sacrifice) or debris: one for every unit of yours destroyed. Attack ends the turn: your units strike the one across, or the scale if the space is empty. A lead of {scale} wins. After {maxTurns} turns the side the scale leans to wins.",
+    "rulesTitle": "Rules",
+    "rulesText": "Each side has four spaces and a scale lies between them. Each turn you get a card from your deck, and a spark if your hand holds none. To play a card, tap it, then a space. Cards cost crystals (units of yours sacrificed from the board) or debris (one for every unit of yours destroyed). Attack ends the turn: your units strike the one across, or the scale if the space is empty. A lead of {scale} wins. After {maxTurns} turns the side the scale leans to wins.",
     "sigils": {
       "airborne": {
         "name": "Airborne",
@@ -163,6 +163,31 @@
     "upToAll": "Up to all",
     "copiesTitle": "Copies of a card in the deck:",
     "upTo": "up to {n}",
-    "packPaid": "Paid from the balance of this site's country."
+    "packPaid": "Paid from the balance of this site's country.",
+    "costBloodTitle": "Cost: {n, plural, one {# crystal} other {# crystals}} — units worth that much are sacrificed",
+    "costBonesTitle": "Cost: {n} debris",
+    "stat": {
+      "charge": "Crystals",
+      "bones": "Debris",
+      "deck": "Deck",
+      "sparks": "Sparks"
+    },
+    "statShort": {
+      "charge": "cryst.",
+      "bones": "debris",
+      "deck": "deck",
+      "sparks": "sparks"
+    },
+    "statHelp": {
+      "charge": "what you can pay in sacrifices right now: the charge of your units on the board, 1 crystal each, 3 with Triple Charge. The number with a crystal in a card’s corner is how many crystals it costs; playing it sacrifices units worth that much (the cheapest, sparks first). Crystals don’t pile up: sacrificed units leave the board.",
+      "bones": "the other way to pay. Every unit of yours destroyed (in battle or as a sacrifice) gives 1 debris; cards with a cog in the corner cost debris instead of sacrifices. Debris piles up all fight.",
+      "sparks": "free units, {n} per fight. A spark comes at the start of your turn if your hand holds none: put it up as a blocker or sacrifice it for 1 crystal.",
+      "deck": "cards left in your deck; you draw one at the start of each turn."
+    },
+    "countsTitle": "The numbers by a player’s name",
+    "logTurn": "turn {n}",
+    "sigilsTitle": "Sigils",
+    "theirHand": "Opponent’s hand: {n, plural, one {# card} other {# cards}}",
+    "theirHandHelp": "The opponent’s cards face down: you see how many, not which"
   }
 }

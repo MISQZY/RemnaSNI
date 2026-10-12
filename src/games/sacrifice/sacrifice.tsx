@@ -19,8 +19,9 @@ import { useGameStatus } from "@/core/use-game-status";
 import { cn } from "@/lib/utils";
 import { Board, FightLog } from "./board";
 import { CardsProvider } from "./card";
-import { DeckEditor, PackShop, SigilList } from "./deck";
+import { DeckEditor, PackShop } from "./deck";
 import { ProofButton } from "./fairness";
+import { RulesBlock, SigilsBlock } from "./guide";
 import type { Action, Collection, Duel, MatchView, Offer, Proof, SacrificeRules, Solo } from "./rules";
 import { useDuelsStream, useSecondsLeft } from "./stream";
 
@@ -173,13 +174,8 @@ export function SacrificeSite({ code, name, signIn, rules }: { code: string; nam
           )}
           {mode === "robot" && solo && <FightLog view={solo.view} them={t("robot")} />}
           {mode === "players" && duel && <FightLog view={duel.view} them={duel.names[1] ?? t("anonymous")} />}
-          <details className="rounded-2xl bg-card p-3 text-xs ring-1 ring-foreground/10">
-            <summary className="cursor-pointer px-1 text-sm font-semibold">{t("rulesTitle")}</summary>
-            <div className="mt-2 space-y-2 px-1 leading-relaxed text-muted-foreground">
-              <p>{t("rulesText", { scale: rules.scaleToWin, maxTurns: rules.maxTurns })}</p>
-              <SigilList />
-            </div>
-          </details>
+          <RulesBlock rules={rules} />
+          <SigilsBlock />
         </div>
       </main>
     </CardsProvider>
