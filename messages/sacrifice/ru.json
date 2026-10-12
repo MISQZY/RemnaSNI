@@ -65,7 +65,8 @@
       "token": "Жетон",
       "common": "Обычная",
       "uncommon": "Необычная",
-      "rare": "Редкая"
+      "rare": "Редкая",
+      "legendary": "Легендарная"
     },
     "costBlood": "{n, plural, one {# жертва} few {# жертвы} many {# жертв} other {# жертвы}}",
     "costBones": "{n, plural, one {# обломок} few {# обломка} many {# обломков} other {# обломка}}",

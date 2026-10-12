@@ -13,7 +13,7 @@ export const SIGILS: Sigil[] = ["airborne", "intercept", "rift", "split", "resil
 /** The free unit every turn brings. */
 export const SPARK = "spark";
 
-export type Rarity = "token" | "common" | "uncommon" | "rare";
+export type Rarity = "token" | "common" | "uncommon" | "rare" | "legendary";
 
 export type CardDef = {
   id: string;
@@ -38,6 +38,7 @@ export type SacrificeRules = {
   pauseMs: number;
   deckMin: number;
   deckMax: number;
+  /** By rarity; an older RemnaWeb sends no legendary (nor such cards). */
   copies: Record<Exclude<Rarity, "token">, number>;
   /** The first pack of the day; each next one costs `packGrowth` times more, up to `packsPerDay` a day (UTC). */
   packPrice: number;

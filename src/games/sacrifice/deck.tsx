@@ -15,7 +15,7 @@ import { spareOf, type CardDef, type Collection, type PackStatus, type Rarity, t
 // takes one out) — saved to RemnaWeb (POST /api/sni/sacrifice/deck); and packs of new cards for Qzr, a few a day, or
 // for the shards of the copies a deck has no room for.
 
-const RARITY_ORDER: Rarity[] = ["common", "uncommon", "rare"];
+const RARITY_ORDER: Rarity[] = ["common", "uncommon", "rare", "legendary"];
 
 type Props = {
   rules: SacrificeRules;
@@ -86,7 +86,7 @@ export function DeckEditor({ rules, collection, busy, onSave }: Props) {
         <div className="space-y-1">
           <p>{t("deckHelp")}</p>
           <p>{t("copiesTitle")}</p>
-          <RarityList values={{ common: t("upTo", { n: rules.copies.common }), uncommon: t("upTo", { n: rules.copies.uncommon }), rare: String(rules.copies.rare) }} />
+          <RarityList values={{ common: t("upTo", { n: rules.copies.common }), uncommon: t("upTo", { n: rules.copies.uncommon }), rare: String(rules.copies.rare), legendary: rules.copies.legendary === undefined ? undefined : String(rules.copies.legendary) }} />
         </div>
       </div>
 
@@ -193,15 +193,16 @@ const CatalogCard = memo(function CatalogCard({
 export const RARITY_LABEL: Record<Exclude<Rarity, "token">, string> = {
   common: "text-neutral-500 dark:text-neutral-300",
   uncommon: "text-sky-600 dark:text-sky-400",
-  rare: "text-amber-600 dark:text-amber-400",
+  rare: "text-purple-600 dark:text-purple-400",
+  legendary: "text-amber-600 dark:text-amber-400",
 };
 
-/** A value for each rarity, one per line, the rarity's name in its color. */
-function RarityList({ values }: { values: Record<Exclude<Rarity, "token">, string> }) {
+/** A value for each rarity, one per line, the rarity's name in its color; none for a rarity an older RemnaWeb does not send. */
+function RarityList({ values }: { values: Partial<Record<Exclude<Rarity, "token">, string>> }) {
   const t = useTranslations("sacrifice.rarity");
   return (
     <ul className="space-y-0.5">
-      {RARITY_ORDER.map((r) => (
+      {RARITY_ORDER.filter((r) => values[r as keyof typeof values] !== undefined).map((r) => (
         <li key={r} className="flex items-center gap-1.5">
           <span className={cn("size-1.5 rounded-full bg-current", RARITY_LABEL[r as keyof typeof RARITY_LABEL])} />
           <span className={cn("font-semibold", RARITY_LABEL[r as keyof typeof RARITY_LABEL])}>{t(r)}</span>
@@ -289,7 +290,7 @@ export function PackShop({
       )}
       <div className="space-y-1 px-1 text-xs text-muted-foreground">
         <p>{t("packHelp", { n: rules.packSize })}</p>
-        <RarityList values={{ common: pct(rules.packOdds.common), uncommon: pct(rules.packOdds.uncommon), rare: pct(rules.packOdds.rare) }} />
+        <RarityList values={{ common: pct(rules.packOdds.common), uncommon: pct(rules.packOdds.uncommon), rare: pct(rules.packOdds.rare), legendary: rules.packOdds.legendary === undefined ? undefined : pct(rules.packOdds.legendary) }} />
         <p>{t("packPaid")}</p>
       </div>
       {left > 0 ? (
@@ -347,7 +348,7 @@ function TradeBox({
       <div className="space-y-1 px-1 text-xs text-muted-foreground">
         <p>{t("tradeHelp")}</p>
         <p>{t("shardValues")}</p>
-        <RarityList values={{ common: t("shardsN", { n: shardValue.common }), uncommon: t("shardsN", { n: shardValue.uncommon }), rare: t("shardsN", { n: shardValue.rare }) }} />
+        <RarityList values={{ common: t("shardsN", { n: shardValue.common }), uncommon: t("shardsN", { n: shardValue.uncommon }), rare: t("shardsN", { n: shardValue.rare }), legendary: shardValue.legendary === undefined ? undefined : t("shardsN", { n: shardValue.legendary }) }} />
       </div>
       {copies > 0 ? (
         <div className="space-y-1 rounded-xl bg-muted/60 px-3 py-2 text-xs ring-1 ring-foreground/5">

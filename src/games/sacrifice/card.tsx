@@ -9,7 +9,7 @@ import { CardArt, ChargeIcon } from "./art";
 import type { CardBackLook, CardDef, Rarity, Sigil } from "./rules";
 
 // A card of the Sacrifice in the project's look: dark, framed in the color of its rarity (as RemnaWeb's pets: grey,
-// blue, gold), its art drawn in art.tsx, its cost in sacrifices (a crystal) or debris (a cog), its sigils as round
+// blue, purple, gold), its art drawn in art.tsx, its cost in sacrifices (a crystal) or debris (a cog), its sigils as round
 // badges in their own colors in the top right corner, power and health. The catalog comes with the rules from RemnaWeb and is shared through CardsProvider.
 
 export const SIGIL_ICONS: Record<Sigil, LucideIcon> = {
@@ -53,10 +53,17 @@ const RARITY: Record<Rarity, { frame: string; art: string; glow: string }> = {
   token: { frame: "from-neutral-600 to-neutral-800", art: "text-neutral-400", glow: "" },
   common: { frame: "from-neutral-400 to-neutral-600", art: "text-neutral-300", glow: "" },
   uncommon: { frame: "from-sky-300 to-sky-600", art: "text-sky-300", glow: "shadow-[0_0_12px_-2px] shadow-sky-500/40" },
-  rare: { frame: "from-amber-200 via-amber-400 to-amber-600", art: "text-amber-300", glow: "shadow-[0_0_14px_-2px] shadow-amber-400/50" },
+  rare: { frame: "from-purple-300 via-purple-500 to-purple-700", art: "text-purple-300", glow: "shadow-[0_0_14px_-2px] shadow-purple-500/50" },
+  legendary: { frame: "from-amber-200 via-amber-400 to-amber-600", art: "text-amber-300", glow: "shadow-[0_0_16px_-1px] shadow-amber-400/60" },
 };
 
-export const RARITY_TEXT: Record<Rarity, string> = { token: "text-neutral-400", common: "text-neutral-300", uncommon: "text-sky-400", rare: "text-amber-400" };
+export const RARITY_TEXT: Record<Rarity, string> = {
+  token: "text-neutral-400",
+  common: "text-neutral-300",
+  uncommon: "text-sky-400",
+  rare: "text-purple-400",
+  legendary: "text-amber-400",
+};
 
 const CardsContext = createContext<Map<string, CardDef>>(new Map());
 
@@ -111,7 +118,7 @@ type Props = {
   dim?: boolean;
   /**
    * In the deck being built: a gold frame drawn inside the card, over the edge of its body, so no ancestor that clips
-   * (the catalog's content-visibility) can cut it off, and it stands out from the gold frame of a rare card.
+   * (the catalog's content-visibility) can cut it off, and it stands out from the gold frame of a legendary card.
    */
   chosen?: boolean;
   /** A cosmetic sheen sweeping over the card, through these colors: its owner's foil, on the board. */
@@ -129,7 +136,8 @@ export const CardFace = memo(function CardFace({ card, power, health, selected, 
   const { def, nameOf } = useCards();
   const d = def(card);
   if (!d) return null;
-  const r = RARITY[d.rarity];
+  // A rarity a newer RemnaWeb has and this site does not know yet looks common.
+  const r = RARITY[d.rarity] ?? RARITY.common;
   const hurt = health !== undefined && health < d.health;
   const Tag = onClick ? "button" : "div";
   return (
@@ -264,7 +272,7 @@ export function CardInfo({ card }: { card: string }) {
     <div className="flex flex-col gap-1 rounded-xl bg-neutral-900/80 p-2.5 text-xs ring-1 ring-white/10">
       <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="font-heading text-sm font-semibold uppercase">{nameOf(card)}</span>
-        <span className={cn("text-[0.6875rem]", RARITY_TEXT[d.rarity])}>{t(`rarity.${d.rarity}`)}</span>
+        <span className={cn("text-[0.6875rem]", RARITY_TEXT[d.rarity] ?? RARITY_TEXT.common)}>{t(`rarity.${d.rarity}`)}</span>
         <span className="ml-auto text-neutral-400">
           {d.blood ? t("costBlood", { n: d.blood }) : d.bones ? t("costBones", { n: d.bones }) : t("costFree")} · {t("stats", { power: d.power, health: d.health })}
         </span>

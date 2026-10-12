@@ -65,7 +65,8 @@
       "token": "Token",
       "common": "Common",
       "uncommon": "Uncommon",
-      "rare": "Rare"
+      "rare": "Rare",
+      "legendary": "Legendary"
     },
     "costBlood": "{n, plural, one {# sacrifice} other {# sacrifices}}",
     "costBones": "{n} debris",

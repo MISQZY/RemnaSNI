@@ -39,11 +39,11 @@ describe("rules from RemnaWeb", () => {
 
 describe("spare copies", () => {
   const def = (id: string, rarity: CardDef["rarity"]): [string, CardDef] => [id, { id, name: { ru: id, en: id }, power: 1, health: 1, blood: 0, bones: 0, sigils: [], rarity }];
-  const defs = new Map([def("a", "common"), def("b", "uncommon"), def("c", "rare")]);
-  const rules = { copies: { common: 3, uncommon: 2, rare: 1 }, shardValue: { common: 1, uncommon: 3, rare: 10 } } as SacrificeRules;
+  const defs = new Map([def("a", "common"), def("b", "uncommon"), def("c", "rare"), def("d", "legendary")]);
+  const rules = { copies: { common: 3, uncommon: 2, rare: 1, legendary: 1 }, shardValue: { common: 1, uncommon: 3, rare: 10, legendary: 30 } } as SacrificeRules;
 
   it("are the copies past the deck's limit, worth shards by rarity, as RemnaWeb counts them", () => {
-    expect(spareOf(rules, defs, { a: 5, b: 2, c: 3, gone: 4 })).toEqual({ spare: { a: 2, c: 2 }, shards: 22 });
+    expect(spareOf(rules, defs, { a: 5, b: 2, c: 3, d: 2, gone: 4 })).toEqual({ spare: { a: 2, c: 2, d: 1 }, shards: 52 });
   });
 
   it("are none from a RemnaWeb that trades nothing", () => {
