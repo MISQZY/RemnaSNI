@@ -1,9 +1,12 @@
+import { playBurst } from "@/core/burst";
 import type { Fx, Who } from "./replay";
 import { BEAT } from "./replay";
+import type { StrikeLook } from "./rules";
 
 // The effects of a replay's beat (replay.ts) on the board, played with the Web Animations API: the board marks its
 // spaces (`data-slot="me:2"`), the units in them (`data-unit`) and the scale (`data-scale`). Numbers and rings float
 // in the board's own box, made here and removed once played. Every animation is handed back so a skip can stop them.
+// A side's cosmetic strike (StrikeLook) tints its units' rush and adds its burst where they land.
 
 /** The words floating over a unit: sigil names and the like, in the page's language. */
 export type FxLabels = { airborne: string; intercept: string; rift: string; spikes: string; resilient: string; growth: string; rebuild: string; sacrifice: string };
@@ -56,6 +59,30 @@ function ring(root: HTMLElement, at: Element, cls: string, out: Animation[]) {
   out.push(a);
 }
 
+/** The bursts of the cosmetic strikes by kind (core/burst.ts); a bolt also flashes a lightning over the target. */
+const STRIKE_BURSTS: Record<string, string> = { flame: "smoke", shards: "shards", frost: "stars", void: "ring", bolt: "shards" };
+
+function strikeBurst(root: HTMLElement, at: Element, s: StrikeLook, out: Animation[]) {
+  const c = center(root, at);
+  if (s.kind === "bolt") {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 20 40");
+    Object.assign(svg.style, { position: "absolute", left: `${c.x - c.w / 3}px`, top: `${c.y - c.h / 2}px`, width: `${(c.w * 2) / 3}px`, height: `${c.h}px`, zIndex: "30", pointerEvents: "none", filter: `drop-shadow(0 0 6px ${s.glow})` });
+    const bolt = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+    bolt.setAttribute("points", "12,0 6,16 13,18 5,40");
+    bolt.setAttribute("fill", "none");
+    bolt.setAttribute("stroke", s.color);
+    bolt.setAttribute("stroke-width", "2.5");
+    bolt.setAttribute("stroke-linejoin", "round");
+    svg.append(bolt);
+    root.append(svg);
+    const a = svg.animate([{ opacity: 0 }, { opacity: 1 }, { opacity: 0.2 }, { opacity: 1 }, { opacity: 0 }], { duration: 360 });
+    a.onfinish = a.oncancel = () => svg.remove();
+    out.push(a);
+  }
+  out.push(...playBurst(root, c.x, c.y, { kind: STRIKE_BURSTS[s.kind] ?? "shards", colors: [s.color, s.glow] }, 0.45));
+}
+
 /** Lifts an animated unit over its neighbours for as long as it moves. */
 function onTop(el: HTMLElement, a: Animation) {
   el.style.zIndex = "20";
@@ -63,8 +90,8 @@ function onTop(el: HTMLElement, a: Animation) {
   a.onfinish = a.oncancel = reset;
 }
 
-/** Plays `fx` on the board under `root`; the animations, to be cancelled on a skip. */
-export function playFx(root: HTMLElement, fx: Fx, labels: FxLabels): Animation[] {
+/** Plays `fx` on the board under `root`, with each side's cosmetic strike; the animations, to be cancelled on a skip. */
+export function playFx(root: HTMLElement, fx: Fx, labels: FxLabels, strikes: Partial<Record<Who, StrikeLook | null>> = {}): Animation[] {
   const out: Animation[] = [];
   const slot = (who: Who, lane: number) => root.querySelector<HTMLElement>(`[data-slot="${who}:${lane}"]`);
   const unit = (who: Who, lane: number) => slot(who, lane)?.querySelector<HTMLElement>("[data-unit]") ?? null;
@@ -80,6 +107,8 @@ export function playFx(root: HTMLElement, fx: Fx, labels: FxLabels): Animation[]
       const dy = b0.y - a0.y;
       const up = Math.sign(dy) * 10;
       const at = (k: number, extra = "") => `translate(${dx * k}px, ${dy * k}px) ${extra}`;
+      const strike = strikes[fx.who];
+      const rush = strike ? `drop-shadow(0 0 10px ${strike.glow}) brightness(1.15)` : "none";
       const frames: Keyframe[] =
         fx.kind === "fly"
           ? [
@@ -101,9 +130,9 @@ export function playFx(root: HTMLElement, fx: Fx, labels: FxLabels): Animation[]
             : [
                 { transform: "none" },
                 { transform: at(-0.08, "scale(0.96)"), offset: 0.18 },
-                { transform: at(fx.kind === "direct" ? 0.7 : 0.62, "scale(1.1)"), offset: 0.42 },
-                { transform: at(fx.kind === "direct" ? 0.6 : 0.5, "scale(1.05)"), offset: 0.55 },
-                { transform: "none" },
+                { transform: at(fx.kind === "direct" ? 0.7 : 0.62, "scale(1.1)"), filter: rush, offset: 0.42 },
+                { transform: at(fx.kind === "direct" ? 0.6 : 0.5, "scale(1.05)"), filter: rush, offset: 0.55 },
+                { transform: "none", filter: "none" },
               ];
       const a = el.animate(frames, { duration: BEAT.lunge + BEAT.impact, easing: "cubic-bezier(.45,0,.3,1)" });
       onTop(el, a);
@@ -113,6 +142,8 @@ export function playFx(root: HTMLElement, fx: Fx, labels: FxLabels): Animation[]
     case "impact": {
       const target = slot(foe(fx.who), fx.target);
       if (!target) break;
+      const strike = strikes[fx.who];
+      if (strike) strikeBurst(root, target, strike, out);
       if (fx.kind === "direct" || fx.kind === "fly") {
         const scale = root.querySelector<HTMLElement>("[data-scale]");
         if (scale) out.push(scale.animate([{ transform: "scale(1)" }, { transform: "scale(1.08)", filter: "brightness(1.6)" }, { transform: "scale(1)" }], { duration: 380 }));

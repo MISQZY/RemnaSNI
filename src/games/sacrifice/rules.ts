@@ -3,6 +3,9 @@
 // GET /api/sni/config under `sacrifice` (config-server.ts), the duels through the stream (stream.ts). These types
 // mirror its answers; only the shuffle is mirrored as code, to check the draws (verifyProof).
 
+import type { Burst } from "@/core/burst";
+import type { Look } from "@/core/look";
+
 export type Sigil = "airborne" | "intercept" | "rift" | "split" | "resilient" | "tripleCharge" | "spikes" | "growth" | "rebuild";
 
 export const SIGILS: Sigil[] = ["airborne", "intercept", "rift", "split", "resilient", "tripleCharge", "spikes", "growth", "rebuild"];
@@ -85,7 +88,40 @@ export type Proof = { hash: string; seed: string | null; decks: [string[], strin
 export type Solo = { id: number; stake: number; payout: number | null; proof: Proof; view: MatchView };
 
 /** A fight against a player, from the stream. */
-export type Duel = { id: number; stake: number; deadline: number | null; names: [string | null, string | null]; payout: number | null; proof: Proof; view: MatchView };
+/** A fight against a player: names and cosmetics are this player's first, the other's second (none from an older RemnaWeb). */
+export type Duel = {
+  id: number;
+  stake: number;
+  deadline: number | null;
+  names: [string | null, string | null];
+  looks?: [SacrificeLook, SacrificeLook];
+  payout: number | null;
+  proof: Proof;
+  view: MatchView;
+};
+
+// The cosmetics of the Sacrifice, bought in the RemnaWeb Mini App shop (its lib/looks.ts): shapes drawn here by their
+// kind, in colors that come as data. A kind unknown here draws the plain look.
+
+/** The back of one's cards, as the other sees the hand: the frame's gradient, the ground, an emblem. */
+export type CardBackLook = { from: string; to: string; base: string; emblem: string; mark: string; shimmer?: boolean };
+/** How one's units strike in the replay: the glow of the rush and the burst on impact. */
+export type StrikeLook = { kind: string; color: string; glow: string };
+/** The balance under the scale. */
+export type ScaleLook = { beam: string; pans: string; pivot: string };
+
+/**
+ * A player's cosmetics of the Sacrifice (RemnaWeb's GET /api/sni/sacrifice, `sacrifice`, and each duel's `looks`): the
+ * card back, the strikes and the foil the other sees too; the table, the balance and the win their own.
+ */
+export type SacrificeLook = {
+  back: CardBackLook | null;
+  strike: StrikeLook | null;
+  table: Look | null;
+  foil: string[] | null;
+  scale: ScaleLook | null;
+  victory: Burst | null;
+};
 
 /** An offer of the lobby: who and the bets they accept. */
 export type Offer = { id: number; name: string | null; min: number; max: number };

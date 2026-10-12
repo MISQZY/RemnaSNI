@@ -7,6 +7,9 @@
 // comes from the seed alone, u = the first 52 bits of HMAC-SHA256(key: seed, message: "crash") / 2^52, so the page
 // checks every crashed round itself (verifyRound).
 
+import type { Burst } from "@/core/burst";
+import type { Look } from "@/core/look";
+
 /** The colors of the rounds, as the rarities of RemnaWeb's pets, from grey to cosmic. */
 export type CrashTier = "common" | "rare" | "epic" | "legendary" | "mythic" | "cosmic";
 
@@ -31,8 +34,19 @@ export type CrashRules = {
 
 export type CrashPhase = "idle" | "betting" | "flying" | "crashed";
 
-/** A bet as everyone sees it: the first name of who made it (null when hidden), its cash-out once there is one. */
-export type CrashBet = { id: number; name: string | null; amount: number; cashout: number | null; payout: number };
+/**
+ * A bet as everyone sees it: the first name of who made it (null when hidden), the look of its row (a cosmetic; none
+ * from an older RemnaWeb), its cash-out once there is one.
+ */
+export type CrashBet = { id: number; name: string | null; badge?: Look | null; amount: number; cashout: number | null; payout: number };
+
+/** What flies at the tip of the curve (a cosmetic): a shape drawn here by its kind, glowing in its colors. */
+export type CrashHead = { kind: string; color: string; glow: string };
+/** A glow along the end of the curve in these colors, and sparks falling off the tip. */
+export type CrashTrail = { colors: string[]; sparks: boolean };
+
+/** The player's cosmetics of the crash (RemnaWeb's GET /api/sni/crash, `crash`); null for the plain ones. */
+export type CrashLook = { head: CrashHead | null; trail: CrashTrail | null; cashout: Burst | null; burst: Burst | null };
 
 /** The player's own bet, with its round and its own cash-out. */
 export type MyBet = CrashBet & { roundId: number; auto: number | null };

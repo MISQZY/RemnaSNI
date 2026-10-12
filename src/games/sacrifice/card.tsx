@@ -6,7 +6,7 @@ import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { QzrIcon } from "@/core/ui/qzr-icon";
 import { CardArt, ChargeIcon } from "./art";
-import type { CardDef, Rarity, Sigil } from "./rules";
+import type { CardBackLook, CardDef, Rarity, Sigil } from "./rules";
 
 // A card of the Sacrifice in the project's look: dark, framed in the color of its rarity (as RemnaWeb's pets: grey,
 // blue, gold), its art drawn in art.tsx, its cost in sacrifices (a crystal) or debris (a cog), its sigils as round
@@ -109,12 +109,14 @@ type Props = {
   /** About to be sacrificed. */
   marked?: boolean;
   dim?: boolean;
+  /** A cosmetic sheen sweeping over the card, through these colors: its owner's foil, on the board. */
+  foil?: string[] | null;
   onClick?: () => void;
   className?: string;
 };
 
 /** A card's face, filling its box (3:4). */
-export function CardFace({ card, power, health, selected, marked, dim, onClick, className }: Props) {
+export function CardFace({ card, power, health, selected, marked, dim, foil, onClick, className }: Props) {
   const t = useTranslations("sacrifice.sigils");
   const { def, nameOf } = useCards();
   const d = def(card);
@@ -160,6 +162,18 @@ export function CardFace({ card, power, health, selected, marked, dim, onClick, 
             <Shield className="size-[0.8em] text-neutral-400" />
           </span>
         </span>
+        {foil && foil.length > 0 && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 mix-blend-screen"
+            style={{
+              background: `linear-gradient(115deg, transparent 25%, ${foil.map((c) => `${c}66`).join(", ")}, transparent 75%)`,
+              backgroundSize: "300% 100%",
+              animation: "look-flow 3.2s linear infinite",
+              ["--look-flow-to" as string]: "300% 0",
+            }}
+          />
+        )}
         {marked && (
           <span className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 bg-rose-950/70 text-[clamp(7px,9cqw,11px)] font-semibold text-rose-100">
             <ChargeIcon className="size-[2.2em] opacity-90" />
@@ -170,8 +184,58 @@ export function CardFace({ card, power, health, selected, marked, dim, onClick, 
   );
 }
 
-/** The back of a card, with the project's crystal: the other's hand, a deck. */
-export function CardBack({ className }: { className?: string }) {
+/** The emblem in the middle of a cosmetic back, on a 30×40 grid. */
+function BackEmblem({ back }: { back: CardBackLook }) {
+  switch (back.emblem) {
+    case "rune":
+      return <path d="M15 9 L15 31 M10 14 L20 20 M20 14 L10 20" stroke={back.mark} strokeWidth="2" strokeLinecap="round" fill="none" />;
+    case "eye":
+      return (
+        <>
+          <path d="M6 20 Q15 11 24 20 Q15 29 6 20 Z" fill="none" stroke={back.mark} strokeWidth="1.6" />
+          <circle cx="15" cy="20" r="3" fill={back.mark} />
+        </>
+      );
+    case "gear":
+      return (
+        <>
+          <circle cx="15" cy="20" r="6" fill="none" stroke={back.mark} strokeWidth="2.5" strokeDasharray="2.4 1.6" />
+          <circle cx="15" cy="20" r="2.4" fill={back.mark} />
+        </>
+      );
+    case "star":
+      return <polygon points="15,10 17,17.5 24,20 17,22.5 15,30 13,22.5 6,20 13,17.5" fill={back.mark} />;
+    default:
+      return <polygon points="15,9 20,17 15,31 10,17" fill={back.mark} />;
+  }
+}
+
+/**
+ * The back of a card: the other's hand, a deck. Its owner's cosmetic back if they wear one (the frame's gradient, the
+ * ground, an emblem, a sweeping shimmer), else the project's crystal.
+ */
+export function CardBack({ back, className }: { back?: CardBackLook | null; className?: string }) {
+  if (back) {
+    return (
+      <div aria-hidden className={cn("relative aspect-[3/4] w-full overflow-hidden rounded-[6px] p-px", className)} style={{ background: `linear-gradient(135deg, ${back.from}, ${back.to})` }}>
+        <svg viewBox="0 0 30 40" className="size-full rounded-[5px]" style={{ background: back.base }}>
+          <rect x="3" y="3" width="24" height="34" rx="2" fill="none" stroke={back.mark} strokeOpacity="0.35" />
+          <BackEmblem back={back} />
+        </svg>
+        {back.shimmer && (
+          <span
+            className="absolute inset-0 mix-blend-screen"
+            style={{
+              background: "linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 0.45), transparent 70%)",
+              backgroundSize: "300% 100%",
+              animation: "look-flow 2.6s linear infinite",
+              ["--look-flow-to" as string]: "300% 0",
+            }}
+          />
+        )}
+      </div>
+    );
+  }
   return (
     <div aria-hidden className={cn("aspect-[3/4] w-full rounded-[6px] bg-gradient-to-b from-neutral-600 to-neutral-800 p-px", className)}>
       <div className="flex h-full items-center justify-center rounded-[5px] bg-neutral-900">

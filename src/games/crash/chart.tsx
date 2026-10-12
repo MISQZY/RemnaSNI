@@ -1,14 +1,16 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
+import { playBurst, type Burst } from "@/core/burst";
 import { useFormat } from "@/core/i18n/provider";
 import { cn } from "@/lib/utils";
-import { msToReach, multiplierAt, tierOf, type CrashRules, type CrashSnapshot, type CrashTier } from "./rules";
+import { msToReach, multiplierAt, tierOf, type CrashHead, type CrashLook, type CrashRules, type CrashSnapshot, type CrashTier } from "./rules";
 import { useFrameNow } from "./stream";
 
 // The round on a chart: the multiplier's curve as it grows, in the color its height has reached (the rarities of
-// RemnaWeb's pets, grey to cosmic), the countdown while bets are taken and the crash point once it has crashed.
+// RemnaWeb's pets, grey to cosmic), the countdown while bets are taken and the crash point once it has crashed. The
+// player's cosmetics draw on it too: the tip and the trail of the curve, bursts at their cash-out and at the crash.
 
 /** The curve's colors; the cosmic one runs through three. */
 const TIER_STROKE: Record<CrashTier, string[]> = {
@@ -49,9 +51,104 @@ export function useMultiplier() {
 /** The steps of the chart's grid, in multiplier units: the first that leaves at most four lines. */
 const STEPS = [0.25, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500];
 
-function draw(canvas: HTMLCanvasElement, rules: CrashRules, elapsedMs: number, top: number, colors: string[], crashed: boolean) {
+/** A cosmetic tip at (x, y), pointing along the curve (`angle`, radians); false for a kind it does not know. */
+function drawHead(ctx: CanvasRenderingContext2D, head: CrashHead, x: number, y: number, angle: number): boolean {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.shadowColor = head.glow;
+  ctx.shadowBlur = 14;
+  ctx.fillStyle = head.color;
+  ctx.strokeStyle = head.glow;
+  ctx.lineWidth = 1.5;
+  ctx.lineJoin = "round";
+  const poly = (pts: [number, number][]) => {
+    ctx.beginPath();
+    pts.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  };
+  let known = true;
+  switch (head.kind) {
+    case "crystal":
+      poly([
+        [11, 0],
+        [2, -6],
+        [-9, -4],
+        [-9, 4],
+        [2, 6],
+      ]);
+      break;
+    case "drill":
+      poly([
+        [12, 0],
+        [-6, -7],
+        [-6, 7],
+      ]);
+      ctx.beginPath();
+      for (const t of [-2, 2, 6]) {
+        ctx.moveTo(t, -((12 - t) / 18) * 7);
+        ctx.lineTo(t - 3, ((12 - t) / 18) * 7);
+      }
+      ctx.stroke();
+      ctx.fillRect(-11, -4, 5, 8);
+      break;
+    case "drone":
+      ctx.beginPath();
+      ctx.arc(0, 0, 5.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-4, -4);
+      ctx.lineTo(-9, -9);
+      ctx.moveTo(-4, 4);
+      ctx.lineTo(-9, 9);
+      ctx.stroke();
+      for (const s of [-1, 1]) {
+        ctx.beginPath();
+        ctx.ellipse(-9, 9 * s, 5, 1.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    case "comet": {
+      const tail = ctx.createLinearGradient(-30, 0, 0, 0);
+      tail.addColorStop(0, `${head.glow}00`);
+      tail.addColorStop(1, head.glow);
+      ctx.fillStyle = tail;
+      ctx.beginPath();
+      ctx.moveTo(0, -6);
+      ctx.lineTo(-30, 0);
+      ctx.lineTo(0, 6);
+      ctx.fill();
+      ctx.fillStyle = head.color;
+      ctx.beginPath();
+      ctx.arc(0, 0, 6, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case "star":
+      poly(
+        Array.from({ length: 10 }, (_, i) => {
+          const r = i % 2 ? 4.5 : 11;
+          const a = (Math.PI * i) / 5 - Math.PI / 2;
+          return [Math.cos(a) * r, Math.sin(a) * r] as [number, number];
+        }),
+      );
+      break;
+    default:
+      known = false;
+  }
+  ctx.restore();
+  return known;
+}
+
+/** Where the curve's tip was drawn last, for the bursts over it; null before the round flies. */
+type Tip = { x: number; y: number } | null;
+
+function draw(canvas: HTMLCanvasElement, rules: CrashRules, elapsedMs: number, top: number, colors: string[], crashed: boolean, look: CrashLook | null): Tip {
   const ctx = canvas.getContext("2d");
-  if (!ctx) return;
+  if (!ctx) return null;
   const dpr = window.devicePixelRatio || 1;
   const w = canvas.clientWidth;
   const h = canvas.clientHeight;
@@ -87,7 +184,7 @@ function draw(canvas: HTMLCanvasElement, rules: CrashRules, elapsedMs: number, t
     ctx.fillStyle = "rgba(255,255,255,0.4)";
     ctx.fillText(`×${Number(m.toFixed(2))}`, pad.left - 6, y(m));
   }
-  if (elapsedMs <= 0) return;
+  if (elapsedMs <= 0) return null;
 
   // The curve: e^(growth × t), sampled finely enough to look smooth.
   const points: [number, number][] = [];
@@ -113,6 +210,26 @@ function draw(canvas: HTMLCanvasElement, rules: CrashRules, elapsedMs: number, t
   ctx.globalAlpha = crashed ? 0.5 : 1;
   ctx.fill();
 
+  // A cosmetic trail: a wide glow along the last part of the curve, in its colors.
+  const trail = look?.trail;
+  if (trail?.colors.length) {
+    const from = Math.floor(points.length * 0.6);
+    const glow = ctx.createLinearGradient(points[from][0], 0, endX, 0);
+    trail.colors.forEach((c, i) => glow.addColorStop(trail.colors.length === 1 ? 0 : i / (trail.colors.length - 1), c));
+    ctx.save();
+    ctx.globalAlpha = crashed ? 0.25 : 0.55;
+    ctx.strokeStyle = glow;
+    ctx.lineWidth = 11;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.shadowColor = trail.colors[trail.colors.length - 1];
+    ctx.shadowBlur = 16;
+    ctx.beginPath();
+    points.slice(from).forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
+    ctx.stroke();
+    ctx.restore();
+  }
+
   ctx.beginPath();
   points.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
   ctx.strokeStyle = stroke;
@@ -134,13 +251,33 @@ function draw(canvas: HTMLCanvasElement, rules: CrashRules, elapsedMs: number, t
     ctx.lineTo(endX - 6, endY + 6);
     ctx.stroke();
   } else {
-    ctx.shadowColor = colors[colors.length - 1];
-    ctx.shadowBlur = 12;
-    ctx.beginPath();
-    ctx.arc(endX, endY, 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
+    // Sparks of a cosmetic trail, falling off behind the tip as the round flies.
+    if (trail?.sparks) {
+      for (let i = 0; i < 9; i++) {
+        const phase = (elapsedMs / 700 + i / 9) % 1;
+        const sx = endX - phase * 46 - ((i * 13) % 9);
+        const sy = endY + phase * phase * 34 + ((i * 7) % 11) - 5;
+        ctx.globalAlpha = 1 - phase;
+        ctx.fillStyle = trail.colors[i % trail.colors.length];
+        ctx.beginPath();
+        ctx.arc(sx, sy, 2.2 - phase * 1.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = colors[colors.length - 1];
+    }
+    const [prevX, prevY] = points[points.length - 4] ?? points[0];
+    const angle = Math.atan2(endY - prevY, endX - prevX);
+    if (!look?.head || !drawHead(ctx, look.head, endX, endY, angle)) {
+      ctx.shadowColor = colors[colors.length - 1];
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.arc(endX, endY, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
   }
+  return { x: endX, y: endY };
 }
 
 type Props = {
@@ -149,13 +286,19 @@ type Props = {
   serverNow: () => number;
   online: boolean;
   full: boolean;
+  /** The player's cosmetics: the tip and trail of the curve, the bursts at their cash-out and at the crash. */
+  look?: CrashLook | null;
+  /** The player's bet in the round, once cashed out: its burst plays when this turns up. */
+  cashedOut?: number | null;
 };
 
-export function CrashChart({ rules, snapshot, serverNow, online, full }: Props) {
+export function CrashChart({ rules, snapshot, serverNow, online, full, look = null, cashedOut = null }: Props) {
   const t = useTranslations("crash");
   const { fixed } = useFormat();
   const mult = useMultiplier();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const tip = useRef<Tip>(null);
   const now = useFrameNow(serverNow, !!snapshot?.round);
 
   const round = snapshot?.round ?? null;
@@ -170,12 +313,35 @@ export function CrashChart({ rules, snapshot, serverNow, online, full }: Props) 
   const curveTop = crashed ? top : Math.min(rules.maxCrash, 100 * Math.exp((rules.growth * elapsedMs) / 1000));
 
   useEffect(() => {
-    if (canvasRef.current) draw(canvasRef.current, rules, elapsedMs, curveTop, TIER_STROKE[tier], crashed);
+    if (canvasRef.current) tip.current = draw(canvasRef.current, rules, elapsedMs, curveTop, TIER_STROKE[tier], crashed, look);
   });
+
+  // The cosmetic bursts: where the round crashes, if it was seen flying (not on a page opened after), and over the
+  // tip at the player's own cash-out.
+  const roundId = round?.id ?? null;
+  const seenFlying = useRef<number | null>(null);
+  const burstAt = useEffectEvent((b: Burst) => {
+    const box = boxRef.current;
+    if (box && tip.current) playBurst(box, tip.current.x, tip.current.y, b);
+  });
+  useEffect(() => {
+    if (flying) seenFlying.current = roundId;
+    else if (crashed && roundId !== null && seenFlying.current === roundId) {
+      seenFlying.current = null;
+      if (look?.burst) burstAt(look.burst);
+    }
+  }, [flying, crashed, roundId, look?.burst]);
+  // Only a cash-out that comes while the page is open: not one already made when it opened.
+  const lastCashout = useRef(cashedOut);
+  useEffect(() => {
+    if (cashedOut === lastCashout.current) return;
+    lastCashout.current = cashedOut;
+    if (cashedOut !== null && look?.cashout) burstAt(look.cashout);
+  }, [cashedOut, look?.cashout]);
 
   const left = round ? Math.max(0, round.startAt - now) : 0;
   return (
-    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-3xl bg-gradient-to-b from-zinc-900 to-zinc-950 ring-1 ring-foreground/10">
+    <div ref={boxRef} className="relative aspect-[4/3] w-full overflow-hidden rounded-3xl bg-gradient-to-b from-zinc-900 to-zinc-950 ring-1 ring-foreground/10">
       <canvas ref={canvasRef} aria-hidden className="absolute inset-0 size-full" />
 
       <div className="pointer-events-none absolute inset-y-0 right-0 left-10 flex flex-col items-center justify-center gap-1 p-4 text-center">

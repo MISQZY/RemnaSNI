@@ -22,7 +22,7 @@ import { CardsProvider } from "./card";
 import { DeckEditor, PackShop } from "./deck";
 import { ProofButton } from "./fairness";
 import { RulesBlock, SigilsBlock } from "./guide";
-import type { Action, Collection, Duel, MatchView, Offer, PackStatus, Proof, SacrificeRules, Solo } from "./rules";
+import type { Action, Collection, Duel, MatchView, Offer, PackStatus, Proof, SacrificeLook, SacrificeRules, Solo } from "./rules";
 import { useDuelsStream, useSecondsLeft } from "./stream";
 
 // The Sacrifice, card duels after Inscryption in the Qzyrium mines, the game of nodes RemnaWeb has picked it for. Three tabs: a fight
@@ -37,7 +37,7 @@ const RANGE_KEY = "sacrifice-range";
 
 type Mode = "robot" | "players" | "deck";
 /** What RemnaWeb's GET /api/sni/sacrifice tells: the country's Qzr, the cards and deck, the fight against the robot. */
-type Status = { balance: number; collection: Collection; packs: PackStatus; solo: Solo | null };
+type Status = { balance: number; collection: Collection; packs: PackStatus; solo: Solo | null; sacrifice?: SacrificeLook };
 
 const readMode = (): Mode => {
   const m = storage.get(MODE_KEY);
@@ -145,13 +145,13 @@ export function SacrificeSite({ code, name, signIn, rules }: { code: string; nam
 
           {mode === "robot" &&
             (solo ? (
-              <Fight rules={rules} id={`solo:${solo.id}`} view={solo.view} proof={solo.proof} them={t("robot")} busy={busy} onAct={actSolo} />
+              <Fight rules={rules} id={`solo:${solo.id}`} view={solo.view} proof={solo.proof} them={t("robot")} looks={{ me: status?.sacrifice }} busy={busy} onAct={actSolo} />
             ) : (
               <Intro text={t("robotIntro", { payout: rules.robotPayout })} />
             ))}
           {mode === "players" &&
             (duel ? (
-              <DuelFight rules={rules} duel={duel} serverNow={stream.serverNow} busy={busy} onAct={actDuel} />
+              <DuelFight rules={rules} duel={duel} mine={status?.sacrifice} serverNow={stream.serverNow} busy={busy} onAct={actDuel} />
             ) : (
               <Intro text={!stream.snapshot ? t(stream.full ? "full" : stream.online ? "connecting" : "offline") : stream.snapshot.offer ? t("waitingOpponent") : t("playersIntro")} />
             ))}
@@ -192,11 +192,31 @@ function Intro({ text }: { text: string }) {
 }
 
 /** The board (with the fight's result over it once it is over and replayed) and its proof under it. */
-function Fight({ rules, id, view, proof, them, busy, left, onAct }: { rules: SacrificeRules; id: string; view: MatchView; proof: Proof; them: string; busy: boolean; left?: number | null; onAct: (a: Action) => void }) {
+function Fight({
+  rules,
+  id,
+  view,
+  proof,
+  them,
+  looks,
+  busy,
+  left,
+  onAct,
+}: {
+  rules: SacrificeRules;
+  id: string;
+  view: MatchView;
+  proof: Proof;
+  them: string;
+  looks: { me?: SacrificeLook | null; them?: SacrificeLook | null };
+  busy: boolean;
+  left?: number | null;
+  onAct: (a: Action) => void;
+}) {
   const over = view.phase === "over";
   return (
     <div className="flex flex-col gap-1">
-      <Board key={id} rules={rules} view={view} them={them} busy={busy || over} left={left} onAct={onAct} />
+      <Board key={id} rules={rules} view={view} them={them} busy={busy || over} left={left} looks={looks} onAct={onAct} />
       <div className="flex justify-end">
         <ProofButton id={id} proof={proof} />
       </div>
@@ -204,10 +224,37 @@ function Fight({ rules, id, view, proof, them, busy, left, onAct }: { rules: Sac
   );
 }
 
-function DuelFight({ rules, duel, serverNow, busy, onAct }: { rules: SacrificeRules; duel: Duel; serverNow: () => number; busy: boolean; onAct: (a: Action) => void }) {
+/** A fight against a player: the looks as they wore them when the fight began, one's own as worn now if none came. */
+function DuelFight({
+  rules,
+  duel,
+  mine,
+  serverNow,
+  busy,
+  onAct,
+}: {
+  rules: SacrificeRules;
+  duel: Duel;
+  mine: SacrificeLook | undefined;
+  serverNow: () => number;
+  busy: boolean;
+  onAct: (a: Action) => void;
+}) {
   const t = useTranslations("sacrifice");
   const left = useSecondsLeft(duel.view.phase === "over" ? null : duel.deadline, serverNow);
-  return <Fight rules={rules} id={`duel:${duel.id}`} view={duel.view} proof={duel.proof} them={duel.names[1] ?? t("anonymous")} busy={busy} left={left} onAct={onAct} />;
+  return (
+    <Fight
+      rules={rules}
+      id={`duel:${duel.id}`}
+      view={duel.view}
+      proof={duel.proof}
+      them={duel.names[1] ?? t("anonymous")}
+      looks={{ me: duel.looks?.[0] ?? mine, them: duel.looks?.[1] }}
+      busy={busy}
+      left={left}
+      onAct={onAct}
+    />
+  );
 }
 
 function Balance({ balance }: { balance: number | undefined }) {

@@ -5,17 +5,32 @@ import { ChevronDown, Cog, FastForward, Layers, Scale as ScaleIcon, ScrollText, 
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { playBurst } from "@/core/burst";
+import { lookStyle } from "@/core/look";
 import { cn } from "@/lib/utils";
 import { ChargeIcon } from "./art";
 import { CardBack, CardFace, CardInfo, useCards } from "./card";
 import { playFx, type FxLabels } from "./fx";
 import { replay, type Boards, type Step } from "./replay";
-import { autoSacrifices, chargeOf, strikePreview, type Action, type CardDef, type Creature, type GameEvent, type MatchView, type SacrificeRules } from "./rules";
+import {
+  autoSacrifices,
+  chargeOf,
+  strikePreview,
+  type Action,
+  type CardDef,
+  type Creature,
+  type GameEvent,
+  type MatchView,
+  type SacrificeLook,
+  type SacrificeRules,
+  type ScaleLook,
+} from "./rules";
 
 // The duel's table: the other's side above (their hand face down), the scale, this player's side and hand below.
 // Playing takes two taps: a card in the hand, then a highlighted space. The sacrifices are picked by themselves, the
 // cheapest first (sparks), and marked on the board; tapping a unit of one's own puts the card in its place instead.
-// Above each unit of one's own: what it will do on the attack. RemnaWeb checks every move.
+// Above each unit of one's own: what it will do on the attack. RemnaWeb checks every move. The players' cosmetics
+// dress it: this player's table, balance and win, either side's card backs, foil on their units and strikes.
 
 type Props = {
   rules: SacrificeRules;
@@ -25,6 +40,8 @@ type Props = {
   busy: boolean;
   /** Seconds left in the turn against a player. */
   left?: number | null;
+  /** The cosmetics of this player and of the one across (none for the robot, or from an older RemnaWeb). */
+  looks?: { me?: SacrificeLook | null; them?: SacrificeLook | null };
   onAct: (action: Action) => void;
 };
 
@@ -33,7 +50,7 @@ type Props = {
  * played on the board under `root` (fx.ts). A state coming in while one plays queues its beats after. Skipped by those
  * who ask the system for less motion.
  */
-function useReplay(view: MatchView, root: RefObject<HTMLDivElement | null>) {
+function useReplay(view: MatchView, root: RefObject<HTMLDivElement | null>, looks: Props["looks"]) {
   const t = useTranslations("sacrifice");
   const { cards } = useCards();
   const [base, setBase] = useState(view);
@@ -61,7 +78,7 @@ function useReplay(view: MatchView, root: RefObject<HTMLDivElement | null>) {
     sacrifice: t("fxSacrifice"),
   };
   const playStep = useEffectEvent((s: Step) => {
-    if (root.current) running.current.push(...playFx(root.current, s.fx, labels));
+    if (root.current) running.current.push(...playFx(root.current, s.fx, labels, { me: looks?.me?.strike, them: looks?.them?.strike }));
   });
 
   useLayoutEffect(() => {
@@ -83,11 +100,11 @@ function useReplay(view: MatchView, root: RefObject<HTMLDivElement | null>) {
   return { step, skip: () => setPlay(null) };
 }
 
-export function Board({ rules, view, them, busy, left, onAct }: Props) {
+export function Board({ rules, view, them, busy, left, looks, onAct }: Props) {
   const t = useTranslations("sacrifice");
   const { cards, def } = useCards();
   const root = useRef<HTMLDivElement>(null);
-  const { step, skip } = useReplay(view, root);
+  const { step, skip } = useReplay(view, root, looks);
   const replaying = !!step;
   const shown: Boards = step ?? { me: view.me.board, them: view.them.board, scale: view.scale };
   const [picked, setPicked] = useState<number | null>(null);
@@ -133,6 +150,18 @@ export function Board({ rules, view, them, busy, left, onAct }: Props) {
     onAct({ type: "play", hand: picked, lane, sacrifices });
   };
 
+  // The win's cosmetic burst, once the fight is seen ending and replayed: not for a fight already over when opened.
+  const won = over && !replaying && view.winner === view.you;
+  const overAtFirst = useRef(over);
+  const victory = looks?.me?.victory;
+  const celebrate = useEffectEvent(() => {
+    const box = root.current;
+    if (box && victory) playBurst(box, box.clientWidth / 2, box.clientHeight / 3, victory);
+  });
+  useEffect(() => {
+    if (won && !overAtFirst.current) celebrate();
+  }, [won]);
+
   const charge = chargeOnBoard(cards, board);
   let hint = "";
   if (replaying) hint = t("hint.replay", { name: step.fx.who === "me" ? t("you") : them });
@@ -159,6 +188,7 @@ export function Board({ rules, view, them, busy, left, onAct }: Props) {
     <div
       ref={root}
       className="relative flex flex-col gap-2 rounded-2xl bg-neutral-950 bg-[radial-gradient(ellipse_at_50%_50%,rgb(46_224_106/0.08),transparent_70%)] p-2.5 text-neutral-100 ring-1 ring-white/10 sm:p-3"
+      style={lookStyle(looks?.me?.table ?? undefined)}
     >
       <SideBar
         name={them}
@@ -174,17 +204,17 @@ export function Board({ rules, view, them, busy, left, onAct }: Props) {
           <div className="flex">
             {Array.from({ length: Math.min(view.them.hand, 8) }, (_, i) => (
               <div key={i} className={cn("w-5 drop-shadow-[0_1px_2px_rgb(0_0_0/0.6)]", i > 0 && "-ml-2")} style={{ transform: `rotate(${(i - (Math.min(view.them.hand, 8) - 1) / 2) * 5}deg)` }}>
-                <CardBack />
+                <CardBack back={looks?.them?.back} />
               </div>
             ))}
           </div>
         )}
       </div>
 
-      <Lanes rules={rules} who="them" board={shown.them} />
-      <Scale rules={rules} scale={shown.scale} />
+      <Lanes rules={rules} who="them" board={shown.them} foil={looks?.them?.foil} />
+      <Scale rules={rules} scale={shown.scale} skin={looks?.me?.scale} />
       <Previews mine={shown.me} theirs={shown.them} hidden={replaying} />
-      <Lanes rules={rules} who="me" board={shown.me} targets={targets} marked={preview} onPick={pickLane} />
+      <Lanes rules={rules} who="me" board={shown.me} foil={looks?.me?.foil} targets={targets} marked={preview} onPick={pickLane} />
 
       <SideBar
         name={t("you")}
@@ -295,6 +325,7 @@ function Lanes({
   rules,
   who,
   board,
+  foil,
   targets,
   marked = [],
   onPick,
@@ -303,6 +334,8 @@ function Lanes({
   /** Whose side: marks the spaces for the replay's effects (fx.ts). */
   who: "me" | "them";
   board: (Creature | null)[];
+  /** The cosmetic foil of the side's owner, on their units. */
+  foil?: string[] | null;
   targets?: boolean[];
   marked?: number[];
   onPick?: (lane: number) => void;
@@ -322,7 +355,7 @@ function Lanes({
           >
             {c && (
               <div key={c.uid} data-unit className="relative h-full animate-in duration-300 fade-in zoom-in-90">
-                <CardFace card={c.card} power={c.power} health={c.health} marked={marked.includes(lane)} onClick={target ? () => onPick?.(lane) : undefined} />
+                <CardFace card={c.card} power={c.power} health={c.health} foil={foil} marked={marked.includes(lane)} onClick={target ? () => onPick?.(lane) : undefined} />
               </div>
             )}
             {target && !c && <button type="button" aria-label={String(lane + 1)} onClick={() => onPick?.(lane)} className="absolute inset-0 animate-pulse rounded-[10px] bg-primary/10" />}
@@ -361,7 +394,7 @@ function Previews({ mine, theirs, hidden }: { mine: (Creature | null)[]; theirs:
 }
 
 /** The scale: this player's lead in damage, from −scaleToWin (lost) to +scaleToWin (won). */
-function Scale({ rules, scale }: { rules: SacrificeRules; scale: number }) {
+function Scale({ rules, scale, skin }: { rules: SacrificeRules; scale: number; skin?: ScaleLook | null }) {
   const t = useTranslations("sacrifice");
   const max = rules.scaleToWin;
   const ticks = Array.from({ length: max * 2 + 1 }, (_, i) => i - max);
@@ -380,7 +413,7 @@ function Scale({ rules, scale }: { rules: SacrificeRules; scale: number }) {
           />
         ))}
       </div>
-      <Balance lead={Math.max(-max, Math.min(max, scale))} max={max} />
+      <Balance lead={Math.max(-max, Math.min(max, scale))} max={max} skin={skin} />
       <p className={cn("font-heading text-[11px] font-semibold tracking-wide uppercase tabular-nums", scale > 0 ? "text-primary" : scale < 0 ? "text-rose-400" : "text-neutral-500")}>
         {scale === 0 ? t("scaleEven") : scale > 0 ? t("scaleUp", { n: Math.min(scale, max), max }) : t("scaleDown", { n: Math.min(-scale, max), max })}
       </p>
@@ -396,31 +429,31 @@ const SWING = "transform 0.9s cubic-bezier(.34,1.56,.64,1)";
  * one on the right, as the lead on the line above, the other's the red one.
  * The beam and the pans swing with a slight overshoot.
  */
-function Balance({ lead, max }: { lead: number; max: number }) {
+function Balance({ lead, max, skin }: { lead: number; max: number; skin?: ScaleLook | null }) {
   const angle = (lead / max) * 14;
   const drop = Math.sin((angle * Math.PI) / 180) * 22;
   const swing = (transform: string) => ({ transform, transformBox: "view-box" as const, transformOrigin: "60px 10px", transition: SWING });
   const pan = (cx: number, dy: number, weights: number, color: string) => (
     <g style={swing(`translate(0px, ${dy}px)`)}>
-      <path d={`M${cx} 10 L${cx - 7} 22 M${cx} 10 L${cx + 7} 22`} stroke="rgb(255 255 255 / 0.3)" strokeWidth="0.8" />
+      <path d={`M${cx} 10 L${cx - 7} 22 M${cx} 10 L${cx + 7} 22`} stroke={skin?.pans ?? "rgb(255 255 255 / 0.3)"} strokeWidth="0.8" />
       {Array.from({ length: weights }, (_, i) => {
         const x = cx + (i - (weights - 1) / 2) * 2.5;
         return <polygon key={i} points={`${x},16 ${x + 1.2},18.6 ${x + 1.2},21.6 ${x},22.4 ${x - 1.2},21.6 ${x - 1.2},18.6`} fill={color} stroke="rgb(0 0 0 / 0.4)" strokeWidth="0.4" />;
       })}
-      <path d={`M${cx - 8} 22 Q${cx} 28 ${cx + 8} 22 Z`} fill="rgb(255 255 255 / 0.08)" stroke={weights ? color : "rgb(255 255 255 / 0.35)"} strokeWidth="1.2" strokeLinejoin="round" />
+      <path d={`M${cx - 8} 22 Q${cx} 28 ${cx + 8} 22 Z`} fill={skin ? `${skin.pans}33` : "rgb(255 255 255 / 0.08)"} stroke={weights ? color : (skin?.pans ?? "rgb(255 255 255 / 0.35)")} strokeWidth="1.2" strokeLinejoin="round" />
     </g>
   );
   return (
     <svg viewBox="28 0 64 36" className="h-auto w-[3.5rem]" aria-hidden>
-      <path d="M60 12 L60 33 M55 34 L65 34" stroke="rgb(255 255 255 / 0.35)" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M60 12 L60 33 M55 34 L65 34" stroke={skin?.beam ?? "rgb(255 255 255 / 0.35)"} strokeOpacity={skin ? 0.8 : 1} strokeWidth="1.4" strokeLinecap="round" />
       {pan(38, -drop, Math.max(0, -lead), "#fb7185")}
       {pan(82, drop, Math.max(0, lead), "#2ee06a")}
       <g style={swing(`rotate(${angle}deg)`)}>
-        <line x1="38" y1="10" x2="82" y2="10" stroke="rgb(255 255 255 / 0.55)" strokeWidth="1.8" strokeLinecap="round" />
+        <line x1="38" y1="10" x2="82" y2="10" stroke={skin?.beam ?? "rgb(255 255 255 / 0.55)"} strokeWidth="1.8" strokeLinecap="round" />
         <circle cx="38" cy="10" r="1.3" fill="rgb(255 255 255 / 0.6)" />
         <circle cx="82" cy="10" r="1.3" fill="rgb(255 255 255 / 0.6)" />
       </g>
-      <polygon points="60,4 63,9 60,15 57,9" fill="#2ee06a" stroke="#c4ffd8" strokeWidth="0.6" strokeOpacity="0.6" />
+      <polygon points="60,4 63,9 60,15 57,9" fill={skin?.pivot ?? "#2ee06a"} stroke="#c4ffd8" strokeWidth="0.6" strokeOpacity="0.6" />
     </svg>
   );
 }

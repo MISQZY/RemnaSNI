@@ -15,10 +15,11 @@ import { QzrIcon } from "@/core/ui/qzr-icon";
 import { gameLayout } from "@/core/ui/game-layout";
 import { SiteHeader } from "@/core/ui/site-header";
 import { useGameStatus } from "@/core/use-game-status";
+import { lookStyle } from "@/core/look";
 import { cn } from "@/lib/utils";
 import { CrashChart, TIER_CHIP, useMultiplier } from "./chart";
 import { CurrentRoundProof, RoundProof } from "./fairness";
-import { multiplierAt, payoutOf, tierOf, type CrashBet, type CrashRules, type CrashSnapshot, type MyBet } from "./rules";
+import { multiplierAt, payoutOf, tierOf, type CrashBet, type CrashLook, type CrashRules, type CrashSnapshot, type MyBet } from "./rules";
 import { useCrashStream, useFrameNow } from "./stream";
 
 // The crash, the game of nodes RemnaWeb has picked it for: a bet of Qzr before the round, then the multiplier grows
@@ -33,8 +34,11 @@ import { useCrashStream, useFrameNow } from "./stream";
 const AMOUNT_KEY = "crash-amount";
 const AUTO_KEY = "crash-auto";
 
-/** The country's Qzr balance and the player's bet in the round on (RemnaWeb's GET /api/sni/crash). */
-type Status = { balance: number; bet: MyBet | null };
+/**
+ * The country's Qzr balance, the player's bet in the round on and their cosmetics of the chart (RemnaWeb's GET
+ * /api/sni/crash; no cosmetics from an older one).
+ */
+type Status = { balance: number; bet: MyBet | null; crash?: CrashLook };
 /** What a bet or a cash-out brings back. */
 type BetResult = { bet: MyBet; balance: number };
 
@@ -63,7 +67,7 @@ export function CrashSite({ code, name, signIn, rules }: { code: string; name: s
     if (!autoPaid) return;
     setStatus((s) =>
       s?.bet && s.bet.id === autoPaid.id && s.bet.cashout == null
-        ? { balance: s.balance + autoPaid.payout, bet: { ...s.bet, cashout: autoPaid.cashout, payout: autoPaid.payout } }
+        ? { ...s, balance: s.balance + autoPaid.payout, bet: { ...s.bet, cashout: autoPaid.cashout, payout: autoPaid.payout } }
         : s,
     );
   }, [autoPaid, setStatus]);
@@ -72,7 +76,7 @@ export function CrashSite({ code, name, signIn, rules }: { code: string; name: s
     setBusy(true);
     try {
       const res = await api<BetResult>("crash/bet", { method: "POST", body: { amount, auto }, country: code });
-      if (res) setStatus(res);
+      if (res) setStatus((s) => ({ ...s, ...res }));
     } catch (err) {
       toast.error(err instanceof ApiError && err.status !== 0 ? err.message : t("crash.failed"));
     } finally {
@@ -84,7 +88,7 @@ export function CrashSite({ code, name, signIn, rules }: { code: string; name: s
     setBusy(true);
     try {
       const res = await api<{ bet: null; balance: number }>("crash/cancel", { method: "POST", country: code });
-      if (res) setStatus(res);
+      if (res) setStatus((s) => ({ ...s, ...res }));
     } catch (err) {
       toast.error(err instanceof ApiError && err.status !== 0 ? err.message : t("crash.failed"));
     } finally {
@@ -97,7 +101,7 @@ export function CrashSite({ code, name, signIn, rules }: { code: string; name: s
     try {
       const res = await api<BetResult>("crash/cashout", { method: "POST", country: code });
       if (res) {
-        setStatus(res);
+        setStatus((s) => ({ ...s, ...res }));
         navigator.vibrate?.(25);
       }
     } catch (err) {
@@ -119,7 +123,7 @@ export function CrashSite({ code, name, signIn, rules }: { code: string; name: s
           <History rules={rules} history={snapshot?.history ?? []} />
 
           <div className="flex flex-col gap-1">
-            <CrashChart rules={rules} snapshot={snapshot} serverNow={serverNow} online={online} full={full} />
+            <CrashChart rules={rules} snapshot={snapshot} serverNow={serverNow} online={online} full={full} look={status?.crash} cashedOut={mine?.cashout != null ? mine.id : null} />
             <CurrentRoundProof rules={rules} round={snapshot?.round ?? null} />
           </div>
         </div>
@@ -349,7 +353,8 @@ function Bets({ bets, crashed, rules, mineId }: { bets: CrashBet[]; crashed: boo
   return (
     <ul className="flex flex-col">
       {bets.map((b) => (
-        <li key={b.id} className={cn("flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm", b.id === mineId && "bg-primary/8")}>
+        // A row with a bought look (its own background) wears it instead of the highlight of one's own.
+        <li key={b.id} className={cn("flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm", b.id === mineId && !b.badge && "bg-primary/8")} style={lookStyle(b.badge ?? undefined)}>
           <span className="min-w-0 flex-1 truncate">{b.name ?? t("anonymous")}</span>
           <span className="inline-flex items-center gap-1 text-muted-foreground tabular-nums">
             <QzrIcon className="size-3" /> {num(b.amount)}
