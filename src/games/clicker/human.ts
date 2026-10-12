@@ -28,7 +28,7 @@ function setDue(next: boolean) {
 async function suspect(reason: Suspicion) {
   setDue(true);
   if (sync.getSnapshot().token) await sync.requestCheck();
-  console.info(`Human check requested: ${reason}`);
+  if (process.env.NODE_ENV !== "production") console.info(`Human check requested: ${reason}`);
 }
 
 function localCheck(): HumanCheck {
