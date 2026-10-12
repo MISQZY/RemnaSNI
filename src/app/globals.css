@@ -264,6 +264,16 @@
     transform: translateX(10%) skewX(-20deg);
   }
 }
+/* The same band at the same speed over a cycle twice as long: half as often (the foil). */
+@keyframes sacrifice-sheen-rare {
+  from {
+    transform: translateX(-70%) skewX(-20deg);
+  }
+  32.5%,
+  to {
+    transform: translateX(10%) skewX(-20deg);
+  }
+}
 @keyframes look-turn {
   to {
     transform: rotate(1turn);

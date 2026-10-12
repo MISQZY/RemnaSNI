@@ -165,7 +165,7 @@ export const CardFace = memo(function CardFace({ card, power, health, selected, 
             <Shield className="size-[0.8em] text-neutral-400" />
           </span>
         </span>
-        {foil && foil.length > 0 && <Sheen colors={foil.map((c) => `${c}80`)} seconds={3.6} />}
+        {foil && foil.length > 0 && <Sheen colors={foil.map((c) => `${c}80`)} seconds={7.2} rare />}
         {marked && (
           <span className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 bg-rose-950/70 text-[clamp(0.4375rem,9cqw,0.6875rem)] font-semibold text-rose-100">
             <ChargeIcon className="size-[2.2em] opacity-90" />
@@ -204,16 +204,17 @@ function BackEmblem({ back }: { back: CardBackLook }) {
 
 /**
  * A band of light sweeping over a card (a foil, a shimmering back): it starts wholly off the left edge and ends wholly
- * off the right, then rests (sacrifice-sheen in globals.css), so the loop never shows its seam.
+ * off the right, then rests (sacrifice-sheen in globals.css), so the loop never shows its seam. `rare`: twice the rest,
+ * the sweep as fast (sacrifice-sheen-rare), so `seconds` is the whole, doubled cycle.
  */
-function Sheen({ colors, seconds }: { colors: string[]; seconds: number }) {
+function Sheen({ colors, seconds, rare }: { colors: string[]; seconds: number; rare?: boolean }) {
   return (
     <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden mix-blend-screen">
       <span
         className="absolute inset-y-[-20%] left-0 w-[250%] motion-reduce:hidden"
         style={{
           background: `linear-gradient(90deg, transparent 40%, ${colors.join(", ")}, transparent 60%)`,
-          animation: `sacrifice-sheen ${seconds}s ease-in-out infinite`,
+          animation: `${rare ? "sacrifice-sheen-rare" : "sacrifice-sheen"} ${seconds}s ease-in-out infinite`,
         }}
       />
     </span>
