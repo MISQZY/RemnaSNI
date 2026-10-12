@@ -23,7 +23,8 @@ export const REMNAWEB_TIMEOUT_MS = 5_000;
  * Something the server asks RemnaWeb for and keeps for `ttlMs`, so a change there reaches the node without a
  * redeploy. While RemnaWeb fails, the last good value keeps serving and is asked again after `ttlMs`; with none
  * yet, `fallback()` serves for `retryMs`, so pages do not wait on RemnaWeb on every request. Concurrent calls
- * share one request; `load` throws on a failure.
+ * share one request; `load` throws on a failure. Past `ttlMs`, a value there is serves at once while the fresh one
+ * loads behind it: only the very first call waits for RemnaWeb.
  */
 export function remoteValue<T>({
   load,
@@ -42,7 +43,7 @@ export function remoteValue<T>({
 
   return () => {
     if (cached && Date.now() < cached.until) return Promise.resolve(cached.value);
-    loading ??= load()
+    const refresh = (loading ??= load()
       .then((value) => {
         good = { value };
         cached = { until: Date.now() + ttlMs, value };
@@ -56,7 +57,7 @@ export function remoteValue<T>({
       })
       .finally(() => {
         loading = null;
-      });
-    return loading;
+      }));
+    return cached ? Promise.resolve(cached.value) : refresh;
   };
 }
