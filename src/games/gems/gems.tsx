@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Gauge, Sparkles, Waves, Zap } from "lucide-react";
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { memo, useEffect, useEffectEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ApiError, api } from "@/core/player/api";
 import { useFormat } from "@/core/i18n/provider";
@@ -10,6 +10,7 @@ import { session, useSession } from "@/core/player/session";
 import { AccountMenu } from "@/core/ui/account-menu";
 import { PerkShop, StatTile, type GamePerk } from "@/core/ui/perk-shop";
 import { useGameStatus } from "@/core/player/use-game-status";
+import { haptic } from "@/core/haptic";
 import { useHydrated } from "@/core/use-hydrated";
 import { QzrIcon } from "@/core/ui/qzr-icon";
 import { gameLayout } from "@/core/ui/game-layout";
@@ -125,8 +126,16 @@ function particlesOf(effect: string[] | null): Particle[] {
 /** RemnaWeb's Gems API (core/player/api.ts): the board, the moves and the bonuses (the status comes with useGameStatus). */
 const gemsApi = <T,>(country: string, path: string, body: object, keepalive = false) => api<T>(path, { method: "POST", body, country, keepalive });
 
+/**
+ * Whether the board is wanted on its side: a phone held upright (below lg, higher than wide) gets the board as high as
+ * the rules make it wide, the same gems in bigger cells. Asked when a board is dealt; turning the phone keeps it.
+ */
+const portraitScreen = () => window.matchMedia("(width < 64rem) and (orientation: portrait)").matches;
+/** The size of the board for this screen. */
+const sizeFor = (rules: GemsRules) => (portraitScreen() ? { cols: rules.rows, rows: rules.cols } : { cols: rules.cols, rows: rules.rows });
+
 /** A board dealt here, to play signed out. */
-const localBoard = (rules: GemsRules) => newBoard({ cols: rules.cols, rows: rules.rows, colors: rules.colors, seed: Math.floor(Math.random() * 2 ** 31) });
+const localBoard = (rules: GemsRules) => newBoard({ ...sizeFor(rules), colors: rules.colors, seed: Math.floor(Math.random() * 2 ** 31) });
 
 export function GemsSite({ code, name, signIn, rules }: { code: string; name: string; signIn: boolean; rules: GemsRules }) {
   const t = useTranslations();
@@ -179,10 +188,13 @@ export function GemsSite({ code, name, signIn, rules }: { code: string; name: st
     setHint(null);
   };
 
-  /** Takes RemnaWeb's board (the one kept, or a new one); the moves not credited are gone with the old one. */
+  /**
+   * Takes RemnaWeb's board (the one kept, or a new one); the moves not credited are gone with the old one. A board kept
+   * for another screen (the computer's on a phone) gives way to a new one turned this screen's way.
+   */
   const resync = async () => {
     try {
-      const res = await gemsApi<Stored>(code, "gems/start", {});
+      const res = await gemsApi<Stored>(code, "gems/start", { portrait: portraitScreen() });
       if (!res) return;
       storedRef.current = res;
       unsentRef.current = [];
@@ -198,6 +210,8 @@ export function GemsSite({ code, name, signIn, rules }: { code: string; name: st
     storedRef.current = null;
     unsentRef.current = [];
     showUnsent();
+    // The frame takes the board's shape while it is on its way.
+    setSize(sizeFor(rules));
     if (session.getSnapshot().token) {
       show(null);
       void resync();
@@ -227,7 +241,10 @@ export function GemsSite({ code, name, signIn, rules }: { code: string; name: st
         unsentRef.current = unsentRef.current.slice(chunk.length);
         showUnsent();
         setStatus(res);
-        if (res.keysEarned > 0) toast.success(t("gems.keys", { n: res.keysEarned }));
+        if (res.keysEarned > 0) {
+          toast.success(t("gems.keys", { n: res.keysEarned }));
+          haptic("success", [20, 40, 20]);
+        }
         // The moves made meanwhile, on RemnaWeb's board: they must come to the board here.
         const again = replay(res.board.board, unsentRef.current.map((u) => u.move));
         if ("bad" in again || !boardRef.current || !sameBoard(again.board, boardRef.current)) await resync();
@@ -325,7 +342,7 @@ export function GemsSite({ code, name, signIn, rules }: { code: string; name: st
       qzr += worth;
       popup(wave, signedIn ? worth : null, worth - Math.round(base), i);
       setPopping(new Set(wave.cleared.map((cell) => shown[cell].id)));
-      navigator.vibrate?.(i ? 8 : 12);
+      haptic("tap", i ? 8 : 12);
       await wait(POP_MS);
       if (gone()) break;
       shown = tilesAfter(shown, wave, board.cols, board.rows);
@@ -403,8 +420,15 @@ export function GemsSite({ code, name, signIn, rules }: { code: string; name: st
       <SiteHeader code={code} name={name} subtitle={t("gems.subtitle")} account={<AccountMenu signIn={signIn} />} className={gameLayout.header} />
 
       <main className={cn(gameLayout.main, "overflow-clip select-none")}>
-        {/* On wide screens the board shrinks with the window height, so it fits without scrolling. */}
-        <div className={cn(gameLayout.play, "lg:max-w-[max(24rem,calc((100dvh-10rem)*1.25))]")}>
+        {/* The board shrinks with the window's height (the frame's, in RemnaWeb), so it fits without scrolling: on
+            phones under the header and the stats, on wide screens beside the blocks. */}
+        <div
+          className={cn(
+            gameLayout.play,
+            "max-lg:mx-auto max-lg:w-full max-lg:max-w-[max(16rem,calc((100dvh-13rem)*var(--ratio)))] lg:max-w-[max(24rem,calc((100dvh-10rem)*var(--ratio)))]",
+          )}
+          style={{ "--ratio": cols / rows } as React.CSSProperties}
+        >
           {/* A frame around the board, so its rounding never cuts the corner gems. */}
           <div className="relative w-full rounded-3xl bg-card p-2 ring-1 ring-foreground/10 sm:p-3">
             <div
@@ -563,7 +587,7 @@ const fallMs = (rows: number) => Math.round(110 + 75 * Math.sqrt(rows));
  * A gem in its cell, moved by a transform: a swap glides and settles, a fall speeds up. Drawn by Crystal in the color
  * of the skin bought and the cut of its color; a gold glow on the golden ones, a white one on the picked one.
  */
-function GemTile({
+const GemTile = memo(function GemTile({
   tile,
   x,
   y,
@@ -607,13 +631,7 @@ function GemTile({
         className={cn(
           // Inset from the cell: a padding in percent would be of the board's width.
           "absolute inset-[6%] transition-[scale,filter] duration-150",
-          popping
-            ? "animate-gem-pop"
-            : hinted
-              ? "animate-gem-hint"
-              : tile.drop
-                ? "animate-gem-drop"
-                : kind !== PLAIN && "animate-gem-charge",
+          popping ? "animate-gem-pop" : hinted ? "animate-gem-hint" : tile.drop && "animate-gem-drop",
           selected && "scale-[1.14]",
         )}
         style={
@@ -624,6 +642,10 @@ function GemTile({
           } as React.CSSProperties
         }
       >
+        {/* A line gem or a star glows, coming and going: a layer's opacity, which the compositor animates alone. */}
+        {kind !== PLAIN && !popping && (
+          <span aria-hidden className="absolute -inset-[8%] animate-gem-charge rounded-full bg-[radial-gradient(closest-side,rgb(255_255_255/0.5),transparent)]" />
+        )}
         <Crystal
           id={`gem${tile.id}`}
           color={color}
@@ -631,7 +653,11 @@ function GemTile({
           kind={kind === STAR ? "star" : kind === ROW ? "row" : kind === COL ? "col" : "plain"}
           golden={golden}
         />
+        {/* A cleared gem flashes white as it bursts. */}
+        {popping && (
+          <span aria-hidden className="absolute -inset-[10%] animate-gem-flash rounded-full bg-[radial-gradient(closest-side,#fff_30%,rgb(255_255_255/0.6)_60%,transparent)]" />
+        )}
       </div>
     </div>
   );
-}
+});

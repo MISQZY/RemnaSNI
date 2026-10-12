@@ -107,14 +107,18 @@
   --animate-gem-hint: gem-hint 1s ease-in-out infinite;
   /* A line gem or a star: a white glow coming and going, so they stand out among the plain ones. */
   --animate-gem-charge: gem-charge 1.8s ease-in-out infinite;
+  /* The white flash over a cleared gem, as long as its burst. */
+  --animate-gem-flash: gem-flash 0.38s ease-in forwards;
 
+  /* Gems animate only transform and opacity, which the compositor plays alone: an animated filter repaints the
+     gem every frame, and dozens of them at once stutter on phones and in Telegram's webview. */
   @keyframes gem-charge {
     0%,
     100% {
-      filter: drop-shadow(0 0 1px rgb(255 255 255 / 0.2));
+      opacity: 0.25;
     }
     50% {
-      filter: drop-shadow(0 0 3px rgb(255 255 255 / 0.55));
+      opacity: 1;
     }
   }
 
@@ -126,17 +130,29 @@
     25% {
       transform: scale(1.22);
       opacity: 1;
-      filter: brightness(1.9) drop-shadow(0 0 6px #fff);
     }
     55% {
       transform: scale(1.12);
       opacity: 1;
-      filter: brightness(1.6) drop-shadow(0 0 8px #fff);
     }
     100% {
       transform: scale(0.15);
       opacity: 0;
-      filter: brightness(2) drop-shadow(0 0 2px #fff);
+    }
+  }
+
+  @keyframes gem-flash {
+    0% {
+      opacity: 0;
+    }
+    25% {
+      opacity: 0.9;
+    }
+    55% {
+      opacity: 0.75;
+    }
+    100% {
+      opacity: 1;
     }
   }
 
