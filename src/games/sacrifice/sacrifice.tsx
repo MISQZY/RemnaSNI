@@ -458,7 +458,7 @@ function QueuePanel({
       <section className="flex flex-col gap-3 rounded-2xl bg-card p-3 ring-1 ring-foreground/10">
         <div className="grid grid-cols-2 gap-1.5">
           <Balance balance={balance} />
-          <StatTile label={t(fighting ? "pot" : "payout")} value={num(fighting ? duel.stake * 2 : (duel.payout ?? 0))} />
+          <StatTile label={t(fighting ? "pot" : "payout")} value={num(fighting ? Math.floor(duel.stake * 2 * (1 - rules.fee)) : (duel.payout ?? 0))} />
         </div>
         {fighting ? (
           <Button variant="outline" disabled={busy} onClick={onConcede}>
