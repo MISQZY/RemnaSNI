@@ -1,8 +1,8 @@
-import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { pageMessages } from "@/core/i18n/messages";
 import { I18nProvider } from "@/core/i18n/provider";
-import { gameMetadata, nodePage } from "@/core/page";
+import { gameRouteMetadata } from "@/core/game-route";
+import { nodePage } from "@/core/page";
 import { SiteHeader } from "@/core/ui/site-header";
 import { Unavailable } from "@/core/ui/unavailable";
 import { ClickerAccount } from "@/games/clicker/account";
@@ -13,10 +13,7 @@ import { GameRuntime } from "@/games/clicker/game-runtime";
 // The clicker: its rules from RemnaWeb, the header and the runtime that saves and syncs the game.
 // Served at / by src/proxy.ts.
 
-export async function generateMetadata(): Promise<Metadata> {
-  const [{ name }, t] = await Promise.all([nodePage(), getTranslations("clicker.meta")]);
-  return gameMetadata(t("title", { country: name }), t("description", { country: name }));
-}
+export const generateMetadata = gameRouteMetadata("clicker");
 
 export default async function ClickerLayout({ children }: { children: React.ReactNode }) {
   const [{ locale, code, name, signIn }, config, t] = await Promise.all([nodePage(), loadClickerConfig(), getTranslations("clicker")]);
