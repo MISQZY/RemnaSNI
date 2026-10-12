@@ -30,8 +30,12 @@ const CHUNK_MS = 5_000;
 /** Chunks played without sign-in, credited to the account once the player signs in. */
 const PENDING_KEY = "snake-pending";
 const MAX_PENDING = 100;
-/** Pending runs sent per status load; RemnaWeb takes a dozen runs a minute. */
-const FLUSH_PER_LOAD = 10;
+/**
+ * Pending runs go as one, of at most this much play: RemnaWeb credits a chunk only as far as its own clock has run
+ * since the player's last one (up to 10 minutes), so runs sent one after another would all but the first be refused.
+ * What is past it waits for a later load.
+ */
+const FLUSH_MAX_MS = 9 * 60_000;
 /** Whether the phone control pad is shown; off by default, swipes are enough. */
 const PAD_KEY = "snake-pad";
 /** A swipe turns once the finger has moved this far, px. */
@@ -139,25 +143,31 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
     storage.set(PAD_KEY, next ? "1" : "0");
   };
 
-  /** Sends runs played without sign-in; the server checks and caps them like any other. */
+  /** Sends runs played without sign-in, added up into one; the server checks and caps it like any other. */
   const flushPending = useEffectEvent(async () => {
     const runs = readPending();
     if (!runs.length) return;
-    const left = [...runs];
-    let earned = 0;
-    for (const run of runs.slice(0, FLUSH_PER_LOAD)) {
-      try {
-        const res = await snakeApi<Status & { earned: number }>(code, run);
-        if (!res) break;
-        earned += res.earned;
-        setStatus(res);
-        setCollected(res.crystals + chunkRef.current.score);
-      } catch (err) {
-        // A refused run is dropped; any other failure leaves the rest for later.
-        if (!(err instanceof ApiError) || err.status !== 400) break;
-      }
-      left.shift();
+    const merged: Run = { score: 0, durationMs: 0, golden: 0 };
+    let taken = 0;
+    // The first run goes whatever its length, so one longer than the limit never blocks the rest.
+    while (taken < runs.length && (taken === 0 || merged.durationMs + runs[taken].durationMs <= FLUSH_MAX_MS)) {
+      const run = runs[taken++];
+      merged.score += run.score;
+      merged.durationMs += run.durationMs;
+      merged.golden! += run.golden ?? 0;
     }
+    let earned = 0;
+    try {
+      const res = await snakeApi<Status & { earned: number }>(code, merged);
+      if (!res) return;
+      earned = res.earned;
+      setStatus(res);
+      setCollected(res.crystals + chunkRef.current.score);
+    } catch (err) {
+      // Refused, it is dropped; any other failure leaves the runs for later.
+      if (!(err instanceof ApiError) || err.status !== 400) return;
+    }
+    const left = readPending().slice(taken);
     writePending(left);
     setPending(left);
     if (earned > 0) toast.success(t("snake.synced", { n: num(earned) }));
@@ -208,13 +218,29 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
       return;
     }
     setStatus((s) => s && { ...s, balance: s.balance + chunk.qzr, crystals: s.crystals + run.score });
+    // Not credited: the balance goes back to what RemnaWeb holds.
+    const undo = () => setStatus((s) => s && { ...s, balance: s.balance - chunk.qzr, crystals: s.crystals - run.score });
+    /** Kept on this device like a run played signed out, and sent with them on the next load. */
+    const keep = () => {
+      const next = [...readPending(), run].slice(-MAX_PENDING);
+      writePending(next);
+      setPending(next);
+    };
     try {
       const res = await snakeApi<Status & { earned: number }>(code, run);
-      if (!res) return;
+      if (!res) {
+        // Signed out meanwhile (the session ran out).
+        undo();
+        keep();
+        return;
+      }
       setStatus(res);
       // Crystals eaten while the chunk was on its way are not in the server's count yet.
       setCollected(res.crystals + chunkRef.current.score);
-    } catch {
+    } catch (err) {
+      undo();
+      // A refused chunk is gone; a lost connection keeps it for later.
+      if (!(err instanceof ApiError) || err.status === 0 || err.status >= 500) keep();
       toast.error(t("snake.failed"));
     }
   });
