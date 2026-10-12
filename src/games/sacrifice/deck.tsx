@@ -122,10 +122,7 @@ const ChosenCard = memo(function ChosenCard({ id, onRemove }: { id: string; onRe
   return <CardFace card={id} onClick={take} />;
 });
 
-/**
- * A card of the catalog. Off screen it is neither laid out nor painted (content-visibility), as the catalog holds every
- * card a pack can give.
- */
+/** A card of the catalog. Its art is lazy (see `CardFace`), as the catalog holds every card a pack can give. */
 const CatalogCard = memo(function CatalogCard({
   id,
   owned,
@@ -145,19 +142,18 @@ const CatalogCard = memo(function CatalogCard({
   const t = useTranslations("sacrifice");
   const { nameOf } = useCards();
   const add = useCallback(() => onAdd(id), [id, onAdd]);
-  const lazy = "[contain-intrinsic-size:auto_9rem] [content-visibility:auto]";
   if (!owned)
     return (
-      <div className={cn("flex flex-col items-center gap-1", lazy)} title={t("notOwned")}>
-        <CardFace card={id} className="opacity-40 grayscale" />
+      <div className="flex flex-col items-center gap-1" title={t("notOwned")}>
+        <CardFace card={id} lazy className="opacity-40 grayscale" />
         <span className="h-5 text-[0.6875rem] leading-5 text-muted-foreground">{t("notOwnedShort")}</span>
       </div>
     );
   // The cards the deck holds in a gold frame. Under the card: copies in the deck of the limit in a hollow yellow ring, how many are owned in the middle and,
   // once the deck holds one, the mark that takes one out.
   return (
-    <div className={cn("flex flex-col gap-1", lazy)}>
-      <CardFace card={id} onClick={add} chosen={n > 0} />
+    <div className="flex flex-col gap-1">
+      <CardFace card={id} onClick={add} chosen={n > 0} lazy />
       <div className="flex h-5 items-center justify-between gap-0.5 text-[0.625rem] leading-none font-bold tabular-nums">
         <span
           title={t("limitBadge", { n, limit })}

@@ -116,11 +116,14 @@ type Props = {
   /** About to be sacrificed. */
   marked?: boolean;
   dim?: boolean;
-  /**
-   * In the deck being built: a gold frame drawn inside the card, over the edge of its body, so no ancestor that clips
-   * (the catalog's content-visibility) can cut it off, and it stands out from the gold frame of a legendary card.
-   */
+  /** In the deck being built: a gold frame around the card, set off from it by a gap so it stands out from a legendary card's gold. */
   chosen?: boolean;
+  /**
+   * Off screen the art (a heavy SVG) is neither laid out nor painted (content-visibility): for the catalog, which holds
+   * every card. Set on the art, not around the card, as content-visibility clips whatever leaves its box — the hover
+   * lift, the rarity's glow, the gold frame.
+   */
+  lazy?: boolean;
   /** A cosmetic sheen sweeping over the card, through these colors: its owner's foil, on the board. */
   foil?: string[] | null;
   onClick?: () => void;
@@ -131,7 +134,7 @@ type Props = {
  * A card's face, filling its box (3:4). Memoized: the deck shows the whole catalog and the board re-renders on every
  * beat, while a card (its art a heavy SVG) changes only with its props.
  */
-export const CardFace = memo(function CardFace({ card, power, health, selected, marked, dim, chosen, foil, onClick, className }: Props) {
+export const CardFace = memo(function CardFace({ card, power, health, selected, marked, dim, chosen, lazy, foil, onClick, className }: Props) {
   const t = useTranslations("sacrifice.sigils");
   const { def, nameOf } = useCards();
   const d = def(card);
@@ -151,6 +154,7 @@ export const CardFace = memo(function CardFace({ card, power, health, selected, 
         r.glow,
         onClick && "cursor-pointer hover:-translate-y-0.5 focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:outline-none",
         selected && "-translate-y-1.5 shadow-[0_0_18px_-2px] shadow-primary ring-2 ring-primary",
+        chosen && "shadow-[0_0_14px_-1px] shadow-amber-400/70 ring-2 ring-amber-400 ring-offset-2 ring-offset-card",
         dim && "opacity-45 saturate-50",
         className,
       )}
@@ -166,7 +170,9 @@ export const CardFace = memo(function CardFace({ card, power, health, selected, 
             ))}
           </span>
         )}
-        <CardArt card={card} className={cn("min-h-0 w-full flex-1 px-[8%] py-[2%]", r.art)} />
+        <span className={cn("flex min-h-0 flex-1", lazy && "[content-visibility:auto]")}>
+          <CardArt card={card} className={cn("size-full px-[8%] py-[2%]", r.art)} />
+        </span>
         <span className="line-clamp-2 px-0.5 text-center font-heading text-[clamp(0.40625rem,9cqw,0.6875rem)] leading-[1.05] font-semibold tracking-tight break-words uppercase">{nameOf(card)}</span>
         <span className="flex items-center justify-between px-1 pt-0.5 pb-1 font-heading text-[clamp(0.5625rem,13cqw,0.9375rem)] leading-none font-bold tabular-nums">
           <span className="inline-flex items-center gap-0.5">
@@ -185,9 +191,6 @@ export const CardFace = memo(function CardFace({ card, power, health, selected, 
           </span>
         )}
       </span>
-      {chosen && (
-        <span className="pointer-events-none absolute inset-[2px] z-20 rounded-[8px] shadow-[inset_0_0_10px_-1px] shadow-amber-400/70 ring-2 ring-amber-400 ring-inset" />
-      )}
     </Tag>
   );
 });
