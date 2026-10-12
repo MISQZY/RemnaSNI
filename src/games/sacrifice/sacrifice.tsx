@@ -54,7 +54,7 @@ export function SacrificeSite({ code, name, signIn, rules }: { code: string; nam
   const t = useTranslations("sacrifice");
   const account = useSession();
   const failed = useFailed();
-  const { status, setStatus } = useGameStatus<Status>("sacrifice", code);
+  const { status, setStatus, reload } = useGameStatus<Status>("sacrifice", code);
   const stream = useDuelsStream();
   // The tab remembered on this device, read after hydration (the server renders the first one).
   const stored = useSyncExternalStore(noSubscribe, readMode, (): Mode => "robot");
@@ -92,6 +92,8 @@ export function SacrificeSite({ code, name, signIn, rules }: { code: string; nam
       if (res) done(res);
     } catch (err) {
       failed(err);
+      // An answer lost on the way may hide a move, a fight or a pack RemnaWeb took: its state is asked for again.
+      if (!(err instanceof ApiError) || err.status === 0 || err.status >= 500) reload();
     } finally {
       setBusy(false);
     }
