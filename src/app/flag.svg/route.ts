@@ -10,6 +10,7 @@ export async function GET() {
   // Bundled into the standalone output via outputFileTracingIncludes in next.config.ts.
   const svg = await readFile(path.join(process.cwd(), "node_modules/flag-icons/flags/1x1", `${code}.svg`));
   return new Response(svg, {
-    headers: { "Content-Type": "image/svg+xml", "Cache-Control": "public, max-age=86400" },
+    // Short: the country comes from RemnaWeb and changes with the panel host, without a redeploy.
+    headers: { "Content-Type": "image/svg+xml", "Cache-Control": "public, max-age=300" },
   });
 }
