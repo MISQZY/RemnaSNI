@@ -1,13 +1,15 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { ChevronDown, Cog, Layers, Scale as ScaleIcon, ScrollText, Sparkle, Swords, X } from "lucide-react";
-import { useState } from "react";
+import { ChevronDown, Cog, FastForward, Layers, Scale as ScaleIcon, ScrollText, Sparkle, Swords, X } from "lucide-react";
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { ChargeIcon } from "./art";
 import { CardBack, CardFace, CardInfo, useCards } from "./card";
+import { playFx, type FxLabels } from "./fx";
+import { replay, type Boards, type Step } from "./replay";
 import { autoSacrifices, chargeOf, strikePreview, type Action, type CardDef, type Creature, type GameEvent, type MatchView, type SacrificeRules } from "./rules";
 
 // The duel's table: the other's side above (their hand face down), the scale, this player's side and hand below.
@@ -26,12 +28,72 @@ type Props = {
   onAct: (action: Action) => void;
 };
 
+/**
+ * The replay of what happened since the state shown last (replay.ts): its beats one after another, the effects of each
+ * played on the board under `root` (fx.ts). A state coming in while one plays queues its beats after. Skipped by those
+ * who ask the system for less motion.
+ */
+function useReplay(view: MatchView, root: RefObject<HTMLDivElement | null>) {
+  const t = useTranslations("sacrifice");
+  const { cards } = useCards();
+  const [base, setBase] = useState(view);
+  const [play, setPlay] = useState<{ steps: Step[]; at: number; upTo: number } | null>(null);
+  const running = useRef<Animation[]>([]);
+
+  if (base !== view) {
+    setBase(view);
+    const calm = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const steps = calm ? [] : replay(cards, base, view);
+    // Keyed by how far the log is played, so a render run twice queues the beats once.
+    const upTo = view.log.length;
+    if (steps.length) setPlay((p) => (p && p.upTo >= upTo ? p : p ? { steps: [...p.steps, ...steps], at: p.at, upTo } : { steps, at: 0, upTo }));
+  }
+
+  const step = play ? play.steps[play.at] : null;
+  const labels: FxLabels = {
+    airborne: t("sigils.airborne.name"),
+    intercept: t("sigils.intercept.name"),
+    rift: t("sigils.rift.name"),
+    spikes: t("sigils.spikes.name"),
+    resilient: t("sigils.resilient.name"),
+    growth: t("sigils.growth.name"),
+    rebuild: t("sigils.rebuild.name"),
+    sacrifice: t("fxSacrifice"),
+  };
+  const playStep = useEffectEvent((s: Step) => {
+    if (root.current) running.current.push(...playFx(root.current, s.fx, labels));
+  });
+
+  useLayoutEffect(() => {
+    if (step) playStep(step);
+  }, [step]);
+
+  useEffect(() => {
+    if (!play) {
+      // Once over, nothing lingers: the board shows RemnaWeb's state.
+      for (const a of running.current.splice(0)) a.cancel();
+      return;
+    }
+    const id = setTimeout(() => setPlay((p) => (!p ? p : p.at + 1 >= p.steps.length ? null : { ...p, at: p.at + 1 })), play.steps[play.at].ms);
+    return () => clearTimeout(id);
+  }, [play]);
+
+  useEffect(() => () => running.current.forEach((a) => a.cancel()), []);
+
+  return { step, skip: () => setPlay(null) };
+}
+
 export function Board({ rules, view, them, busy, left, onAct }: Props) {
   const t = useTranslations("sacrifice");
   const { cards, def } = useCards();
+  const root = useRef<HTMLDivElement>(null);
+  const { step, skip } = useReplay(view, root);
+  const replaying = !!step;
+  const shown: Boards = step ?? { me: view.me.board, them: view.them.board, scale: view.scale };
   const [picked, setPicked] = useState<number | null>(null);
-  const mine = view.active === view.you && view.phase !== "over";
-  const canPlay = mine && !busy;
+  const over = view.phase === "over";
+  const mine = view.active === view.you && !over;
+  const canPlay = mine && !busy && !replaying;
 
   // A new state (a move made, a turn passed) drops the pick.
   const key = `${view.turn}:${view.me.hand.map((h) => h.uid).join()}`;
@@ -73,7 +135,8 @@ export function Board({ rules, view, them, busy, left, onAct }: Props) {
 
   const charge = chargeOnBoard(cards, board);
   let hint = "";
-  if (view.phase !== "over") {
+  if (replaying) hint = t("hint.replay", { name: step.fx.who === "me" ? t("you") : them });
+  else if (!over) {
     if (!mine) hint = t("hint.theirTurn", { name: them });
     else if (!pickedDef) hint = view.me.hand.some((h) => playable(h.card)) ? t("hint.play") : t("hint.attack");
     else if (!targets.some(Boolean))
@@ -82,14 +145,28 @@ export function Board({ rules, view, them, busy, left, onAct }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl bg-neutral-950 bg-[radial-gradient(ellipse_at_50%_50%,rgb(46_224_106/0.08),transparent_70%)] p-2.5 text-neutral-100 ring-1 ring-white/10 sm:p-3">
+    <div className="flex flex-col gap-1">
+      {over && !replaying && (
+        <p
+          className={cn(
+            "rounded-xl px-3 py-2 text-center text-sm font-semibold animate-in fade-in",
+            view.winner === view.you ? "bg-emerald-600 text-white" : view.winner === "draw" ? "bg-muted" : "bg-rose-700 text-white",
+          )}
+        >
+          {view.winner === view.you ? t("won") : view.winner === "draw" ? t("drawn") : t("lost")}
+        </p>
+      )}
+    <div
+      ref={root}
+      className="relative flex flex-col gap-2 rounded-2xl bg-neutral-950 bg-[radial-gradient(ellipse_at_50%_50%,rgb(46_224_106/0.08),transparent_70%)] p-2.5 text-neutral-100 ring-1 ring-white/10 sm:p-3"
+    >
       <SideBar
         name={them}
         charge={chargeOnBoard(cards, view.them.board)}
         bones={view.them.bones}
         deck={view.them.deck}
         sparks={view.them.sparks}
-        active={view.active !== view.you && view.phase !== "over"}
+        active={replaying ? step.fx.who === "them" : view.active !== view.you && !over}
       />
       <div className="flex h-8 items-center justify-center gap-2" title={t("theirHandHelp")}>
         <span className="text-[11px] text-neutral-500">{t("theirHand", { n: view.them.hand })}</span>
@@ -104,28 +181,47 @@ export function Board({ rules, view, them, busy, left, onAct }: Props) {
         )}
       </div>
 
-      <Lanes rules={rules} board={view.them.board} />
-      <Scale rules={rules} scale={view.scale} />
-      <Previews view={view} />
-      <Lanes rules={rules} board={board} targets={targets} marked={preview} onPick={pickLane} />
+      <Lanes rules={rules} who="them" board={shown.them} />
+      <Scale rules={rules} scale={shown.scale} />
+      <Previews mine={shown.me} theirs={shown.them} hidden={replaying} />
+      <Lanes rules={rules} who="me" board={shown.me} targets={targets} marked={preview} onPick={pickLane} />
 
-      <SideBar name={t("you")} charge={charge} bones={view.me.bones} deck={view.me.deck} sparks={view.me.sparks} active={mine} left={mine ? left : null} />
+      <SideBar
+        name={t("you")}
+        charge={charge}
+        bones={view.me.bones}
+        deck={view.me.deck}
+        sparks={view.me.sparks}
+        active={replaying ? step.fx.who === "me" : mine}
+        left={mine ? left : null}
+      />
 
-      {pickedDef && <CardInfo card={pickedDef.id} />}
-      {hint && <p className="text-center text-xs text-neutral-400">{hint}</p>}
+      {hint && <p className={cn("text-center text-xs text-neutral-400", replaying && "text-neutral-300")}>{hint}</p>}
 
-      {mine && (
+      {replaying ? (
+        <Button variant="outline" className="h-11 border-white/15 bg-transparent text-neutral-200 hover:bg-white/10" onClick={skip}>
+          <FastForward /> {t("skip")}
+        </Button>
+      ) : mine && (
         <div className="flex gap-1.5">
-          {pickedDef && (
-            <Button variant="outline" className="border-white/15 bg-transparent text-neutral-200 hover:bg-white/10" onClick={() => setPicked(null)}>
-              <X /> {t("cancel")}
-            </Button>
-          )}
           <Button size="lg" className="h-11 flex-1 font-heading text-base uppercase" disabled={busy} onClick={() => onAct({ type: "bell" })}>
             <Swords /> {t("attack")}
           </Button>
+          {pickedDef && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-11 shrink-0 border-white/15 bg-transparent px-3 text-xs text-neutral-300 hover:bg-white/10"
+              title={t("cancel")}
+              onClick={() => setPicked(null)}
+            >
+              <X /> {t("cancel")}
+            </Button>
+          )}
         </div>
       )}
+
+      {pickedDef && !replaying && <CardInfo card={pickedDef.id} />}
 
       <ScrollArea scrollbars="horizontal" className="-mx-1">
         <div className="flex gap-1.5 px-1 pt-2 pb-2">
@@ -141,6 +237,7 @@ export function Board({ rules, view, them, busy, left, onAct }: Props) {
           ))}
         </div>
       </ScrollArea>
+    </div>
     </div>
   );
 }
@@ -196,12 +293,15 @@ function SideBar({
 
 function Lanes({
   rules,
+  who,
   board,
   targets,
   marked = [],
   onPick,
 }: {
   rules: SacrificeRules;
+  /** Whose side: marks the spaces for the replay's effects (fx.ts). */
+  who: "me" | "them";
   board: (Creature | null)[];
   targets?: boolean[];
   marked?: number[];
@@ -214,13 +314,14 @@ function Lanes({
         return (
           <div
             key={lane}
+            data-slot={`${who}:${lane}`}
             className={cn(
               "relative aspect-[3/4] rounded-[10px] border border-dashed border-white/10 bg-white/[0.03] transition-colors",
               target && "border-2 border-primary/80 bg-primary/10",
             )}
           >
             {c && (
-              <div key={c.uid} className="h-full animate-in duration-300 fade-in zoom-in-90">
+              <div key={c.uid} data-unit className="relative h-full animate-in duration-300 fade-in zoom-in-90">
                 <CardFace card={c.card} power={c.power} health={c.health} marked={marked.includes(lane)} onClick={target ? () => onPick?.(lane) : undefined} />
               </div>
             )}
@@ -233,13 +334,13 @@ function Lanes({
 }
 
 /** What each unit of this player's will do on the attack. */
-function Previews({ view }: { view: MatchView }) {
+function Previews({ mine, theirs, hidden }: { mine: (Creature | null)[]; theirs: (Creature | null)[]; hidden: boolean }) {
   const t = useTranslations("sacrifice");
   const { cards } = useCards();
   return (
-    <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${view.me.board.length}, minmax(0, 1fr))` }}>
-      {view.me.board.map((_, lane) => {
-        const p = strikePreview(cards, view.me.board, view.them.board, lane);
+    <div className={cn("grid gap-1.5 transition-opacity", hidden && "opacity-0")} style={{ gridTemplateColumns: `repeat(${mine.length}, minmax(0, 1fr))` }}>
+      {mine.map((_, lane) => {
+        const p = strikePreview(cards, mine, theirs, lane);
         return (
           <span key={lane} className="flex h-4 items-center justify-center gap-1 text-[10px] font-semibold tabular-nums">
             {p.scale > 0 && (
@@ -265,24 +366,62 @@ function Scale({ rules, scale }: { rules: SacrificeRules; scale: number }) {
   const max = rules.scaleToWin;
   const ticks = Array.from({ length: max * 2 + 1 }, (_, i) => i - max);
   return (
-    <div className="flex flex-col items-center gap-1 py-0.5">
+    <div data-scale className="flex flex-col items-center gap-1 py-0.5">
       <div className="flex w-full items-center gap-0.5">
         {ticks.map((n) => (
           <span
             key={n}
             className={cn(
               "h-2 flex-1 rounded-full bg-white/10 transition-colors",
-              n === 0 && "h-3 bg-white/30",
+              n === 0 && "mx-0.5 h-4 w-0.5 flex-none rounded-full bg-white/40",
               scale > 0 && n > 0 && n <= scale && "bg-primary shadow-[0_0_6px] shadow-primary/60",
               scale < 0 && n < 0 && n >= scale && "bg-rose-500 shadow-[0_0_6px] shadow-rose-500/60",
             )}
           />
         ))}
       </div>
+      <Balance lead={Math.max(-max, Math.min(max, scale))} max={max} />
       <p className={cn("font-heading text-[11px] font-semibold tracking-wide uppercase tabular-nums", scale > 0 ? "text-primary" : scale < 0 ? "text-rose-400" : "text-neutral-500")}>
         {scale === 0 ? t("scaleEven") : scale > 0 ? t("scaleUp", { n: Math.min(scale, max), max }) : t("scaleDown", { n: Math.min(-scale, max), max })}
       </p>
     </div>
+  );
+}
+
+const SWING = "transform 0.9s cubic-bezier(.34,1.56,.64,1)";
+
+/**
+ * The scale drawn as a balance: the beam tips toward the side ahead, as far as its lead goes toward winning, and its
+ * pan holds a crystal for each point of the lead: a small mark, the words are under it. This player's pan is the green
+ * one on the right, as the lead on the line above, the other's the red one.
+ * The beam and the pans swing with a slight overshoot.
+ */
+function Balance({ lead, max }: { lead: number; max: number }) {
+  const angle = (lead / max) * 14;
+  const drop = Math.sin((angle * Math.PI) / 180) * 22;
+  const swing = (transform: string) => ({ transform, transformBox: "view-box" as const, transformOrigin: "60px 10px", transition: SWING });
+  const pan = (cx: number, dy: number, weights: number, color: string) => (
+    <g style={swing(`translate(0px, ${dy}px)`)}>
+      <path d={`M${cx} 10 L${cx - 7} 22 M${cx} 10 L${cx + 7} 22`} stroke="rgb(255 255 255 / 0.3)" strokeWidth="0.8" />
+      {Array.from({ length: weights }, (_, i) => {
+        const x = cx + (i - (weights - 1) / 2) * 2.5;
+        return <polygon key={i} points={`${x},16 ${x + 1.2},18.6 ${x + 1.2},21.6 ${x},22.4 ${x - 1.2},21.6 ${x - 1.2},18.6`} fill={color} stroke="rgb(0 0 0 / 0.4)" strokeWidth="0.4" />;
+      })}
+      <path d={`M${cx - 8} 22 Q${cx} 28 ${cx + 8} 22 Z`} fill="rgb(255 255 255 / 0.08)" stroke={weights ? color : "rgb(255 255 255 / 0.35)"} strokeWidth="1.2" strokeLinejoin="round" />
+    </g>
+  );
+  return (
+    <svg viewBox="28 0 64 36" className="h-auto w-[3.5rem]" aria-hidden>
+      <path d="M60 12 L60 33 M55 34 L65 34" stroke="rgb(255 255 255 / 0.35)" strokeWidth="1.4" strokeLinecap="round" />
+      {pan(38, -drop, Math.max(0, -lead), "#fb7185")}
+      {pan(82, drop, Math.max(0, lead), "#2ee06a")}
+      <g style={swing(`rotate(${angle}deg)`)}>
+        <line x1="38" y1="10" x2="82" y2="10" stroke="rgb(255 255 255 / 0.55)" strokeWidth="1.8" strokeLinecap="round" />
+        <circle cx="38" cy="10" r="1.3" fill="rgb(255 255 255 / 0.6)" />
+        <circle cx="82" cy="10" r="1.3" fill="rgb(255 255 255 / 0.6)" />
+      </g>
+      <polygon points="60,4 63,9 60,15 57,9" fill="#2ee06a" stroke="#c4ffd8" strokeWidth="0.6" strokeOpacity="0.6" />
+    </svg>
   );
 }
 

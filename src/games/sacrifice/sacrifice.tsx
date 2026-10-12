@@ -191,23 +191,12 @@ function Intro({ text }: { text: string }) {
   );
 }
 
-/** The board, with the fight's result over it once it is over and its proof under it. */
+/** The board (with the fight's result over it once it is over and replayed) and its proof under it. */
 function Fight({ rules, id, view, proof, them, busy, left, onAct }: { rules: SacrificeRules; id: string; view: MatchView; proof: Proof; them: string; busy: boolean; left?: number | null; onAct: (a: Action) => void }) {
-  const t = useTranslations("sacrifice");
   const over = view.phase === "over";
   return (
     <div className="flex flex-col gap-1">
-      {over && (
-        <p
-          className={cn(
-            "rounded-xl px-3 py-2 text-center text-sm font-semibold animate-in fade-in",
-            view.winner === view.you ? "bg-emerald-600 text-white" : view.winner === "draw" ? "bg-muted" : "bg-rose-700 text-white",
-          )}
-        >
-          {view.winner === view.you ? t("won") : view.winner === "draw" ? t("drawn") : t("lost")}
-        </p>
-      )}
-      <Board rules={rules} view={view} them={them} busy={busy || over} left={left} onAct={onAct} />
+      <Board key={id} rules={rules} view={view} them={them} busy={busy || over} left={left} onAct={onAct} />
       <div className="flex justify-end">
         <ProofButton id={id} proof={proof} />
       </div>

@@ -57,7 +57,8 @@
       "lane": "Tap a highlighted space",
       "laneSacrifice": "Pick a space: the marked units are sacrificed",
       "noSacrifice": "Crystals needed: {need}, on the board: {have}. Put units down (a spark at least) to have something to sacrifice",
-      "noBones": "Debris needed: {need}, you have: {have}"
+      "noBones": "Debris needed: {need}, you have: {have}",
+      "replay": "Playing: {name}"
     },
     "rarity": {
       "token": "Token",
@@ -188,6 +189,8 @@
     "logTurn": "turn {n}",
     "sigilsTitle": "Sigils",
     "theirHand": "Opponent’s hand: {n, plural, one {# card} other {# cards}}",
-    "theirHandHelp": "The opponent’s cards face down: you see how many, not which"
+    "theirHandHelp": "The opponent’s cards face down: you see how many, not which",
+    "fxSacrifice": "Sacrifice",
+    "skip": "Skip"
   }
 }
