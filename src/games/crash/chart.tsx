@@ -6,7 +6,7 @@ import { playBurst, type Burst } from "@/core/burst";
 import { useFormat } from "@/core/i18n/provider";
 import { cn } from "@/lib/utils";
 import { msToReach, multiplierAt, tierOf, type CrashHead, type CrashLook, type CrashRules, type CrashSnapshot, type CrashTier } from "./rules";
-import { useFrameNow } from "./stream";
+import { useFrameLoop, useFrameNow } from "./stream";
 
 // The round on a chart: the multiplier's curve as it grows, in the color its height has reached (the rarities of
 // RemnaWeb's pets, grey to cosmic), the countdown while bets are taken and the crash point once it has crashed. The
@@ -146,6 +146,30 @@ function drawHead(ctx: CanvasRenderingContext2D, head: CrashHead, x: number, y: 
 /** Where the curve's tip was drawn last, for the bursts over it; null before the round flies. */
 type Tip = { x: number; y: number } | null;
 
+/** Points of the curve: enough to look smooth. */
+const SAMPLES = 120;
+/** The curve's points, x and y in turn: one buffer for every frame, not a new array each time. */
+const curve = new Float64Array((SAMPLES + 1) * 2);
+
+/** The gradients of the last frames, by canvas, kept while their ends and colors stay: in a long flight they barely move. */
+const gradientsOf = new WeakMap<CanvasRenderingContext2D, Map<string, CanvasGradient>>();
+function gradient(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, stops: [number, string][]): CanvasGradient {
+  let gradients = gradientsOf.get(ctx);
+  if (!gradients) gradientsOf.set(ctx, (gradients = new Map()));
+  const key = [x0, y0, x1, y1].map(Math.round).join(",") + stops.join(";");
+  let g = gradients.get(key);
+  if (!g) {
+    if (gradients.size > 8) gradients.clear();
+    g = ctx.createLinearGradient(x0, y0, x1, y1);
+    for (const [at, color] of stops) g.addColorStop(at, color);
+    gradients.set(key, g);
+  }
+  return g;
+}
+
+/** Color stops spread evenly over a gradient. */
+const spread = (colors: string[]): [number, string][] => colors.map((c, i) => [colors.length === 1 ? 0 : i / (colors.length - 1), c]);
+
 function draw(canvas: HTMLCanvasElement, rules: CrashRules, elapsedMs: number, top: number, colors: string[], crashed: boolean, look: CrashLook | null): Tip {
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
@@ -187,23 +211,26 @@ function draw(canvas: HTMLCanvasElement, rules: CrashRules, elapsedMs: number, t
   if (elapsedMs <= 0) return null;
 
   // The curve: e^(growth × t), sampled finely enough to look smooth.
-  const points: [number, number][] = [];
-  const n = 120;
-  for (let i = 0; i <= n; i++) {
-    const ms = (elapsedMs * i) / n;
-    points.push([x(ms), y(Math.min(top / 100, Math.exp((rules.growth * ms) / 1000)))]);
+  for (let i = 0; i <= SAMPLES; i++) {
+    const ms = (elapsedMs * i) / SAMPLES;
+    curve[i * 2] = x(ms);
+    curve[i * 2 + 1] = y(Math.min(top / 100, Math.exp((rules.growth * ms) / 1000)));
   }
-  const [endX, endY] = points[points.length - 1];
-  const stroke = ctx.createLinearGradient(pad.left, 0, endX, 0);
-  colors.forEach((c, i) => stroke.addColorStop(colors.length === 1 ? 0 : i / (colors.length - 1), c));
+  const endX = curve[SAMPLES * 2];
+  const endY = curve[SAMPLES * 2 + 1];
+  const tracePath = () => {
+    for (let i = 0; i <= SAMPLES; i++) ctx.lineTo(curve[i * 2], curve[i * 2 + 1]);
+  };
+  const stroke = gradient(ctx, pad.left, 0, endX, 0, spread(colors));
 
   // The area under it, fading to the bottom.
-  const fill = ctx.createLinearGradient(0, endY, 0, pad.top + plotH);
-  fill.addColorStop(0, `${colors[colors.length - 1]}55`);
-  fill.addColorStop(1, `${colors[0]}00`);
+  const fill = gradient(ctx, 0, endY, 0, pad.top + plotH, [
+    [0, `${colors[colors.length - 1]}55`],
+    [1, `${colors[0]}00`],
+  ]);
   ctx.beginPath();
-  ctx.moveTo(points[0][0], pad.top + plotH);
-  for (const [px, py] of points) ctx.lineTo(px, py);
+  ctx.moveTo(curve[0], pad.top + plotH);
+  tracePath();
   ctx.lineTo(endX, pad.top + plotH);
   ctx.closePath();
   ctx.fillStyle = fill;
@@ -215,13 +242,13 @@ function draw(canvas: HTMLCanvasElement, rules: CrashRules, elapsedMs: number, t
   const trail = look?.trail;
   let line: CanvasGradient = stroke;
   if (trail?.colors.length) {
-    line = ctx.createLinearGradient(pad.left, 0, endX, 0);
-    trail.colors.forEach((c, i) => line.addColorStop(trail.colors.length === 1 ? 0 : i / (trail.colors.length - 1), c));
+    line = gradient(ctx, pad.left, 0, endX, 0, spread(trail.colors));
     ctx.shadowColor = trail.colors[trail.colors.length - 1];
     ctx.shadowBlur = 6;
   }
   ctx.beginPath();
-  points.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
+  ctx.moveTo(curve[0], curve[1]);
+  tracePath();
   ctx.strokeStyle = line;
   ctx.lineWidth = 3;
   ctx.lineJoin = "round";
@@ -257,7 +284,8 @@ function draw(canvas: HTMLCanvasElement, rules: CrashRules, elapsedMs: number, t
       ctx.globalAlpha = 1;
       ctx.fillStyle = colors[colors.length - 1];
     }
-    const [prevX, prevY] = points[points.length - 4] ?? points[0];
+    const prev = Math.max(0, SAMPLES - 3) * 2;
+    const [prevX, prevY] = [curve[prev], curve[prev + 1]];
     const angle = Math.atan2(endY - prevY, endX - prevX);
     if (!look?.head || !drawHead(ctx, look.head, endX, endY, angle)) {
       ctx.shadowColor = colors[colors.length - 1];
@@ -290,23 +318,44 @@ export function CrashChart({ rules, snapshot, serverNow, online, full, look = nu
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const tip = useRef<Tip>(null);
-  // Frozen while the stream is down: the curve must not climb on past a crash the page has not heard of.
-  const now = useFrameNow(serverNow, !!snapshot?.round && online);
-
   const round = snapshot?.round ?? null;
   const crashed = round?.crash != null;
-  const betting = !!round && !crashed && now < round.startAt;
-  const flying = !!round && !crashed && !betting;
-  // Where the curve is now; in flight it may pass the crash point a moment before the stream says so.
-  const elapsedMs = !round || betting ? 0 : crashed ? msToReach(rules, round.crash!) : now - round.startAt;
-  const top = crashed ? round!.crash! : multiplierAt(rules, elapsedMs);
-  const tier = tierOf(rules, top);
-  // The curve takes the multiplier unrounded: floored to hundredths, its tip and scale would move in steps.
-  const curveTop = crashed ? top : Math.min(rules.maxCrash, 100 * Math.exp((rules.growth * elapsedMs) / 1000));
+  // The text follows the clock twenty times a second, while bets are taken and in flight; frozen while the stream is
+  // down, so the curve does not climb on past a crash the page has not heard of.
+  const now = useFrameNow(serverNow, !!round && !crashed && online);
 
-  useEffect(() => {
-    if (canvasRef.current) tip.current = draw(canvasRef.current, rules, elapsedMs, curveTop, TIER_STROKE[tier], crashed, look);
+  /** The round at `at`: where the curve is (in flight it may pass the crash point a moment before the stream says so). */
+  const viewAt = (at: number) => {
+    const betting = !!round && !crashed && at < round.startAt;
+    const elapsedMs = !round || betting ? 0 : crashed ? msToReach(rules, round.crash!) : at - round.startAt;
+    const top = crashed ? round!.crash! : multiplierAt(rules, elapsedMs);
+    // The curve takes the multiplier unrounded: floored to hundredths, its tip and scale would move in steps.
+    const curveTop = crashed ? top : Math.min(rules.maxCrash, 100 * Math.exp((rules.growth * elapsedMs) / 1000));
+    return { betting, elapsedMs, top, tier: tierOf(rules, top), curveTop };
+  };
+  const { betting, top, tier } = viewAt(now);
+  const flying = !!round && !crashed && !betting;
+  const animating = flying && online;
+
+  const paint = (at: number) => {
+    if (!canvasRef.current) return;
+    const v = viewAt(at);
+    tip.current = draw(canvasRef.current, rules, v.elapsedMs, v.curveTop, TIER_STROKE[v.tier], crashed, look);
+  };
+  // In flight the canvas is drawn on every frame by itself, not by React; otherwise (the countdown, the crash, the
+  // stream down) the picture stands still and is drawn when something changes, the size of the chart included.
+  useFrameLoop(serverNow, animating, paint);
+  const paintStill = useEffectEvent(() => {
+    if (!animating) paint(now);
   });
+  useEffect(() => paintStill());
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const observer = new ResizeObserver(() => paintStill());
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, []);
 
   // The cosmetic bursts: where the round crashes, if it was seen flying (not on a page opened after), and over the
   // tip at the player's own cash-out.

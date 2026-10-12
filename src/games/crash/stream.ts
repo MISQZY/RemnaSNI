@@ -83,12 +83,13 @@ export function useCrashStream(): CrashStream {
 }
 
 /**
- * `serverNow()` on every animation frame while `active`, else once. In between it runs on the frame's own clock and only
- * eases toward `serverNow()`, never back: `Date.now()` steps in whole milliseconds and the offset to the server jumps
- * when a new sample lands, either of which makes the curve's tip shake.
+ * Calls `onFrame(now)` on every animation frame while `active`, outside of React's renders: for a canvas, which a
+ * render per frame would only slow down. `now` runs on the frame's own clock and only eases toward `serverNow()`,
+ * never back: `Date.now()` steps in whole milliseconds and the offset to the server jumps when a new sample lands,
+ * either of which makes the curve's tip shake.
  */
-export function useFrameNow(serverNow: () => number, active: boolean): number {
-  const [now, setNow] = useState(serverNow);
+export function useFrameLoop(serverNow: () => number, active: boolean, onFrame: (now: number) => void) {
+  const frameEvent = useEffectEvent(onFrame);
   useEffect(() => {
     if (!active) return;
     let frame = 0;
@@ -99,11 +100,29 @@ export function useFrameNow(serverNow: () => number, active: boolean): number {
       const step = shown ? shown + (t - last) : target;
       shown = Math.max(shown, step + (target - step) * 0.1);
       last = t;
-      setNow(shown);
+      frameEvent(shown);
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
+  }, [serverNow, active]);
+}
+
+/** How often the text that follows the clock (the multiplier, the countdown, the payout) is rendered again, ms. */
+const TEXT_MS = 50;
+
+/**
+ * `serverNow()` for what React renders, read again every TEXT_MS while `active`, else once: twenty times a second is
+ * smooth for a number, and a render on every frame (60, 144 a second) is not worth it. Never goes back.
+ */
+export function useFrameNow(serverNow: () => number, active: boolean): number {
+  const [now, setNow] = useState(serverNow);
+  useEffect(() => {
+    if (!active) return;
+    const tick = () => setNow((shown) => Math.max(shown, serverNow()));
+    tick();
+    const timer = setInterval(tick, TEXT_MS);
+    return () => clearInterval(timer);
   }, [serverNow, active]);
   return now;
 }
