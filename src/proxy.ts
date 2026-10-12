@@ -32,4 +32,5 @@ export async function proxy(req: NextRequest) {
   return res;
 }
 
-export const config = { matcher: ["/((?!api/|_next/|flag\\.svg).*)"] };
+// robots.txt is a static file, and the container's healthcheck: it must answer whether RemnaWeb does or not.
+export const config = { matcher: ["/((?!api/|_next/|flag\\.svg|robots\\.txt).*)"] };
