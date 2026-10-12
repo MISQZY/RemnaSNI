@@ -157,7 +157,7 @@ const CatalogCard = memo(function CatalogCard({
   // once the deck holds one, the mark that takes one out.
   return (
     <div className={cn("flex flex-col gap-1", lazy)}>
-      <CardFace card={id} onClick={add} className={cn(n > 0 && "ring-2 ring-amber-400")} />
+      <CardFace card={id} onClick={add} chosen={n > 0} />
       <div className="flex h-5 items-center justify-between gap-0.5 text-[0.625rem] leading-none font-bold tabular-nums">
         <span
           title={t("limitBadge", { n, limit })}

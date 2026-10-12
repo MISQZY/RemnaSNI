@@ -109,6 +109,11 @@ type Props = {
   /** About to be sacrificed. */
   marked?: boolean;
   dim?: boolean;
+  /**
+   * In the deck being built: a gold frame drawn inside the card, over the edge of its body, so no ancestor that clips
+   * (the catalog's content-visibility) can cut it off, and it stands out from the gold frame of a rare card.
+   */
+  chosen?: boolean;
   /** A cosmetic sheen sweeping over the card, through these colors: its owner's foil, on the board. */
   foil?: string[] | null;
   onClick?: () => void;
@@ -119,7 +124,7 @@ type Props = {
  * A card's face, filling its box (3:4). Memoized: the deck shows the whole catalog and the board re-renders on every
  * beat, while a card (its art a heavy SVG) changes only with its props.
  */
-export const CardFace = memo(function CardFace({ card, power, health, selected, marked, dim, foil, onClick, className }: Props) {
+export const CardFace = memo(function CardFace({ card, power, health, selected, marked, dim, chosen, foil, onClick, className }: Props) {
   const t = useTranslations("sacrifice.sigils");
   const { def, nameOf } = useCards();
   const d = def(card);
@@ -172,6 +177,9 @@ export const CardFace = memo(function CardFace({ card, power, health, selected, 
           </span>
         )}
       </span>
+      {chosen && (
+        <span className="pointer-events-none absolute inset-[2px] z-20 rounded-[8px] shadow-[inset_0_0_10px_-1px] shadow-amber-400/70 ring-2 ring-amber-400 ring-inset" />
+      )}
     </Tag>
   );
 });
