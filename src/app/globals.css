@@ -270,3 +270,33 @@
     animation: none !important;
   }
 }
+
+/* The circuit behind the page (core/ui/circuit-backdrop.tsx, the same as RemnaWeb's). Each line has one clock
+   for its pulse and its pad: the pulse runs along the line (its length is 1, by pathLength) and lands in the pad at
+   40% of the cycle (RUNNING there), its tail draining into it; the pad lights up as it lands and fades. Then the line
+   rests. */
+@keyframes circuit-pulse {
+  from {
+    stroke-dashoffset: var(--circuit-start);
+  }
+  40% {
+    stroke-dashoffset: var(--circuit-end);
+  }
+  44%,
+  to {
+    stroke-dashoffset: -1;
+  }
+}
+@keyframes circuit-arrive {
+  0%,
+  39% {
+    opacity: 0;
+  }
+  41% {
+    opacity: 1;
+  }
+  60%,
+  to {
+    opacity: 0;
+  }
+}

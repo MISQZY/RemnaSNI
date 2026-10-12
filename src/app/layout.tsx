@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { getLocale } from "next-intl/server";
 import { I18nProvider } from "@/core/i18n/provider";
 import { Toaster } from "@/components/ui/sonner";
+import { CircuitBackdrop } from "@/core/ui/circuit-backdrop";
 import { pageMessages } from "@/core/i18n/messages";
 import "flag-icons/css/flag-icons.min.css";
 import "./globals.css";
@@ -40,6 +41,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={locale} className={`${inter.variable} ${scienceGothic.variable}`}>
       <body className="flex min-h-dvh flex-col overflow-x-clip antialiased">
+        {/* Under everything, held to the window. */}
+        <CircuitBackdrop className="fixed inset-0 -z-10" />
         <I18nProvider locale={locale} messages={pageMessages(locale)}>
           {children}
           {footer && <footer className="px-4 pb-6 text-center text-xs text-muted-foreground">© {new Date().getFullYear()} {footer}</footer>}
