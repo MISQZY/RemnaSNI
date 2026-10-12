@@ -299,11 +299,12 @@ function SoloPanel({
 }) {
   const t = useTranslations("sacrifice");
   const { num } = useFormat();
-  const [stake, setStake] = useState(readStake);
+  const cap = rules.robotMaxStake ?? Infinity;
+  const [stake, setStake] = useState(() => Math.min(cap, readStake()));
   const balance = status?.balance;
-  const valid = Number.isInteger(stake) && stake >= 1 && (balance === undefined || stake <= balance);
+  const valid = Number.isInteger(stake) && stake >= 1 && stake <= cap && (balance === undefined || stake <= balance);
   const setBet = (n: number) => {
-    const v = Math.max(1, Math.floor(n) || 1);
+    const v = Math.min(cap, Math.max(1, Math.floor(n) || 1));
     setStake(v);
     storage.set(STAKE_KEY, String(v));
   };
