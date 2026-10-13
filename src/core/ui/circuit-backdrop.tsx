@@ -1,10 +1,15 @@
+"use client";
+
 // Faint circuit traces in the corners of the page, with data pulsing slowly along them: a background echoing the
 // circuit under the Qzyrium crystal on the website's home page. The same file lives in RemnaWeb and RemnaSNI.
 //
-// The traces are laid out once, from fixed seeds, so the server and the browser draw the same picture; only CSS moves
-// them (the `circuit-pulse` and `circuit-arrive` keyframes in globals.css). Each corner is one layout drawn for the
-// top-left corner and mirrored into its place, fading out towards the middle of the page so it never reaches the
-// content.
+// The traces are laid out once, from fixed seeds, so the server and the browser draw the same picture. They are two
+// layers: the still traces, an SVG painted once, and the pulses over them, drawn on a canvas a few dozen times a
+// second. Animating the SVG itself would repaint every trace, its fading mask and any glass blurring it on every
+// frame. Each corner is one layout drawn for the top-left corner and mirrored into its place, fading out towards the
+// middle of the page so it never reaches the content.
+
+import { useEffect, useRef } from "react";
 
 type Point = [number, number];
 
@@ -18,10 +23,16 @@ const CLEARANCE = 2.5 * GAP;
 const SPEED = 26;
 const PULSE = 22;
 /**
- * The share of its cycle a pulse spends running to its pad; for the rest its line rests. The keyframes in
- * globals.css land the pulse, and light the pad, at this point of the cycle (40%).
+ * The share of its cycle a pulse spends running to its pad, then draining into it, its pad lighting up as it lands;
+ * for the rest of the cycle its line rests.
  */
 const RUNNING = 0.4;
+const DRAIN = 0.04;
+/**
+ * How often the pulses are drawn. They creep along at well under a pixel a frame, so drawing them on every frame of
+ * the screen would show nothing more.
+ */
+const FPS = 30;
 
 type Corner = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 
@@ -49,52 +60,157 @@ const LAYOUTS = CORNERS.map(({ seed }) => layout(seed));
  * lies under the content; it never takes the pointer.
  */
 export function CircuitBackdrop({ className = "" }: { className?: string }) {
+  const canvases = useRef<(HTMLCanvasElement | null)[]>([]);
+  useEffect(() => animate(canvases.current), []);
+
   return (
     <div aria-hidden className={`pointer-events-none overflow-hidden select-none ${className}`}>
       {CORNERS.map(({ corner, className: extra = "" }, i) => (
-        <svg
+        <div
           key={corner}
           style={{ width: `${WIDTH / 16}rem`, height: `${HEIGHT / 16}rem` }}
-          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-          fill="none"
-          className={`absolute max-w-none [mask-image:radial-gradient(circle_at_0_0,black_15%,transparent_70%)] ${PLACE[corner]} ${extra}`}
+          className={`absolute ${PLACE[corner]} ${extra}`}
         >
-          {LAYOUTS[i]!.map(({ d, end, dash, cycle, delay }, j) => {
-            // One clock for the pulse and its pad, so the pad lights up just as the pulse lands in it.
-            const timing = `${cycle}s linear ${delay}s infinite`;
-            return (
-              <g key={j}>
-                <g className="stroke-primary opacity-[0.16]">
-                  <path d={d} />
-                  <circle cx={end[0]} cy={end[1]} r={3} className="fill-background" />
-                </g>
-                <g className="motion-reduce:hidden">
-                  <path
-                    d={d}
-                    pathLength={1}
-                    strokeWidth={1.5}
-                    strokeLinecap="round"
-                    className="stroke-primary opacity-60"
-                    style={{
-                      strokeDasharray: `${dash} 2`,
-                      strokeDashoffset: dash,
-                      animation: `circuit-pulse ${timing}`,
-                      ["--circuit-start" as string]: dash,
-                      ["--circuit-end" as string]: round(dash - 1, 4),
-                    }}
-                  />
-                  <g className="fill-primary" style={{ opacity: 0, animation: `circuit-arrive ${timing}` }}>
-                    <circle cx={end[0]} cy={end[1]} r={6} opacity={0.25} />
-                    <circle cx={end[0]} cy={end[1]} r={2} />
-                  </g>
-                </g>
+          <svg
+            viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+            fill="none"
+            className="absolute inset-0 size-full [mask-image:radial-gradient(circle_at_0_0,black_15%,transparent_70%)]"
+          >
+            {LAYOUTS[i]!.map(({ d, end }, j) => (
+              <g key={j} className="stroke-primary opacity-[0.16]">
+                <path d={d} />
+                <circle cx={end[0]} cy={end[1]} r={3} className="fill-background" />
               </g>
-            );
-          })}
-        </svg>
+            ))}
+          </svg>
+          {/* Its color is read from its own `color`, so the pulses follow the theme. */}
+          <canvas
+            ref={(el) => {
+              canvases.current[i] = el;
+            }}
+            className="absolute inset-0 size-full text-primary motion-reduce:hidden"
+          />
+        </div>
       ))}
     </div>
   );
+}
+
+/**
+ * Runs the pulses on the corners' canvases until the returned function stops them; with reduced motion, never starts.
+ * Hidden corners have no size and are skipped; in a hidden tab the browser holds the frames back on its own.
+ */
+function animate(canvases: (HTMLCanvasElement | null)[]) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  // The canvases are sized in device pixels, so the pulses stay sharp; resizing a canvas clears it.
+  const resize = new ResizeObserver((entries) => {
+    for (const { target, contentRect, devicePixelContentBoxSize } of entries) {
+      const canvas = target as HTMLCanvasElement;
+      const box = devicePixelContentBoxSize?.[0];
+      canvas.width = box ? box.inlineSize : Math.round(contentRect.width * devicePixelRatio);
+      canvas.height = box ? box.blockSize : Math.round(contentRect.height * devicePixelRatio);
+    }
+  });
+  for (const canvas of canvases) {
+    if (!canvas) continue;
+    try {
+      resize.observe(canvas, { box: "device-pixel-content-box" });
+    } catch {
+      resize.observe(canvas);
+    }
+  }
+
+  let frame = 0;
+  let drawn = -Infinity;
+  let color = "";
+  let colorRead = -Infinity;
+  const tick = (now: number) => {
+    frame = requestAnimationFrame(tick);
+    // A little slack, so a 60 Hz screen does not skip a frame too many now and then.
+    if (now - drawn < 1000 / FPS - 2) return;
+    drawn = now;
+    // The color changes with the theme, rarely: looked up twice a second rather than on every frame.
+    if (now - colorRead > 500) {
+      colorRead = now;
+      const first = canvases.find(Boolean);
+      if (first) color = getComputedStyle(first).color;
+    }
+    canvases.forEach((canvas, i) => canvas && draw(canvas, LAYOUTS[i]!, now / 1000, color));
+  };
+  frame = requestAnimationFrame(tick);
+
+  return () => {
+    cancelAnimationFrame(frame);
+    resize.disconnect();
+  };
+}
+
+/** The pulses and the lit pads of one corner at `time` s, faded out towards the middle of the page as the traces are. */
+function draw(canvas: HTMLCanvasElement, lines: Line[], time: number, color: string) {
+  const ctx = canvas.getContext("2d");
+  if (!ctx || !canvas.width || !canvas.height) return;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.setTransform(canvas.width / WIDTH, 0, 0, canvas.height / HEIGHT, 0, 0);
+  ctx.globalCompositeOperation = "source-over";
+  ctx.strokeStyle = ctx.fillStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = "round";
+
+  for (const line of lines) {
+    // One clock for the pulse and its pad, so the pad lights up just as the pulse lands in it.
+    const t = (((time - line.delay) % line.cycle) + line.cycle) % line.cycle / line.cycle;
+    // Where the pulse's head is along its line, from 0 to 1: running to the pad, then past it as its tail drains in.
+    const head = t < RUNNING ? t / RUNNING : t < RUNNING + DRAIN ? 1 + (line.dash * (t - RUNNING)) / DRAIN : undefined;
+    if (head !== undefined) {
+      ctx.globalAlpha = 0.6;
+      stroke(ctx, line, Math.max(0, head - line.dash), Math.min(1, head));
+    }
+    // The pad flares up in a moment as the pulse lands, then dims slowly.
+    const lit = t < 0.39 ? 0 : t < 0.41 ? (t - 0.39) / 0.02 : t < 0.6 ? (0.6 - t) / 0.19 : 0;
+    if (lit > 0) {
+      ctx.globalAlpha = 0.25 * lit;
+      dot(ctx, line.end, 6);
+      ctx.globalAlpha = lit;
+      dot(ctx, line.end, 2);
+    }
+  }
+
+  // The same fade as the mask over the traces: a circle from the corner, as far as the farthest corner of the drawing.
+  const fade = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.hypot(WIDTH, HEIGHT));
+  fade.addColorStop(0.15, "#000");
+  fade.addColorStop(0.7, "transparent");
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = "destination-in";
+  ctx.fillStyle = fade;
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+}
+
+/** The stretch of a line from `from` to `to`, as shares of its length. */
+function stroke(ctx: CanvasRenderingContext2D, { points, at }: Line, from: number, to: number) {
+  if (to <= from) return;
+  ctx.beginPath();
+  ctx.moveTo(...pointAt(points, at, from));
+  for (let i = 1; i < points.length - 1; i++) if (at[i]! > from && at[i]! < to) ctx.lineTo(...points[i]!);
+  ctx.lineTo(...pointAt(points, at, to));
+  ctx.stroke();
+}
+
+/** The point `share` of the way along a line whose vertices are `at` of the way along it. */
+function pointAt(points: Point[], at: number[], share: number): Point {
+  let i = 1;
+  while (i < points.length - 1 && at[i]! < share) i++;
+  const [ax, ay] = points[i - 1]!;
+  const [bx, by] = points[i]!;
+  const k = (share - at[i - 1]!) / (at[i]! - at[i - 1]! || 1);
+  return [ax + (bx - ax) * k, ay + (by - ay) * k];
+}
+
+function dot(ctx: CanvasRenderingContext2D, [x, y]: Point, r: number) {
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, 2 * Math.PI);
+  ctx.fill();
 }
 
 /**
@@ -122,19 +238,28 @@ function layout(seed: number) {
     }
   }
 
-  return placed.map((points) => {
+  return placed.map((raw): Line => {
+    const points = raw.map(([x, y]) => [round(x, 1), round(y, 1)] as Point);
     const length = lengthOf(points);
     const cycle = length / SPEED / RUNNING;
     return {
       d: pathOf(points),
-      end: points.at(-1)!.map((v) => round(v, 1)),
-      dash: round(PULSE / length, 4),
-      cycle: round(cycle, 2),
+      points,
+      at: points.map((_, i) => lengthOf(points.slice(0, i + 1)) / length),
+      end: points.at(-1)!,
+      dash: PULSE / length,
+      cycle,
       // Started part way through its cycle, so the pulses are already spread out when the page opens.
-      delay: round(-random() * cycle, 2),
+      delay: -random() * cycle,
     };
   });
 }
+
+/**
+ * A trace: its path, its vertices and how far along it each one is (shares of its length), and its pulse: the pulse's
+ * length (a share of the line's), its cycle and where in the cycle it starts, in seconds.
+ */
+type Line = { d: string; points: Point[]; at: number[]; end: Point; dash: number; cycle: number; delay: number };
 
 /** A bus of 3–5 lines, entering at `at` px along the given edge. */
 function bus(random: () => number, edge: "left" | "top", at: number): Point[][] {
@@ -224,7 +349,7 @@ function lengthOf(points: Point[]) {
 }
 
 function pathOf(points: Point[]) {
-  return points.map(([x, y], i) => `${i ? "L" : "M"}${round(x, 1)} ${round(y, 1)}`).join("");
+  return points.map(([x, y], i) => `${i ? "L" : "M"}${x} ${y}`).join("");
 }
 
 function round(value: number, digits: number) {
