@@ -7,8 +7,8 @@ services:
     image: ghcr.io/misqzy/remnasni:latest
     container_name: remnasni
     restart: unless-stopped
-    # RemnaWeb tells the game and the country of the site by DOMAIN; SITE_FOOTER adds a footer.
-    # GAME and NODE_COUNTRY are deprecated: used only while RemnaWeb cannot tell them.
+    # RemnaWeb tells the games and the country of the site by DOMAIN; SITE_FOOTER adds a footer.
+    # GAME (ids, comma-separated) and NODE_COUNTRY are deprecated: used only while RemnaWeb cannot tell them.
     environment:
       - DOMAIN=${DOMAIN:-}
       - REMNAWEB_URL=${REMNAWEB_URL:-}

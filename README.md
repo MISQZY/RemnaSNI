@@ -15,11 +15,13 @@ Achievements and pets are not here: both are the profile's, in the RemnaWeb Mini
 | `FRAME_ANCESTORS` | For Caddy: who may open the site in a frame, e.g. `https://app.example.com https://web.telegram.org https://*.telegram.org` (the RemnaWeb origin and Telegram's web clients that frame it). Enables "Играть" right in the Mini App: the site then gets the Mini App user's session from RemnaWeb by `postMessage`. Empty → nobody. |
 | `PORT`         | Host port for `docker-compose.yml` (bound to `127.0.0.1`). |
 
-## Game and country
+## Games and country
 
 RemnaWeb decides what the node runs. The server asks `REMNAWEB_URL/api/sni/site` with `x-sni-site: <DOMAIN>` and gets
-`{ game, country }` (`src/core/server/site.ts`): the game an admin picked for this site in RemnaWeb (Админка → Игра → Игровые
-сайты; the clicker until one is picked) and the country of the panel host with this domain as its SNI. The answer
+`{ games, country }` (`src/core/server/site.ts`): the games an admin turned on for this site in RemnaWeb (Админка → Игра →
+Игровые сайты; all of them until picked) and the country of the panel host with this domain as its SNI. The site runs
+them side by side: `/` is the hub that lists them (`src/app/page.tsx`), each game is at `/<id>` (`/snake`, `/crash`…),
+the paths of games it does not run are 404 (`src/proxy.ts`). The answer
 is kept for a minute, so a switch in RemnaWeb reaches the node without a redeploy; while RemnaWeb is down the last one
 keeps serving. The API proxy passes `x-sni-site` with every call, so RemnaWeb keeps progress in that country whatever
 the page asks. `GAME` and `NODE_COUNTRY` in `.env` are deprecated: they are used only while RemnaWeb cannot tell (an
@@ -230,6 +232,6 @@ Caddy.
 
 ```sh
 npm install
-GAME=clicker NODE_COUNTRY=de npm run dev   # no DOMAIN: the game and country come from .env
+GAME=clicker,snake NODE_COUNTRY=de npm run dev   # no DOMAIN: the games and country come from .env
 npm test
 ```

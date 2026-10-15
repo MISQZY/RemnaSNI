@@ -11,7 +11,7 @@ import { ConfigProvider } from "@/games/clicker/config-provider";
 import { GameRuntime } from "@/games/clicker/game-runtime";
 
 // The clicker: its rules from RemnaWeb, the header and the runtime that saves and syncs the game.
-// Served at / by src/proxy.ts.
+// Served at /clicker by src/proxy.ts.
 
 export const generateMetadata = gameRouteMetadata("clicker");
 

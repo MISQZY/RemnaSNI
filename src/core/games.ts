@@ -3,7 +3,7 @@
 
 export const GAMES = {
   clicker: {
-    /** Public paths, served from app/games/<id> by src/proxy.ts. */
+    /** Public paths under /<id> ("/" is /<id> itself), served from app/games/<id> by src/proxy.ts. */
     routes: ["/"],
     /** RemnaWeb's /api/sni/* calls the game makes through this site's proxy (app/api/sni). */
     api: ["progress", "challenge"],

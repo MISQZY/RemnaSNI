@@ -1,11 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { LOCALE_COOKIE, isLocale } from "@/core/i18n/locales";
-import { GAMES } from "@/core/games";
-import { siteGame } from "@/core/server/site";
+import { GAMES, isGame } from "@/core/games";
+import { siteGames } from "@/core/server/site";
 
 /**
- * Serves the node's game (picked in RemnaWeb, core/server/site.ts) at its public paths by rewriting them to
- * app/games/<id>, so each node loads the code of its own game only; paths of other games are 404.
+ * Serves the node's games (picked in RemnaWeb, core/server/site.ts) side by side: / is the hub that lists them
+ * (app/page.tsx), and each game's public paths are under /<id>, rewritten to app/games/<id>, so a page loads the
+ * code of its own game only. Paths of games the node does not run are 404.
  *
  * `?lang=ru` picks the language, used by the RemnaWeb Mini App that opens the site in a frame: there the
  * `lang` cookie of a direct visit is not sent. The page renders in it right away, and a partitioned
@@ -13,18 +14,22 @@ import { siteGame } from "@/core/server/site";
  */
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const game = await siteGame();
   const lang = req.nextUrl.searchParams.get("lang");
   if (isLocale(lang)) req.cookies.set(LOCALE_COOKIE, lang);
 
+  // "/snake/x" → the game "snake" and its route "/x"; "/snake" → its route "/".
+  const [, id, ...rest] = pathname.split("/");
+  const route = `/${rest.join("/")}`;
+
   let res: NextResponse;
-  if ((GAMES[game].routes as readonly string[]).includes(pathname)) {
-    const url = req.nextUrl.clone();
-    url.pathname = `/games/${game}${pathname === "/" ? "" : pathname}`;
-    res = NextResponse.rewrite(url, { request: { headers: req.headers } });
-  } else if (pathname === "/games" || pathname.startsWith("/games/")) {
-    // The games' own paths are only reached through the rewrite above.
+  if (pathname === "/games" || pathname.startsWith("/games/")) {
+    // The games' own paths are only reached through the rewrite below.
     return new NextResponse(null, { status: 404 });
+  } else if (isGame(id) && (GAMES[id].routes as readonly string[]).includes(route)) {
+    if (!(await siteGames()).includes(id)) return new NextResponse(null, { status: 404 });
+    const url = req.nextUrl.clone();
+    url.pathname = `/games/${id}${route === "/" ? "" : route}`;
+    res = NextResponse.rewrite(url, { request: { headers: req.headers } });
   } else {
     res = NextResponse.next({ request: { headers: req.headers } });
   }

@@ -1,7 +1,8 @@
 {
   "unavailable": "Игра временно недоступна. Загляните чуть позже.",
   "header": {
-    "language": "Язык"
+    "language": "Язык",
+    "allGames": "Все игры"
   },
   "account": {
     "signIn": "Войти",
@@ -31,5 +32,12 @@
     "title": "Бонусы",
     "nextKey": "До следующего Qzr ключа",
     "max": "Макс"
+  },
+  "hub": {
+    "subtitle": "Игры",
+    "meta": {
+      "title": "Игры: {country}",
+      "description": "{country}: играйте и зарабатывайте Qzr — выберите игру."
+    }
   }
 }

@@ -1,7 +1,8 @@
 {
   "unavailable": "The game is temporarily unavailable. Please come back a bit later.",
   "header": {
-    "language": "Language"
+    "language": "Language",
+    "allGames": "All games"
   },
   "account": {
     "signIn": "Sign in",
@@ -31,5 +32,12 @@
     "title": "Bonuses",
     "nextKey": "Next Qzr key",
     "max": "Max"
+  },
+  "hub": {
+    "subtitle": "Games",
+    "meta": {
+      "title": "Games: {country}",
+      "description": "{country}: play and earn Qzr — pick a game."
+    }
   }
 }

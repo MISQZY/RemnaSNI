@@ -8,7 +8,7 @@ import { gameMetadata, nodePage } from "@/core/server/page";
 import { Unavailable } from "@/core/ui/unavailable";
 
 // The route files of a game (src/app/games/<id>/), the same for every game but its id, rules and site: its title
-// and messages in the layout, the game on the page. Served at / by src/proxy.ts.
+// and messages in the layout, the game on the page. Served at /<id> by src/proxy.ts.
 
 type Game = Parameters<typeof pageMessages>[1] & string;
 
