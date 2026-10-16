@@ -20,13 +20,15 @@ export type GameState = {
   resetAt: number;
   /** Last passive-income accrual (ms); 0 until the traffic boost first kicks in. */
   lastSeen?: number;
-  /** Points RemnaWeb took for Mini App purchases and credited for market sales; kept as is and sent back. */
+  /**
+   * The country's wallet in RemnaWeb, as it last answered: `points` is its balance with what was played here since on
+   * top, these counters make the free keys (rules.freeKeys) come out at its keys. RemnaWeb keeps the wallet: they are
+   * sent back as they came, and it ignores them.
+   */
   shopSpent?: number;
   shopEarned?: number;
-  /** Qzr keys RemnaWeb credited from other games and those spent there, and the snake's bonuses; kept as is. */
   keysShopEarned?: number;
   keysShopSpent?: number;
-  snakePerks?: Record<string, number>;
   /** Encryption keys received for all moves (prestige); they survive them. */
   keys?: number;
   prestiges?: number;
@@ -57,20 +59,20 @@ export const prestigeMultiplier = (s: GameState) => rules.prestigeMultiplier(con
 /** Passive income: the traffic boost auto-taps `boost` times per second (without crits). */
 export const perSecond = (s: GameState, boost: number) => perTap(s) * boost;
 
-/** Points RemnaWeb has moved in or out of this progress; only ever grows until a reset. */
-const shopActivity = (s: GameState) => (s.shopSpent ?? 0) + (s.shopEarned ?? 0) + (s.keysShopEarned ?? 0) + (s.keysShopSpent ?? 0);
+/** Upgrade and perk levels bought in the run: more of them is further along at the same points earned. */
+const bought = (s: GameState) =>
+  Object.values(s.levels).reduce((a, n) => a + n, 0) + Object.values(s.perks ?? {}).reduce((a, n) => a + n, 0);
 
 /**
- * Whether `a` is further along than `b`: a later reset (or move) wins, then more points earned,
- * then more RemnaWeb purchases and sales seen, then more points spent (buying an upgrade does not
- * change totalEarned). Mirrors isNewer in RemnaWeb/src/lib/game/clicker/state.ts.
+ * Whether the run of `a` is further along than that of `b`: a later reset (or move) wins, then more points earned,
+ * then more levels bought, then the later accrual. The points on hand are not compared: they are the wallet's, which
+ * RemnaWeb keeps. Mirrors isNewer in RemnaWeb/src/lib/game/clicker/state.ts.
  */
 export function isNewer(a: GameState, b: GameState): boolean {
   if (a.resetAt !== b.resetAt) return a.resetAt > b.resetAt;
   if (a.totalEarned !== b.totalEarned) return a.totalEarned > b.totalEarned;
-  if (shopActivity(a) !== shopActivity(b)) return shopActivity(a) > shopActivity(b);
-  if ((a.lastSeen ?? 0) !== (b.lastSeen ?? 0)) return (a.lastSeen ?? 0) > (b.lastSeen ?? 0);
-  return a.totalEarned - a.points > b.totalEarned - b.points;
+  if (bought(a) !== bought(b)) return bought(a) > bought(b);
+  return (a.lastSeen ?? 0) > (b.lastSeen ?? 0);
 }
 
 // A tiny external store for useSyncExternalStore, persisted to localStorage.
@@ -212,8 +214,30 @@ export const game = {
     save();
   },
 
+  /**
+   * Takes RemnaWeb's answer to `sent`: its run when that is further along (another device), else ours with the
+   * wallet it sent (the points, the key counters) and what was played here since `sent` on top.
+   */
+  rebase(server: GameState, sent: GameState) {
+    if (isNewer(server, state)) {
+      game.replace(server);
+      return;
+    }
+    set({
+      ...state,
+      points: Math.max(0, server.points + (state.points - sent.points)),
+      shopSpent: server.shopSpent,
+      shopEarned: server.shopEarned,
+      keysShopEarned: server.keysShopEarned,
+      keysShopSpent: server.keysShopSpent,
+    });
+    save();
+  },
+
+  /** Starts the clicker anew. The points and free keys stay: they are the country's wallet, not the run's. */
   reset() {
-    set({ ...INITIAL, resetAt: Date.now(), lastSeen: Date.now() });
+    const now = Date.now();
+    set({ ...INITIAL, points: state.points, keysShopEarned: rules.freeKeys(config(), state), resetAt: now, lastSeen: now });
     save();
   },
 };

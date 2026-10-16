@@ -91,15 +91,17 @@ async function progress<T>(method: "GET" | "PUT", body?: GameState, keepalive = 
   }
 }
 
-/** Takes whichever of the server and local progress is further along. */
-function adopt(server: GameState | null) {
+/**
+ * Takes the server's answer to `sent` (game.rebase): its run when further along, its wallet anyway. What was played
+ * here since `sent` is still to be pushed; with nothing played, the state is the server's.
+ */
+function adopt(server: GameState | null, sent: GameState) {
+  if (!server) return;
+  const played = game.getSnapshot() !== sent;
+  game.rebase(server, sent);
   const local = game.getSnapshot();
-  if (server && isNewer(server, local)) {
-    game.replace(server);
-    synced = game.getSnapshot();
-  } else if (server && !isNewer(local, server)) {
-    synced = local;
-  }
+  // Seen by the server as it is now: nothing played since `sent` and no run of ours ahead of the server's.
+  synced = !played && !isNewer(local, server) ? local : sent;
 }
 
 async function pull() {
@@ -117,7 +119,7 @@ async function pull() {
   if (res.session) session.keep(res.session);
   session.setAccount(res.user);
   set({ traffic: res.traffic ?? null, effect: res.effect ?? null, tapColor: res.tapColor ?? null });
-  adopt(res.progress);
+  adopt(res.progress, synced ?? game.getSnapshot());
   game.setBoost(res.traffic?.boost ?? 0);
   if (synced !== game.getSnapshot()) await push();
   else set({ status: "synced", syncedAt: Date.now() });
@@ -142,8 +144,7 @@ async function push(keepalive = false) {
       game.replace(res.progress);
       synced = game.getSnapshot();
     } else {
-      synced = current;
-      adopt(res.progress);
+      adopt(res.progress, current);
     }
     set({ status: "synced", syncedAt: Date.now() });
   } finally {

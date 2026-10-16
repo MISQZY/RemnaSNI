@@ -43,13 +43,15 @@ export function nextKeyAt(c: GameConfig, s: Progress): number {
   return c.prestige.base * (next / (1 + perkSum(c, s, "keys"))) ** 3;
 }
 
-/** The state after a move: keys for it, points and upgrade levels gone; stats, achievements and perks stay. */
+/**
+ * The state after a move: keys for it, upgrade levels gone; the points stay (they are the country's wallet in RemnaWeb,
+ * shared by every game), and so do the stats, achievements and perks.
+ */
 export function prestige(c: GameConfig, s: Progress, now: number): Progress | null {
   const gain = pendingKeys(c, s);
   if (gain < 1) return null;
   return {
     ...s,
-    points: 0,
     levels: {},
     keys: (s.keys ?? 0) + gain,
     prestiges: (s.prestiges ?? 0) + 1,
