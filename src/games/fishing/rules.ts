@@ -1,5 +1,5 @@
 import type { Locale } from "@/core/i18n/locales";
-import { START_PROGRESS, zoneSize, type ReelSetup } from "./reel";
+import { REEL_PHYSICS, zoneSize, type ReelPhysics, type ReelSetup } from "./reel";
 
 // How the fishing plays and what a fish is worth. RemnaWeb is the source of truth (lib/fishing-rules.ts there): its
 // rules come with the other games' from GET /api/sni/config under `fishing` (config-server.ts). These types mirror
@@ -26,6 +26,11 @@ export type FishRarity = {
 export type FishSpecies = { id: string; name: Record<Locale, string> };
 
 export type FishingRules = {
+  /**
+   * For playing without an account: the progress a fight starts at and how the catch zone moves (RemnaWeb sends them
+   * with the cast otherwise). Missing from older RemnaWeb versions: 0.3 and REEL_PHYSICS then.
+   */
+  reel?: Pick<ReelSetup, "start"> & ReelPhysics;
   /** How long a bite waits to be hooked without an account, ms (RemnaWeb sends it with the cast otherwise). */
   hookWindowMs: number;
   /** For playing without an account: the catch zone, a share of the reel's track, before the fish's strength. */
@@ -57,6 +62,7 @@ export function isFishingRules(v: unknown): v is FishingRules {
   const value = r.value as Record<string, unknown> | null;
   return (
     ["hookWindowMs", "zone", "fillPerSec", "drainPerSec", "biteMinMs", "biteMaxMs", "averageValue"].every((k) => isNum(r[k])) &&
+    (r.reel === undefined || (!!r.reel && ["start", "lift", "gravity", "maxSpeed", "bounce", "maxTicks"].every((k) => isNum((r.reel as Record<string, unknown>)[k])))) &&
     (r.averageValue as number) > 0 &&
     !!value &&
     isNum(value.base) &&
@@ -103,5 +109,5 @@ export const localReel = (r: FishingRules, strength: number, rand = Math.random)
   size: zoneSize(r.zone, strength),
   fill: r.fillPerSec,
   drain: r.drainPerSec,
-  start: START_PROGRESS,
+  ...(r.reel ?? { start: 0.3, ...REEL_PHYSICS }),
 });

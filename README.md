@@ -122,8 +122,9 @@ the same numbers, so the site and the checks never disagree; without them (an ol
 
 The fishing's come under `fishing` (`RemnaWeb/src/lib/fishing-rules.ts`): the time to hook, the catch zone and how
 fast the progress fills and drains, the price formula and the species with their names, sizes and strength (for play
-without an account). The fight itself is code here (`reel.ts`); RemnaWeb accepts a catch no sooner than the bite plus
-its shortest fight, which the reel can never beat (it starts at 0.3 and fills at most at `fillPerSec`).
+without an account), and how the catch zone moves (`reel`: the progress a fight starts at, the zone's lift, fall, top
+speed and bounce, the longest fight), which also come with every cast. The fight itself is code here (`reel.ts`);
+RemnaWeb replays it with the numbers of its cast and accepts a catch no sooner than the bite plus its shortest fight.
 
 The crash's come under `crash` (`RemnaWeb/src/lib/crash-rules.ts`): how long bets are taken and a crash is shown, how
 fast the multiplier grows, the highest one, the smallest bet and auto cash-out, and where each color starts. The crash
@@ -133,6 +134,15 @@ The Sacrifice's come under `sacrifice` (`RemnaWeb/src/lib/game/sacrifice/`): the
 opening hand, turn limit and time), the decks' bounds and copies, the packs' price and odds, the bounds of the bets, and every card
 with its names, stats, costs and sigils. The duel itself is played by RemnaWeb only; `src/games/sacrifice/rules.ts`
 mirrors the shuffle (to check the draws) and the picking of sacrifices and the attack (to preview them).
+
+How the site runs each game is RemnaWeb's too, tunable in the same admin page: the clicker's `site` (how often it is
+kept on the device, pushed to RemnaWeb and pulled back, the hold after failed checks signed out, the auto-clicker rules
+of `tap-guard.ts`), the snake's `chunkMs`, `maxPending` and `flushMaxMs`, Gems' `chunkMs` and `hintMs`. The site
+keeps the old numbers only for an older RemnaWeb that does not send them. What stays here is code: animation timings,
+the stream's reconnects, the formulas.
+
+Every game's bonuses come as data too: name, description, icon and the effect of the level (`core/ui/perk-shop.tsx`),
+so a new bonus or icon needs no redeploy.
 
 ## Telegram sign-in
 

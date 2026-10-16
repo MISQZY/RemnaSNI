@@ -29,17 +29,12 @@ import { crystalValue, crystalsValue, type SnakeLook, type SnakeRules, type Snak
 // player has collected (lib/snake-rules.ts there).
 
 const BEST_KEY = "snake-best";
-/** Crystals are sent to RemnaWeb in chunks this often while playing, and when a run ends. */
-const CHUNK_MS = 5_000;
-/** Chunks played without sign-in, credited to the account once the player signs in. */
-const PENDING_KEY = "snake-pending";
-const MAX_PENDING = 100;
 /**
- * Pending runs go as one, of at most this much play: RemnaWeb credits a chunk only as far as its own clock has run
- * since the player's last one (up to 10 minutes), so runs sent one after another would all but the first be refused.
- * What is past it waits for a later load.
+ * Chunks played without sign-in, credited to the account once the player signs in. Crystals are sent in chunks every
+ * `rules.chunkMs` while playing and when a run ends; pending runs go as one, of at most `rules.flushMaxMs` of play,
+ * since runs sent one after another would all but the first be refused, and what is past it waits for a later load.
  */
-const FLUSH_MAX_MS = 9 * 60_000;
+const PENDING_KEY = "snake-pending";
 /** Whether the phone control pad is shown; off by default, swipes are enough. */
 const PAD_KEY = "snake-pad";
 /** A swipe turns once the finger has moved this far, px. */
@@ -126,7 +121,7 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
     const merged: Run = { score: 0, durationMs: 0, golden: 0 };
     let taken = 0;
     // The first run goes whatever its length, so one longer than the limit never blocks the rest.
-    while (taken < runs.length && (taken === 0 || merged.durationMs + runs[taken].durationMs <= FLUSH_MAX_MS)) {
+    while (taken < runs.length && (taken === 0 || merged.durationMs + runs[taken].durationMs <= rules.flushMaxMs)) {
       const run = runs[taken++];
       merged.score += run.score;
       merged.durationMs += run.durationMs;
@@ -188,7 +183,7 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
     chunkRef.current = { score: 0, golden: 0, qzr: 0, since: now };
     setUnsent({ crystals: 0, qzr: 0 });
     if (!session.getSnapshot().token) {
-      const next = [...readPending(), run].slice(-MAX_PENDING);
+      const next = [...readPending(), run].slice(-rules.maxPending);
       writePending(next);
       setPending(next);
       return;
@@ -198,7 +193,7 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
     const undo = () => setStatus((s) => s && { ...s, balance: s.balance - chunk.qzr, crystals: s.crystals - run.score });
     /** Kept on this device like a run played signed out, and sent with them on the next load. */
     const keep = () => {
-      const next = [...readPending(), run].slice(-MAX_PENDING);
+      const next = [...readPending(), run].slice(-rules.maxPending);
       writePending(next);
       setPending(next);
     };
@@ -251,9 +246,9 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
   // Chunks while playing, so a long run is credited as it goes.
   useEffect(() => {
     if (phase !== "playing") return;
-    const timer = setInterval(() => void sendChunk(), CHUNK_MS);
+    const timer = setInterval(() => void sendChunk(), rules.chunkMs);
     return () => clearInterval(timer);
-  }, [phase]);
+  }, [phase, rules.chunkMs]);
 
   // The loop: one step per tick while playing, faster with every crystal.
   useEffect(() => {

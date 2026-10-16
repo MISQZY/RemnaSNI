@@ -5,7 +5,6 @@ import { storage } from "@/core/storage";
 const STORAGE_KEY = "v2";
 /** Last traffic boost received from RemnaWeb, so income while away can be credited before the next sync. */
 const BOOST_KEY = "boost";
-const SAVE_EVERY_MS = 2_000;
 
 export type GameState = {
   points: number;
@@ -142,7 +141,7 @@ export const game = {
     if (!hydrated || boost <= 0) return;
     const now = Date.now();
     set(accrue(state, now).next);
-    if (now - lastSave > SAVE_EVERY_MS) save();
+    if (now - lastSave > config().site.saveEveryMs) save();
   },
 
   /** Sets the auto-tap rate from the traffic boost; income so far is credited at the old rate. */
@@ -168,7 +167,7 @@ export const game = {
         crits: state.crits + (crit ? 1 : 0),
         bestTap: Math.max(state.bestTap, gain),
       });
-    if (now - lastSave > SAVE_EVERY_MS) save();
+    if (now - lastSave > config().site.saveEveryMs) save();
     return { gain, crit };
   },
 

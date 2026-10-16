@@ -27,12 +27,8 @@ import { DEFAULT_SKIN, gemValue, waveValue, type GemsLook, type GemsRules, type 
 // shown are counted here the way RemnaWeb counts them and corrected by its answers. Signed out, a board is dealt here,
 // for the fun of it: nothing proves its moves were made, so they bring no Qzr.
 
-/** Moves are sent to RemnaWeb in chunks this often while playing, and when the page is hidden. */
-const CHUNK_MS = 5_000;
 /** A swipe swaps once the finger has moved this far, px. */
 const SWIPE_PX = 14;
-/** How long the board waits for a move before it shows one, ms. */
-const HINT_MS = 15_000;
 /** The steps of a move on screen, ms: the swap, a wave of gems bursting, their fall; a shuffle. */
 const SWAP_MS = 200;
 const POP_MS = 380;
@@ -231,7 +227,8 @@ export function GemsSite({ code, name, signIn, rules }: { code: string; name: st
 
   useEffect(() => {
     if (!signedIn) return;
-    const timer = setInterval(() => sendLater(), CHUNK_MS);
+    // Moves go to RemnaWeb in chunks every rules.chunkMs while playing, and when the page is hidden.
+    const timer = setInterval(() => sendLater(), rules.chunkMs);
     // A page hidden may never come back: what was played goes now.
     const onHide = () => {
       if (document.visibilityState === "hidden") sendLater(true);
@@ -241,14 +238,14 @@ export function GemsSite({ code, name, signIn, rules }: { code: string; name: st
       clearInterval(timer);
       document.removeEventListener("visibilitychange", onHide);
     };
-  }, [signedIn]);
+  }, [signedIn, rules.chunkMs]);
 
-  // A move shown after a while without one.
+  // A move shown after rules.hintMs without one.
   useEffect(() => {
     if (busy || !tiles) return;
-    const timer = setTimeout(() => boardRef.current && setHint(findMove(boardRef.current)), HINT_MS);
+    const timer = setTimeout(() => boardRef.current && setHint(findMove(boardRef.current)), rules.hintMs);
     return () => clearTimeout(timer);
-  }, [busy, tiles]);
+  }, [busy, tiles, rules.hintMs]);
 
   /** Floats what a wave brought over its gems, with the particles of the effect bought. */
   const popup = (wave: Wave, qzr: number | null, bonus: number, cascade: number) => {

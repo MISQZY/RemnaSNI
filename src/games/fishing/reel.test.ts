@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TICKS, START_PROGRESS, newReel, replayReel, stepReel, zoneSize, type ReelSetup } from "./reel";
+import { REEL_PHYSICS, newReel, replayReel, stepReel, zoneSize, type ReelSetup } from "./reel";
 import { isFishingRules, localReel, rollCatch, type FishingRules } from "./rules";
+
+/** The progress a fight starts at by default (FishingConfig.reel.start). */
+const START_PROGRESS = 0.3;
 
 const RULES = { zone: 0.3, fillPerSec: 0.3, drainPerSec: 0.22 };
 const setup = (strength: number, seed = 1): ReelSetup => ({ seed, strength, size: zoneSize(RULES.zone, strength), fill: RULES.fillPerSec, drain: RULES.drainPerSec, start: START_PROGRESS });
@@ -59,7 +62,7 @@ describe("the reel", () => {
   });
 
   it("gives up on a fight dragged out for too long", () => {
-    expect(replayReel({ ...setup(0), size: 1, fill: 0, drain: 0 }, [])).toEqual({ end: "lost", ticks: MAX_TICKS });
+    expect(replayReel({ ...setup(0), size: 1, fill: 0, drain: 0 }, [])).toEqual({ end: "lost", ticks: REEL_PHYSICS.maxTicks });
   });
 });
 
@@ -101,6 +104,13 @@ describe("the rules", () => {
   });
 
   it("set up a fight without an account from the reel numbers", () => {
-    expect(localReel(rules, 0.5, () => 0.5)).toEqual({ seed: 2 ** 30, strength: 0.5, size: zoneSize(0.3, 0.5), fill: 0.3, drain: 0.22, start: START_PROGRESS });
+    expect(localReel(rules, 0.5, () => 0.5)).toEqual({ seed: 2 ** 30, strength: 0.5, size: zoneSize(0.3, 0.5), fill: 0.3, drain: 0.22, start: START_PROGRESS, ...REEL_PHYSICS });
+  });
+
+  it("move the zone of a fight without an account as RemnaWeb says", () => {
+    const reel = { start: 0.4, lift: 3, gravity: 2, maxSpeed: 1, bounce: 0.5, maxTicks: 600 };
+    expect(localReel({ ...rules, reel }, 0.5, () => 0.5)).toMatchObject(reel);
+    expect(isFishingRules({ ...rules, reel })).toBe(true);
+    expect(isFishingRules({ ...rules, reel: { ...reel, lift: "fast" } })).toBe(false);
   });
 });

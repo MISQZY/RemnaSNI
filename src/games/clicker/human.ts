@@ -1,3 +1,4 @@
+import { config } from "@/games/clicker/config";
 import { sync } from "@/games/clicker/sync";
 import { TapGuard, type Suspicion } from "@/games/clicker/tap-guard";
 
@@ -9,11 +10,10 @@ import { TapGuard, type Suspicion } from "@/games/clicker/tap-guard";
 export type HumanCheck = { token: string; target: string; options: string[] } | { blockedUntil: string };
 
 const EMOJI = ["🐸", "🐤", "🦊", "🐼", "🐙", "🦉", "🐢", "🐝", "🐬", "🦋", "🍄", "⭐", "🍉", "🚀", "🎈", "🌵"];
-const LOCAL_BLOCK_MS = 5 * 60_000;
 
 let due = false;
 const listeners = new Set<() => void>();
-const guard = new TapGuard();
+const guard = new TapGuard(() => config().site.tapGuard);
 /** The answer of a check made on this site while signed out, and misses in a row. */
 let local: { token: string; answer: number } | null = null;
 let localMisses = 0;
@@ -80,7 +80,7 @@ export const human = {
       localMisses = passed ? 0 : localMisses + 1;
       if (localMisses >= 3) {
         localMisses = 0;
-        localBlockedUntil = Date.now() + LOCAL_BLOCK_MS;
+        localBlockedUntil = Date.now() + config().site.localBlockMs;
       }
       result = { passed, ...(localBlockedUntil > Date.now() && !passed && { blockedUntil: new Date(localBlockedUntil).toISOString() }) };
     }

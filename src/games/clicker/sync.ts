@@ -2,17 +2,15 @@ import { api } from "@/core/player/api";
 import { tr } from "@/core/i18n/client";
 import type { Look } from "@/core/cosmetics/look";
 import { session, type Account } from "@/core/player/session";
+import { config } from "@/games/clicker/config";
 import { game, isNewer, type GameState } from "@/games/clicker/game";
 import { human, type HumanCheck } from "@/games/clicker/human";
 
 // Two-way sync of the clicker's progress with RemnaWeb (core/player/api.ts). The Telegram session is the core's
 // (core/player/session.ts), shared with the other games; its token and account are mirrored here.
 
-const PUSH_EVERY_MS = 10_000;
-/** After failed syncs the pushes back off up to this interval. */
-const MAX_BACKOFF_MS = 5 * 60_000;
-/** Traffic changes slowly; refresh the boost (and other devices' progress) every few minutes. */
-const PULL_EVERY_MS = 5 * 60_000;
+// How often it pushes, backs off after failures and pulls (traffic changes slowly: the boost and other devices'
+// progress every few minutes) is RemnaWeb's, the config's `site`.
 
 export type SyncStatus = "idle" | "syncing" | "synced" | "offline";
 /**
@@ -85,7 +83,7 @@ async function progress<T>(method: "GET" | "PUT", body?: GameState, keepalive = 
     return res;
   } catch {
     failures++;
-    retryAt = Date.now() + Math.min(MAX_BACKOFF_MS, PUSH_EVERY_MS * 2 ** failures);
+    retryAt = Date.now() + Math.min(config().site.maxBackoffMs, config().site.pushEveryMs * 2 ** failures);
     set({ status: "offline" });
     return null;
   }
@@ -177,8 +175,8 @@ export const sync = {
     });
     if (session.getSnapshot().token) void pull();
 
-    const pushTimer = setInterval(scheduledPush, PUSH_EVERY_MS);
-    const pullTimer = setInterval(() => state.token && document.visibilityState === "visible" && void pull(), PULL_EVERY_MS);
+    const pushTimer = setInterval(scheduledPush, config().site.pushEveryMs);
+    const pullTimer = setInterval(() => state.token && document.visibilityState === "visible" && void pull(), config().site.pullEveryMs);
     const onHide = () => document.visibilityState === "hidden" && void push(true);
     document.addEventListener("visibilitychange", onHide);
     return () => {

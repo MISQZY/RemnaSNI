@@ -18,7 +18,17 @@ export type ReelSetup = {
   fill: number;
   drain: number;
   start: number;
-};
+} & Partial<ReelPhysics>;
+
+/**
+ * How the zone moves, RemnaWeb's numbers (FishingConfig.reel, tunable by an admin), sent with every cast so the site and
+ * the replay fight the same fight: its acceleration while held and its fall, per s², its top speed per s, the share
+ * of the speed a fall onto the bottom bounces back, and the longest fight, ticks (one dragged out beyond is lost).
+ * Missing from casts made before they were tunable, and from older RemnaWeb versions: REEL_PHYSICS then.
+ */
+export type ReelPhysics = { lift: number; gravity: number; maxSpeed: number; bounce: number; maxTicks: number };
+
+export const REEL_PHYSICS: ReelPhysics = { lift: 2.4, gravity: 1.5, maxSpeed: 0.9, bounce: 0.3, maxTicks: 60 * 90 };
 
 export type Reel = {
   /** The zone's bottom and its speed. */
@@ -39,17 +49,8 @@ export type Reel = {
 
 /** One tick, s: the fight moves in these whatever the frame rate. */
 export const TICK = 1 / 60;
-/** The longest fight, ticks: one dragged out beyond is lost. */
-export const MAX_TICKS = 60 * 90;
-/** The progress a fight starts at. */
-export const START_PROGRESS = 0.3;
-
-/** Acceleration of the zone while held, and of its fall, per s²; its top speed per s. */
-const LIFT = 2.4;
-const GRAVITY = 1.5;
-const MAX_SPEED = 0.9;
-/** A fall onto the bottom bounces back this share of the speed. */
-const BOUNCE = 0.3;
+/** The longest fight an admin may set, ticks: ten minutes. */
+export const MAX_TICKS = 60 * 600;
 
 /** The zone for a fish of `strength` (0 to 1): narrower for strong ones, wider with the line bonus (a share). */
 export const zoneSize = (zone: number, strength: number, line = 0) => Math.min(0.9, Math.max(0.08, zone * (1 - 0.3 * strength) * (1 + line)));
@@ -71,13 +72,14 @@ export function newReel(s: ReelSetup): Reel {
 /** Moves the fight on by one tick: "caught" once the progress fills, "lost" once it empties or the fight drags on. */
 export function stepReel(r: Reel, s: ReelSetup): "fight" | "caught" | "lost" {
   const dt = TICK;
+  const { lift = REEL_PHYSICS.lift, gravity = REEL_PHYSICS.gravity, maxSpeed = REEL_PHYSICS.maxSpeed, bounce = REEL_PHYSICS.bounce } = s;
   r.tick++;
   // The zone: lifted while held, falling otherwise; it stops at the top and bounces off the bottom.
-  r.speed = Math.max(-MAX_SPEED, Math.min(MAX_SPEED, r.speed + (r.holding ? LIFT : -GRAVITY) * dt));
+  r.speed = Math.max(-maxSpeed, Math.min(maxSpeed, r.speed + (r.holding ? lift : -gravity) * dt));
   r.zone += r.speed * dt;
   if (r.zone < 0) {
     r.zone = 0;
-    r.speed = -r.speed * BOUNCE;
+    r.speed = -r.speed * bounce;
   } else if (r.zone > 1 - s.size) {
     r.zone = 1 - s.size;
     r.speed = 0;
@@ -97,7 +99,7 @@ export function stepReel(r: Reel, s: ReelSetup): "fight" | "caught" | "lost" {
   const inside = r.fish >= r.zone && r.fish <= r.zone + s.size;
   r.progress = Math.min(1, Math.max(0, r.progress + (inside ? s.fill : -s.drain) * dt));
   if (r.progress >= 1) return "caught";
-  if (r.progress <= 0 || r.tick >= MAX_TICKS) return "lost";
+  if (r.progress <= 0 || r.tick >= Math.min(MAX_TICKS, s.maxTicks ?? REEL_PHYSICS.maxTicks)) return "lost";
   return "fight";
 }
 

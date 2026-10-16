@@ -18,7 +18,13 @@ export type GemsRules = {
   /** A golden gem is worth this many regular ones. */
   goldenMultiplier: number;
   value: ValueRule;
+  /** The site sends the moves made this often while playing, and shows a move after `hintMs` without one. */
+  chunkMs: number;
+  hintMs: number;
 };
+
+/** What an older RemnaWeb, which does not send how the site sends the moves, had the site do. */
+const OLDER_SITE = { chunkMs: 5_000, hintMs: 15_000 };
 
 /**
  * The gems' skin bought in the RemnaWeb Mini App shop: their colors by color number (each color has its cut, crystal.tsx)
@@ -35,7 +41,10 @@ export const DEFAULT_SKIN: GemsSkin = { colors: ["#ff4d6d", "#ff9f1c", "#ffd60a"
 const isNum = (n: unknown) => typeof n === "number" && Number.isFinite(n);
 
 /** Whether RemnaWeb's `gems` rules have the shape the game relies on; an older RemnaWeb sends none. */
-export function isGemsRules(v: unknown): v is GemsRules {
+/** The part of Gems in RemnaWeb's config, or null when it does not have the shape the game relies on. */
+export const gemsRulesOf = (v: unknown): GemsRules | null => (isGemsRules(v) ? { ...OLDER_SITE, ...v } : null);
+
+function isGemsRules(v: unknown): v is Omit<GemsRules, keyof typeof OLDER_SITE> & Partial<GemsRules> {
   const r = v as Record<string, unknown> | null;
   return (
     !!r &&
