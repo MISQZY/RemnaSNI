@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { getRequestConfig } from "next-intl/server";
-import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale } from "./locales";
-import { MESSAGES } from "./messages";
+import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale } from "@/core/i18n/locales";
+import { MESSAGES } from "@/games";
 
 /** The language chosen in the `lang` cookie (src/proxy.ts sets it from ?lang=), English otherwise. */
 export default getRequestConfig(async () => {

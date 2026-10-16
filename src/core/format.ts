@@ -1,8 +1,8 @@
 import { createTranslator } from "next-intl";
 import type { Locale } from "@/core/i18n/locales";
 // The core catalogs only: the pages ship with no other one.
-import en from "../../messages/core/en.json";
-import ru from "../../messages/core/ru.json";
+import en from "./messages/en.json";
+import ru from "./messages/ru.json";
 
 const SUFFIXES = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
 

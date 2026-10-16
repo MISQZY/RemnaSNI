@@ -1,4 +1,5 @@
 import { gameLayout, gameRouteMetadata } from "@/core/server/game-route";
+import { sacrificeGame } from "@/games/sacrifice/manifest";
 
-export const generateMetadata = gameRouteMetadata("sacrifice");
-export default gameLayout("sacrifice");
+export const generateMetadata = gameRouteMetadata(sacrificeGame);
+export default gameLayout(sacrificeGame);

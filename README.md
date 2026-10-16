@@ -64,40 +64,41 @@ The decks are shuffled from a seed whose hash is shown first and the seed after;
 Every game lives in its own route subtree, `src/app/games/<id>`, with its own layout and title; the root layout holds
 only what all share (fonts, language, footer, toasts). `src/proxy.ts` gets the game at request time and rewrites the
 public paths to the node's game (`/` → `/games/clicker`, `/games/snake`, `/games/fishing`, `/games/crash` or `/games/sacrifice`); the `/games/...` paths themselves are
-404. So a node loads the JS of its own game only. The API proxy passes the calls of every game in the registry, so
+404. So a node loads the JS of its own game only. The API proxy passes the calls of every game in the registry (`src/games/index.ts`), so
 a tab left open on the previous game keeps saving after an admin switches the node's game in RemnaWeb.
 
 ## Code layout
 
 ```
 src/core/           what every game uses; knows no game
-  games.ts          the registry: ids, public routes and RemnaWeb API calls of each game
-  site.ts           the node's game and country from RemnaWeb
-  country.ts        the node's country named in a language
-  remnaweb.ts       REMNAWEB_URL and remoteValue(), the cache of what the server asks RemnaWeb for
-  remote-config.ts  remoteConfig(): a game's rules from GET /api/sni/config, refreshed every minute
-  page.ts           nodePage() for a game's layout/page, gameMetadata() for its title
-  session.ts        the Telegram session: sign-in, the Mini App frame, sign-out here and everywhere
-  api.ts            RemnaWeb's /api/sni/* as the player: token, country, a 401 signs out, ApiError
+  game.ts           GameManifest and defineGame(): what a game tells the site about itself
+  messages/         the core's catalogs (header, account, session, units)
+  server/           server only: site.ts (the node's games and country from RemnaWeb), country.ts, remnaweb.ts
+                    (REMNAWEB_URL, remoteValue()), remote-config.ts (a game's rules from GET /api/sni/config),
+                    page.ts (nodePage(), gameMetadata()), game-route.tsx (a game's layout and page)
+  player/           the player in the browser: session.ts (Telegram sign-in, the Mini App frame), api.ts
+                    (RemnaWeb's /api/sni/* as the player), use-game-status.ts (a game's status from RemnaWeb)
   storage.ts        localStorage/sessionStorage that never throws, under the `remnasni:` prefix
-  look.ts           profile cosmetics as CSS
+  cosmetics/        profile cosmetics as CSS, particle bursts
   format.ts         numbers, bytes, durations
-  use-game-status.ts  useGameStatus(): a game's status from RemnaWeb, loaded on session start and sign-in
-  i18n/             next-intl: locales, catalogs, request config, provider, useFormat, LanguageSwitch, tr()
+  i18n/             next-intl: locales, the core catalog, pageMessages(), provider, useFormat, LanguageSwitch, tr()
   ui/               SiteHeader, AccountMenu (+ SignInButton, MenuButton), PerkShop (bonuses for keys, key bar),
-                    StatTile, ProfileAvatar, Unavailable, Qzr and key icons
-src/games/<id>/     one game: its rules, state and components
+                    StatTile, GameIcon, ProfileAvatar, Unavailable, Qzr and key icons
+src/games/<id>/     one game: manifest.ts, its rules, state, components and messages/{en,ru}.json
+src/games/index.ts  the registry: the one list of the games' manifests; proxy, API proxy, hub and catalogs read it
+src/games/site.ts   the node's games RemnaWeb picked that this image runs
+src/i18n/request.ts next-intl's request config, with every catalog
 src/app/            routes only: app/games/<id>, the API proxy, the favicon
-messages/<scope>/   catalogs: core/ and one per game, each with its own top-level namespaces
 ```
 
-ESLint enforces the boundaries: `src/core` imports no game, a game imports no other game.
+ESLint enforces the boundaries: `src/core` imports no game and not the registry, a game imports no other game and not
+the registry.
 
 A new game: its code in `src/games/<id>` (rules loaded with `remoteConfig`, the page built from `nodePage`,
 `SiteHeader` and `AccountMenu`, the status through `useGameStatus`, bonuses through `PerkShop`, calls through `api`,
-storage through `storage`), its pages in `src/app/games/<id>`,
-its texts in `messages/<id>/{en,ru}.json` listed in `src/core/i18n/messages.ts`, and its entry in `src/core/games.ts`
-(and RemnaWeb's `lib/game/games.ts`).
+storage through `storage`), its texts in `src/games/<id>/messages/{en,ru}.json`, its `manifest.ts` (id, hub icon,
+routes, the RemnaWeb calls it makes, the texts) listed in `src/games/index.ts`, its pages in `src/app/games/<id>` (two
+lines each, from `core/server/game-route.tsx`), and the game itself in RemnaWeb (its `lib/game/games.ts`).
 
 ## Game rules
 

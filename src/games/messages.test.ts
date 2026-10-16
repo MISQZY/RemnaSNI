@@ -1,7 +1,7 @@
 import { IntlMessageFormat } from "intl-messageformat";
 import { describe, expect, it } from "vitest";
-import { LOCALES } from "./locales";
-import { CATALOGS, MESSAGES } from "./messages";
+import { LOCALES } from "@/core/i18n/locales";
+import { CATALOGS, MESSAGES } from "@/games";
 
 type Tree = { [key: string]: string | Tree };
 type Element = { type: number; value?: string; options?: Record<string, { value: Element[] }>; children?: Element[] };

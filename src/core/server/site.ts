@@ -1,4 +1,3 @@
-import { DEFAULT_GAME, GAMES, isGame, type GameId } from "@/core/games";
 import { REMNAWEB_TIMEOUT_MS, remnaWebUrl, remoteValue } from "@/core/server/remnaweb";
 
 // RemnaWeb is the orchestrator: it picks the games of each node and knows the country of the panel host the
@@ -7,19 +6,16 @@ import { REMNAWEB_TIMEOUT_MS, remnaWebUrl, remoteValue } from "@/core/server/rem
 // down the last answer keeps serving.
 
 /**
- * What this node runs: its games, side by side (the hub at / lists them, each is at /<id>), in the order of GAMES and
- * one at least, and the country (lowercase ISO 3166-1 alpha-2, "xx" for none).
+ * What this node runs: the ids of its games as RemnaWeb names them (src/games/site.ts keeps those this image has, side
+ * by side: the hub at / lists them, each is at /<id>), and the country (lowercase ISO 3166-1 alpha-2, "xx" for none).
  */
-export type Site = { games: GameId[]; country: string };
+export type Site = { games: string[]; country: string };
 
 /** Header RemnaWeb knows the site by: its host (SITE_HEADER in RemnaWeb's lib/game/sni.ts). */
 export const SITE_HEADER = "x-sni-site";
 
-/** The games of `list` this image can run, in the order of GAMES; none known means the default game alone. */
-const gamesOf = (list: readonly unknown[]): GameId[] => {
-  const games = (Object.keys(GAMES) as GameId[]).filter((g) => list.includes(g));
-  return games.length ? games : [DEFAULT_GAME];
-};
+/** The game ids of `list`: lowercase words. */
+const gamesOf = (list: readonly unknown[]): string[] => list.filter((g): g is string => typeof g === "string" && /^[a-z0-9-]+$/.test(g));
 
 const countryOf = (v: unknown) => (typeof v === "string" && /^[a-z]{2}$/.test(v.toLowerCase()) ? v.toLowerCase() : "xx");
 
@@ -58,15 +54,8 @@ async function ask(): Promise<Site> {
   const body = (await res.json()) as { games?: unknown; game?: unknown; country?: unknown };
   // A RemnaWeb older than the hub of games names one game.
   const list: unknown[] = Array.isArray(body.games) ? body.games : [body.game];
-  const unknown = list.filter((g) => !isGame(g));
-  if (unknown.length) console.warn(`RemnaWeb picked games this image cannot run: ${unknown.map(String).join(", ")}`);
   return { games: gamesOf(list), country: countryOf(body.country) };
 }
 
 /** The games and country of this node, as RemnaWeb tells; with no answer yet, .env's for a short while. */
 export const loadSite = remoteValue({ load: ask, fallback: () => fromEnv("RemnaWeb is unreachable"), retryMs: 15_000 });
-
-/** The games of this node, in the order of GAMES. */
-export async function siteGames(): Promise<GameId[]> {
-  return (await loadSite()).games;
-}

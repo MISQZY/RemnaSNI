@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { LOCALE_COOKIE, isLocale } from "@/core/i18n/locales";
-import { GAMES, isGame } from "@/core/games";
-import { siteGames } from "@/core/server/site";
+import { GAMES, isGame } from "@/games";
+import { siteGames } from "@/games/site";
 
 /**
- * Serves the node's games (picked in RemnaWeb, core/server/site.ts) side by side: / is the hub that lists them
+ * Serves the node's games (picked in RemnaWeb, src/games/site.ts) side by side: / is the hub that lists them
  * (app/page.tsx), and each game's public paths are under /<id>, rewritten to app/games/<id>, so a page loads the
  * code of its own game only. Paths of games the node does not run are 404.
  *

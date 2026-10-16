@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { ChipIcon } from "@/core/ui/chip-icon";
 import { QzrIcon } from "@/core/ui/qzr-icon";
-import { GameIcon } from "@/games/clicker/game-icon";
+import { GameIcon } from "@/core/ui/game-icon";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useConfig } from "@/games/clicker/config-provider";

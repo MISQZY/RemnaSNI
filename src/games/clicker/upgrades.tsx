@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Lock } from "lucide-react";
-import { GameIcon } from "@/games/clicker/game-icon";
+import { GameIcon } from "@/core/ui/game-icon";
 import { useConfig } from "@/games/clicker/config-provider";
 import { useFormat } from "@/core/i18n/provider";
 import { Badge } from "@/components/ui/badge";

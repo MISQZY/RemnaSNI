@@ -1,14 +1,17 @@
 import { cookies } from "next/headers";
 import { DEFAULT_LOCALE, LOCALE_COOKIE, LOCALE_HEADER, isLocale } from "@/core/i18n/locales";
-import { CORE_API, GAMES } from "@/core/games";
+import { GAME_LIST } from "@/games";
 import { remnaWebUrl } from "@/core/server/remnaweb";
 import { SITE_HEADER, siteHost } from "@/core/server/site";
 
 // RemnaWeb's SNI API behind this site's own origin: the page never names RemnaWeb, so a visitor or a
-// probe sees a standalone game. Only the calls the games make (core/games.ts) are passed through: those of every
+// probe sees a standalone game. Only the calls the games make (their manifests, src/games/<id>/manifest.ts) are passed through: those of every
 // game, so a tab left open on the game a node ran before a switch in RemnaWeb still saves its progress.
 
-const API = new Set<string>([...CORE_API, ...Object.values(GAMES).flatMap((g) => g.api)]);
+/** Calls every game makes: the session's own. */
+const CORE_API = ["auth/logout"];
+
+const API = new Set<string>([...CORE_API, ...GAME_LIST.flatMap((g) => g.api)]);
 
 const MAX_BODY_BYTES = 64 * 1024;
 const TIMEOUT_MS = 10_000;

@@ -1,6 +1,6 @@
 import { createTranslator } from "next-intl";
 import { DEFAULT_LOCALE, LOCALE_COOKIE, type Locale } from "./locales";
-import type { Messages } from "./messages";
+import type { Messages } from "next-intl";
 
 // Code outside React (sync, toasts from the game loop) reads the language through here; I18nProvider keeps it
 // current in the browser with the messages the server handed over: the core's and the node's game's only, so

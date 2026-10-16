@@ -1,47 +1,19 @@
+import type { Messages } from "next-intl";
+import type { Catalog } from "@/core/game";
 import type { Locale } from "./locales";
-import clickerEn from "../../../messages/clicker/en.json";
-import clickerRu from "../../../messages/clicker/ru.json";
-import coreEn from "../../../messages/core/en.json";
-import coreRu from "../../../messages/core/ru.json";
-import crashEn from "../../../messages/crash/en.json";
-import crashRu from "../../../messages/crash/ru.json";
-import fishingEn from "../../../messages/fishing/en.json";
-import fishingRu from "../../../messages/fishing/ru.json";
-import gemsEn from "../../../messages/gems/en.json";
-import gemsRu from "../../../messages/gems/ru.json";
-import sacrificeEn from "../../../messages/sacrifice/en.json";
-import sacrificeRu from "../../../messages/sacrifice/ru.json";
-import snakeEn from "../../../messages/snake/en.json";
-import snakeRu from "../../../messages/snake/ru.json";
+import en from "../messages/en.json";
+import ru from "../messages/ru.json";
 
-// The catalogs of messages/<scope>/<locale>.json: the core's (header, account, session, units) and each game's
-// under its own top-level namespaces. A new game adds its folder here, next to its id in core/games.ts.
+// The core's catalog (header, account, session, units), src/core/messages/<locale>.json; each game brings its own in
+// its manifest (core/game.ts), and src/games/index.ts puts them all together for the server.
 
-/** Each scope's catalogs; they never share a top-level key (checked by messages.test.ts). */
-export const CATALOGS = {
-  core: { en: coreEn, ru: coreRu },
-  clicker: { en: clickerEn, ru: clickerRu },
-  snake: { en: snakeEn, ru: snakeRu },
-  fishing: { en: fishingEn, ru: fishingRu },
-  crash: { en: crashEn, ru: crashRu },
-  sacrifice: { en: sacrificeEn, ru: sacrificeRu },
-  gems: { en: gemsEn, ru: gemsRu },
-};
-
-const en = { ...coreEn, ...clickerEn, ...snakeEn, ...fishingEn, ...crashEn, ...sacrificeEn, ...gemsEn };
-const ru = { ...coreRu, ...clickerRu, ...snakeRu, ...fishingRu, ...crashRu, ...sacrificeRu, ...gemsRu };
-
-export type Messages = typeof en;
-
-/** Every message, for the server. */
-export const MESSAGES: Record<Locale, Messages> = { en, ru };
+export const CORE_CATALOG = { en, ru } satisfies Catalog;
 
 /**
- * What a page needs in the browser, in `locale`: the core namespaces, and `game`'s for the pages of a game (its
+ * What a page needs in the browser, in `locale`: the core namespaces, and a game's catalog for the pages of a game (its
  * layout knows which, so no lookup can disagree with the game src/proxy.ts served). The rest stays on the server;
  * typed as all messages, since a page asks only for its own.
  */
-export function pageMessages(locale: Locale, game?: Exclude<keyof typeof CATALOGS, "core">): Messages {
-  const keys = [...Object.keys(CATALOGS.core.en), ...(game ? Object.keys(CATALOGS[game].en) : [])];
-  return Object.fromEntries(keys.map((k) => [k, MESSAGES[locale][k as keyof Messages]])) as Messages;
+export function pageMessages(locale: Locale, catalog?: Catalog): Messages {
+  return { ...CORE_CATALOG[locale], ...catalog?.[locale] } as unknown as Messages;
 }
