@@ -1,14 +1,15 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Gauge, Sparkles, Waves, Zap } from "lucide-react";
 import { memo, useEffect, useEffectEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ApiError, api } from "@/core/player/api";
 import { useFormat } from "@/core/i18n/provider";
 import { session, useSession } from "@/core/player/session";
 import { AccountMenu } from "@/core/ui/account-menu";
-import { PerkShop, StatTile, type GamePerk } from "@/core/ui/perk-shop";
+import { PerkShop, usePerkShop, type PerkStatus } from "@/core/ui/perk-shop";
+import { BalanceTile, Gain, StatTile, TurboBadge } from "@/core/ui/stat-tile";
+import { Particles, particlesOf, type Particle } from "@/core/cosmetics/particles";
 import { useGameStatus } from "@/core/player/use-game-status";
 import { haptic } from "@/core/haptic";
 import { useHydrated } from "@/core/use-hydrated";
@@ -41,24 +42,11 @@ const SHUFFLE_MS = 700;
 const POPUP_MS = 1_700;
 
 /**
- * `cleared` gems in the country, `best` the most waves one move has cleared there, `price` the next gem's worth with
- * the turbo; `boost` the country's turbo and `multiplier` what it does to gem prices (1 without it); `cascadeBonus`
- * with the player's bonus; `keys` the free Qzr keys (shared with the other games), `nextKey` gems until the next one,
- * `keyFrom` the count at which the last one came.
+ * The bonuses' status (core/ui/perk-shop.tsx) with `cleared` gems in the country (which the keys come for), `best` the
+ * most waves one move has cleared there, `price` the next gem's worth with the turbo and `cascadeBonus` with the
+ * player's bonus.
  */
-type Status = {
-  balance: number;
-  cleared: number;
-  best: number;
-  price: number;
-  boost: number;
-  multiplier: number;
-  cascadeBonus: number;
-  keys: number;
-  nextKey: number;
-  keyFrom?: number;
-  perks: GamePerk[];
-};
+type Status = PerkStatus & { cleared: number; best: number; price: number; cascadeBonus: number };
 /** The board RemnaWeb keeps, with its id: what a chunk is played on. */
 type Stored = { id: string; board: Board };
 /** RemnaWeb's answer to a chunk: what it paid, the board after it and the status. */
@@ -73,10 +61,6 @@ type Tile = { id: number; gem: Gem; drop?: number; fall?: number };
 type Unsent = { move: Move; gems: number; qzr: number };
 /** A floating "+N Qzr" over a wave: `bonus` the part the turbo added; `cascade` its wave number from the swap's. */
 type Popup = { id: number; x: number; y: number; qzr: number | null; bonus: number; cascade: number; golden: boolean; particles: Particle[] };
-type Particle = { emoji: string; dx: number; dy: number; rot: number; size: number };
-
-const PERK_ICONS = { line: Zap, golden: Sparkles, cascade: Waves };
-const perkEffect = (p: GamePerk) => Math.round(Math.max(1, p.level) * p.perLevel * 100);
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const copyBoard = (b: Board): Board => ({ ...b, cells: [...b.cells] });
@@ -106,23 +90,6 @@ function tilesAfter(tiles: readonly Tile[], wave: Wave, cols: number, rows: numb
   return next;
 }
 
-/** A few particles of an effect thrown evenly around a cleared wave; none without one. */
-function particlesOf(effect: string[] | null): Particle[] {
-  if (!effect?.length) return [];
-  const start = Math.random() * Math.PI * 2;
-  return Array.from({ length: 5 }, (_, i) => {
-    const angle = start + ((i + (Math.random() - 0.5) * 0.3) / 5) * Math.PI * 2;
-    const dist = 34 + Math.random() * 18;
-    return {
-      emoji: effect[Math.floor(Math.random() * effect.length)],
-      dx: Math.cos(angle) * dist,
-      dy: Math.sin(angle) * dist,
-      rot: (Math.random() - 0.5) * 360,
-      size: 12 + Math.random() * 6,
-    };
-  });
-}
-
 /** RemnaWeb's Gems API (core/player/api.ts): the board, the moves and the bonuses (the status comes with useGameStatus). */
 const gemsApi = <T,>(country: string, path: string, body: object, keepalive = false) => api<T>(path, { method: "POST", body, country, keepalive });
 
@@ -139,7 +106,7 @@ const localBoard = (rules: GemsRules) => newBoard({ ...sizeFor(rules), colors: r
 
 export function GemsSite({ code, name, signIn, rules }: { code: string; name: string; signIn: boolean; rules: GemsRules }) {
   const t = useTranslations();
-  const { num, fixed } = useFormat();
+  const { num } = useFormat();
   const account = useSession();
   // False while hydrating, so the board dealt here does not differ from the server's markup.
   const hydrated = useHydrated();
@@ -159,7 +126,6 @@ export function GemsSite({ code, name, signIn, rules }: { code: string; name: st
   /** A move playing out on screen: no other is taken meanwhile. */
   const [busy, setBusy] = useState(false);
   const [shuffling, setShuffling] = useState(false);
-  const [buying, setBuying] = useState<string | null>(null);
   const [popups, setPopups] = useState<Popup[]>([]);
   /** Gems cleared and the most waves of a move on this visit. */
   const [score, setScore] = useState(0);
@@ -296,7 +262,7 @@ export function GemsSite({ code, name, signIn, rules }: { code: string; name: st
       bonus,
       cascade,
       golden: wave.golden > 0,
-      particles: particlesOf(look.effect),
+      particles: particlesOf(look.effect, 5, 34, 52),
     };
     setPopups((list) => [...list, p]);
     setTimeout(() => setPopups((list) => list.filter((x) => x.id !== p.id)), POPUP_MS);
@@ -392,23 +358,19 @@ export function GemsSite({ code, name, signIn, rules }: { code: string; name: st
   };
 
   /** Buys the next level of a bonus with the country's Qzr keys: the moves made go first, the board takes its new chances. */
-  const buyPerk = async (id: string) => {
-    setBuying(id);
-    try {
-      await sendChunk();
-      const res = await gemsApi<Status & { board: Stored | null }>(code, "gems/perks", { id });
-      if (!res) return;
+  const shop = usePerkShop<Status & { board: Stored | null }>(
+    "gems",
+    code,
+    async (res) => {
       setStatus(res);
       if (res.board && !unsentRef.current.length && boardRef.current && sameBoard(res.board.board, boardRef.current)) {
         storedRef.current = res.board;
         boardRef.current = copyBoard(res.board.board);
       } else await resync();
-    } catch {
-      toast.error(t("gems.buyFailed"));
-    } finally {
-      setBuying(null);
-    }
-  };
+    },
+    () => sendChunk(),
+  );
+  const buying = shop.buying;
 
   const balance = signedIn && status ? status.balance + unsent.qzr : null;
   const turbo = signedIn ? (status?.multiplier ?? 1) : 1;
@@ -484,17 +446,9 @@ export function GemsSite({ code, name, signIn, rules }: { code: string; name: st
             <div className="pointer-events-none absolute inset-2 sm:inset-3">
               {/* What each wave brought, the turbo's share in green, floating up from where it was cleared. */}
               <div aria-hidden className="absolute inset-0 motion-reduce:hidden">
-                {popups.map((p) =>
-                  p.particles.map((f, i) => (
-                    <span
-                      key={`${p.id}-${i}`}
-                      className="absolute leading-none animate-gem-burst"
-                      style={{ left: `${p.x}%`, top: `${p.y}%`, fontSize: f.size, "--dx": `${f.dx}px`, "--dy": `${f.dy}px`, "--rot": `${f.rot}deg` } as React.CSSProperties}
-                    >
-                      {f.emoji}
-                    </span>
-                  )),
-                )}
+                {popups.map((p) => (
+                  <Particles key={`burst-${p.id}`} particles={p.particles} x={p.x} y={p.y} className="animate-gem-burst" />
+                ))}
                 {popups.map((p) => (
                   <span
                     key={p.id}
@@ -506,12 +460,7 @@ export function GemsSite({ code, name, signIn, rules }: { code: string; name: st
                   >
                     {p.qzr !== null && (
                       <span className="flex items-baseline gap-1">
-                        +{num(p.qzr)}
-                        {p.bonus > 0 && (
-                          <span className="inline-flex items-center text-xs text-primary">
-                            <Gauge className="size-3" />+{num(p.bonus)}
-                          </span>
-                        )}
+                        <Gain qzr={p.qzr} bonus={p.bonus} />
                       </span>
                     )}
                     {p.cascade > 0 && <span className="text-sm text-sky-300">{t("gems.cascade", { n: p.cascade + 1 })}</span>}
@@ -533,18 +482,7 @@ export function GemsSite({ code, name, signIn, rules }: { code: string; name: st
           <div className={cn("grid grid-cols-3 gap-1.5", gameLayout.above)}>
             <StatTile label={t("gems.cleared")} value={num(score)} />
             <StatTile label={t("gems.best")} value={hydrated ? `×${num(Math.max(bestWaves, status?.best ?? 0))}` : "—"} />
-            <StatTile
-              label="Qzr"
-              value={
-                balance !== null ? (
-                  <span className="inline-flex items-center gap-1">
-                    <QzrIcon className="size-3.5" /> {num(balance)}
-                  </span>
-                ) : (
-                  "—"
-                )
-              }
-            />
+            <BalanceTile balance={balance} />
           </div>
 
           <p className={cn("flex flex-wrap items-center justify-center gap-1 text-center text-xs text-muted-foreground lg:justify-start lg:rounded-lg lg:bg-muted/60 lg:px-3 lg:py-2", gameLayout.above)}>
@@ -553,26 +491,13 @@ export function GemsSite({ code, name, signIn, rules }: { code: string; name: st
                 <QzrIcon className="size-3.5" /> {t("gems.price", { qzr: num(nextPrice) })}
               </>
             )}
-            {turbo > 1 && (
-              <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/12 px-1.5 font-medium text-primary">
-                <Gauge className="size-3" /> {t("gems.turbo", { boost: fixed(status?.boost ?? 0, 1), percent: num(Math.round((turbo - 1) * 100)) })}
-              </span>
-            )}
+            <TurboBadge boost={status?.boost ?? 0} multiplier={turbo} />
             {hydrated && !signedIn && signIn && <span>{t("gems.demo")}</span>}
           </p>
 
           {/* Bonuses bought with the country's Qzr keys, shared with the other games; kept in RemnaWeb, so signed in only. */}
           {signedIn && status && (
-            <PerkShop
-              keys={status.keys}
-              progress={{ count: status.cleared, nextKey: status.nextKey, keyFrom: status.keyFrom }}
-              perks={status.perks}
-              icons={PERK_ICONS}
-              effect={perkEffect}
-              locked={busy}
-              buying={buying}
-              onBuy={(id) => void buyPerk(id)}
-            />
+            <PerkShop status={status} count={status.cleared} shop={shop} locked={busy} />
           )}
         </div>
       </main>

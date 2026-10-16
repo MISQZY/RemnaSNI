@@ -8,7 +8,6 @@
     "cleared": "Cleared",
     "best": "Best cascade",
     "price": "{qzr} a gem, rising",
-    "turbo": "turbo ×{boost} · +{percent}%",
     "demo": "Sign in to earn Qzr",
     "hint": "Swap neighbouring gems: swipe or click two",
     "cascade": "Cascade ×{n}",
@@ -16,7 +15,6 @@
     "loading": "Loading the board…",
     "keys": "+{n} Qzr {n, plural, one {key} other {keys}}",
     "failed": "The moves were not saved, the board is updated",
-    "stale": "The board is updated",
-    "buyFailed": "The bonus was not bought"
+    "stale": "The board is updated"
   }
 }

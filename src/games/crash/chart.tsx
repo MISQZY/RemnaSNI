@@ -6,7 +6,7 @@ import { playBurst, type Burst } from "@/core/cosmetics/burst";
 import { useFormat } from "@/core/i18n/provider";
 import { cn } from "@/lib/utils";
 import { msToReach, multiplierAt, tierOf, type CrashHead, type CrashLook, type CrashRules, type CrashSnapshot, type CrashTier } from "./rules";
-import { useFrameLoop, useFrameNow } from "./stream";
+import { useFrameLoop, useFrameNow } from "@/core/player/stream";
 
 // The round on a chart: the multiplier's curve as it grows, in the color its height has reached (the rarities of
 // RemnaWeb's pets, grey to cosmic), the countdown while bets are taken and the crash point once it has crashed. The

@@ -31,7 +31,8 @@
   "perks": {
     "title": "Бонусы",
     "nextKey": "До следующего Qzr ключа",
-    "max": "Макс"
+    "max": "Макс",
+    "buyFailed": "Бонус не купился"
   },
   "hub": {
     "subtitle": "Игры",
@@ -39,5 +40,15 @@
       "title": "Игры: {country}",
       "description": "{country}: играйте и зарабатывайте Qzr — выберите игру."
     }
+  },
+  "game": {
+    "turbo": "турбо ×{boost} · +{percent}%"
+  },
+  "fair": {
+    "hash": "Хэш",
+    "seed": "Сид",
+    "mismatch": "Не сходится!",
+    "unchecked": "Браузер не может проверить",
+    "copied": "Скопировано"
   }
 }

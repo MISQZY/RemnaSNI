@@ -36,13 +36,8 @@
     "hint": "Space bets, takes back or cashes out. Bets start at {min} Qzr",
     "fair": {
       "round": "Round #{id}",
-      "hash": "Hash",
-      "seed": "Seed",
       "seedLater": "Shown after the crash",
       "verified": "Fair: the seed and the crash match",
-      "mismatch": "Does not match!",
-      "unchecked": "The browser cannot check it",
-      "copied": "Copied",
       "how": "The hash is shown from the round's start, the seed after the crash. The crash point comes from the seed alone (taken as text):",
       "bounds": "h is the HMAC in hex. The crash is ×1.00 at the least and {max} at the most.",
       "check": "Check the round"

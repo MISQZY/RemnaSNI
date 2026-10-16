@@ -148,13 +148,8 @@
     },
     "fair": {
       "title": "Fairness of the fight",
-      "hash": "Hash",
-      "seed": "Seed",
       "seedLater": "Shown once the fight is over",
       "verified": "Fair: the seed's decks match the cards",
-      "mismatch": "Does not match!",
-      "unchecked": "The browser cannot check it",
-      "copied": "Copied",
       "check": "Check the decks",
       "how": "The hash is shown from the start, the seed after. The decks are shuffled from the seed alone (taken as text); cards are drawn from the top:"
     },

@@ -10,7 +10,7 @@ import { useFormat } from "@/core/i18n/provider";
 import { useSession } from "@/core/player/session";
 import { storage } from "@/core/storage";
 import { AccountMenu, SignInButton } from "@/core/ui/account-menu";
-import { StatTile } from "@/core/ui/perk-shop";
+import { BalanceTile, StatTile } from "@/core/ui/stat-tile";
 import { QzrIcon } from "@/core/ui/qzr-icon";
 import { gameLayout } from "@/core/ui/game-layout";
 import { SiteHeader } from "@/core/ui/site-header";
@@ -21,7 +21,8 @@ import { cn } from "@/lib/utils";
 import { CrashChart, TIER_CHIP, useMultiplier } from "./chart";
 import { CurrentRoundProof, RoundProof } from "./fairness";
 import { multiplierAt, payoutOf, tierOf, type CrashBet, type CrashLook, type CrashRules, type CrashSnapshot, type MyBet } from "./rules";
-import { useCrashStream, useFrameNow } from "./stream";
+import { useFrameNow } from "@/core/player/stream";
+import { useCrashStream } from "./stream";
 
 // The crash, the game of nodes RemnaWeb has picked it for: a bet of Qzr before the round, then the multiplier grows
 // until it crashes at a moment nobody knows but RemnaWeb; cash out before that and the bet comes back multiplied,
@@ -249,18 +250,7 @@ function BetPanel({ rules, snapshot, serverNow, online, mine, balance, busy, onB
   return (
     <section className="flex flex-col gap-3 rounded-2xl bg-card p-3 ring-1 ring-foreground/10">
       <div className="grid grid-cols-2 gap-1.5">
-        <StatTile
-          label={t("balance")}
-          value={
-            balance !== undefined ? (
-              <span className="inline-flex items-center gap-1">
-                <QzrIcon className="size-3.5" /> {num(balance)}
-              </span>
-            ) : (
-              "—"
-            )
-          }
-        />
+        <BalanceTile label={t("balance")} balance={balance} />
         <StatTile label={t("auto")} value={mine ? (mine.auto ? mult(mine.auto) : t("autoOff")) : autoValue && autoValid ? mult(autoValue) : t("autoOff")} />
       </div>
 

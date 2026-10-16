@@ -1,8 +1,8 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Cable, Fish, Gauge, Magnet, RotateCcw, Wheat } from "lucide-react";
-import { useEffect, useEffectEvent, useRef, useState, type RefObject } from "react";
+import { Fish, Gauge, RotateCcw } from "lucide-react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ApiError, api } from "@/core/player/api";
@@ -10,13 +10,15 @@ import { useFormat } from "@/core/i18n/provider";
 import { useSession } from "@/core/player/session";
 import { storage } from "@/core/storage";
 import { AccountMenu } from "@/core/ui/account-menu";
-import { PerkShop, StatTile, type GamePerk } from "@/core/ui/perk-shop";
+import { PerkShop, usePerkShop, type PerkStatus } from "@/core/ui/perk-shop";
+import { BalanceTile, StatTile, TurboBadge } from "@/core/ui/stat-tile";
 import { QzrIcon } from "@/core/ui/qzr-icon";
 import { gameLayout } from "@/core/ui/game-layout";
 import { SiteHeader } from "@/core/ui/site-header";
 import { fromControl } from "@/core/hotkey";
 import { useGameStatus } from "@/core/player/use-game-status";
 import { useHydrated } from "@/core/use-hydrated";
+import { useHoldSurface } from "@/core/use-hold-surface";
 import { cn } from "@/lib/utils";
 import { TICK, newReel, stepReel, type Reel, type ReelSetup } from "./reel";
 import { fishValue, localBiteMs, localReel, rollCatch, type Catch, type FishingRules, type Rarity } from "./rules";
@@ -37,22 +39,10 @@ type Phase = "ready" | "casting" | "waiting" | "bite" | "fight" | "landing" | "c
 type Lost = "early" | "missed" | "escaped";
 
 /**
- * `fish` caught in the country, `best` the heaviest, kg, `price` what the next average fish sells for; `boost`
- * the country's turbo and `multiplier` what it does to fish prices (1 without it); `keys` the free Qzr keys
- * (shared with the other games), `nextKey` fish until the next one, `keyFrom` the count at which the last one came.
+ * The bonuses' status (core/ui/perk-shop.tsx) with `fish` caught in the country (which the keys come for), `best` the
+ * heaviest, kg, and `price` what the next average fish sells for.
  */
-type Status = {
-  balance: number;
-  fish: number;
-  best?: number;
-  price?: number;
-  boost: number;
-  multiplier: number;
-  keys: number;
-  nextKey: number;
-  keyFrom?: number;
-  perks: GamePerk[];
-};
+type Status = PerkStatus & { fish: number; best?: number; price?: number };
 /** What a landed fish brings: RemnaWeb's answer to the catch. */
 type Landed = Status & { earned: number; caught: Catch };
 /**
@@ -60,9 +50,6 @@ type Landed = Status & { earned: number; caught: Catch };
  * hooked, the fight the fish gives, and the fish itself without an account.
  */
 type Cast = { id: string | null; biteMs: number; hookMs: number; reel: ReelSetup; local: Catch | null };
-
-const PERK_ICONS = { lure: Magnet, line: Cable, bait: Wheat };
-const perkEffect = (p: GamePerk) => Math.round(Math.max(1, p.level) * p.perLevel * 100);
 
 /** Text colors of the rarities, lightest to brightest. */
 const RARITY_COLOR: Record<Rarity, string> = {
@@ -75,28 +62,6 @@ const RARITY_COLOR: Record<Rarity, string> = {
 
 const readBest = () => Number(storage.get(BEST_KEY)) || 0;
 const readLocal = () => Math.max(0, Math.floor(Number(storage.get(LOCAL_KEY)) || 0));
-
-/**
- * Keeps a long press on `ref` a press: no text selection, magnifier, callout or double-tap zoom on phones, which a
- * fish held for seconds would otherwise bring up. Only a native listener can cancel a touch: React's are passive.
- */
-function useHoldSurface(ref: RefObject<HTMLElement | null>) {
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const stop = (e: Event) => {
-      if (e.cancelable) e.preventDefault();
-    };
-    el.addEventListener("touchstart", stop, { passive: false });
-    el.addEventListener("contextmenu", stop);
-    el.addEventListener("selectstart", stop);
-    return () => {
-      el.removeEventListener("touchstart", stop);
-      el.removeEventListener("contextmenu", stop);
-      el.removeEventListener("selectstart", stop);
-    };
-  }, [ref]);
-}
 
 export function FishingSite({ code, name, signIn, rules }: { code: string; name: string; signIn: boolean; rules: FishingRules }) {
   const t = useTranslations();
@@ -111,7 +76,6 @@ export function FishingSite({ code, name, signIn, rules }: { code: string; name:
   const [result, setResult] = useState<{ fish: Catch; sold: boolean } | null>(null);
   const [best, setBest] = useState(readBest);
   const [local, setLocal] = useState(readLocal);
-  const [buying, setBuying] = useState<string | null>(null);
   const castRef = useRef<Cast | null>(null);
   const reelRef = useRef<Reel | null>(null);
   /** The ticks at which the hold flipped during the fight: RemnaWeb replays them before it pays for the fish. */
@@ -322,18 +286,8 @@ export function FishingSite({ code, name, signIn, rules }: { code: string; name:
     };
   }, []);
 
-  /** Buys the next level of a bonus with the country's Qzr keys; it applies from the next cast. */
-  const buyPerk = async (id: string) => {
-    setBuying(id);
-    try {
-      const res = await api<Status>("fishing/perks", { method: "POST", body: { id }, country: code });
-      if (res) setStatus(res);
-    } catch {
-      toast.error(t("fishing.buyFailed"));
-    } finally {
-      setBuying(null);
-    }
-  };
+  /** Bonuses bought with the country's Qzr keys apply from the next cast. */
+  const shop = usePerkShop<Status>("fishing", code, setStatus);
 
   const signedIn = !!account.token;
   const turbo = signedIn ? (status?.multiplier ?? 1) : 1;
@@ -458,18 +412,7 @@ export function FishingSite({ code, name, signIn, rules }: { code: string; name:
           <div className={cn("grid grid-cols-3 gap-1.5", gameLayout.above)}>
             <StatTile label={t("fishing.caught")} value={caughtCount !== undefined ? num(caughtCount) : "—"} />
             <StatTile label={t("fishing.best")} value={bestKg > 0 ? t("fishing.kg", { kg: fixed(bestKg, bestKg < 10 ? 2 : 1) }) : "—"} />
-            <StatTile
-              label="Qzr"
-              value={
-                signedIn && status ? (
-                  <span className="inline-flex items-center gap-1">
-                    <QzrIcon className="size-3.5" /> {num(status.balance)}
-                  </span>
-                ) : (
-                  "—"
-                )
-              }
-            />
+            <BalanceTile balance={signedIn ? status?.balance : null} />
           </div>
 
           <p className={cn("flex flex-wrap items-center justify-center gap-1 text-center text-xs text-muted-foreground lg:justify-start lg:rounded-lg lg:bg-muted/60 lg:px-3 lg:py-2", gameLayout.above)}>
@@ -478,26 +421,13 @@ export function FishingSite({ code, name, signIn, rules }: { code: string; name:
                 <QzrIcon className="size-3.5" /> {t("fishing.price", { qzr: num(nextPrice) })}
               </>
             )}
-            {turbo > 1 && (
-              <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/12 px-1.5 font-medium text-primary">
-                <Gauge className="size-3" /> {t("fishing.turbo", { boost: fixed(status?.boost ?? 0, 1), percent: num(Math.round((turbo - 1) * 100)) })}
-              </span>
-            )}
+            <TurboBadge boost={status?.boost ?? 0} multiplier={turbo} />
             {!signedIn && signIn && <span>· {t("fishing.demo")}</span>}
           </p>
 
           {/* Bonuses bought with the country's Qzr keys, shared with the other games; kept in RemnaWeb, so signed in only. */}
           {signedIn && status && (
-            <PerkShop
-              keys={status.keys}
-              progress={{ count: status.fish, nextKey: status.nextKey, keyFrom: status.keyFrom }}
-              perks={status.perks}
-              icons={PERK_ICONS}
-              effect={perkEffect}
-              locked={onWater}
-              buying={buying}
-              onBuy={(id) => void buyPerk(id)}
-            />
+            <PerkShop status={status} count={status.fish} shop={shop} locked={onWater} />
           )}
         </div>
       </main>

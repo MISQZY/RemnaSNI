@@ -11,7 +11,7 @@ import { useFormat } from "@/core/i18n/provider";
 import { useSession } from "@/core/player/session";
 import { storage } from "@/core/storage";
 import { AccountMenu, SignInButton } from "@/core/ui/account-menu";
-import { StatTile } from "@/core/ui/perk-shop";
+import { BalanceTile, StatTile } from "@/core/ui/stat-tile";
 import { QzrIcon } from "@/core/ui/qzr-icon";
 import { gameLayout } from "@/core/ui/game-layout";
 import { SiteHeader } from "@/core/ui/site-header";
@@ -268,21 +268,7 @@ function DuelFight({
 
 function Balance({ balance }: { balance: number | undefined }) {
   const t = useTranslations("sacrifice");
-  const { num } = useFormat();
-  return (
-    <StatTile
-      label={t("balance")}
-      value={
-        balance !== undefined ? (
-          <span className="inline-flex items-center gap-1">
-            <QzrIcon className="size-3.5" /> {num(balance)}
-          </span>
-        ) : (
-          "—"
-        )
-      }
-    />
-  );
+  return <BalanceTile label={t("balance")} balance={balance} />;
 }
 
 /** The last bet against the robot on this device, 100 at first. */

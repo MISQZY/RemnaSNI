@@ -23,8 +23,6 @@
     "left": "Left",
     "right": "Right",
     "price": "{qzr} per crystal, growing",
-    "turbo": "turbo ×{boost} · +{percent}%",
-    "buyFailed": "Could not buy the bonus",
     "earned": "+{n} Qzr",
     "failed": "The run was not saved"
   }

@@ -12,7 +12,7 @@ import { ChargeIcon } from "./art";
 import { CardBack, CardFace, CardInfo, useCards } from "./card";
 import { playFx, type FxLabels } from "./fx";
 import { replay, type Boards, type Step } from "./replay";
-import { useSecondsLeft } from "./stream";
+import { useSecondsLeft } from "@/core/player/stream";
 import {
   autoSacrifices,
   chargeOf,

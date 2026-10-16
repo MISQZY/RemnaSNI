@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Gamepad2, Gauge, Heart, Pause, Play, RotateCcw, Sparkles, Turtle } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Gamepad2, Heart, Pause, Play, RotateCcw } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,9 @@ import { useFormat } from "@/core/i18n/provider";
 import { session, useSession } from "@/core/player/session";
 import { storage } from "@/core/storage";
 import { AccountMenu } from "@/core/ui/account-menu";
-import { PerkShop, StatTile, type GamePerk } from "@/core/ui/perk-shop";
+import { PerkShop, usePerkShop, type GamePerk, type PerkStatus } from "@/core/ui/perk-shop";
+import { BalanceTile, Gain, StatTile, TurboBadge } from "@/core/ui/stat-tile";
+import { Particles, particlesOf, type Particle } from "@/core/cosmetics/particles";
 import { fromControl } from "@/core/hotkey";
 import { useGameStatus } from "@/core/player/use-game-status";
 import { useHydrated } from "@/core/use-hydrated";
@@ -43,12 +45,8 @@ const PAD_KEY = "snake-pad";
 /** A swipe turns once the finger has moved this far, px. */
 const SWIPE_PX = 18;
 
-/**
- * `boost` is the country's turbo, `multiplier` what it does to crystal prices (1 without it); `keys` the free
- * Qzr keys (shared with the clicker), `nextKey` the crystals left until the next one, `keyFrom` the crystals at
- * which the last one came (missing from older RemnaWeb versions).
- */
-type Status = { balance: number; crystals: number; boost: number; multiplier: number; keys: number; nextKey: number; keyFrom?: number; perks: GamePerk[] };
+/** The bonuses' status (core/ui/perk-shop.tsx) with the crystals collected in the country, which the keys come for. */
+type Status = PerkStatus & { crystals: number };
 
 function boostsOf(perks: GamePerk[] | undefined, rules: SnakeRules): Boosts {
   const effect = (id: string) => {
@@ -63,24 +61,7 @@ type Run = { score: number; durationMs: number; golden?: number };
  * crystal effect bought in RemnaWeb.
  */
 type Popup = { id: number; x: number; y: number; qzr: number; bonus: number; golden: boolean; particles: Particle[] };
-type Particle = { emoji: string; dx: number; dy: number; rot: number; size: number };
 
-/** A few particles of an effect thrown evenly around an eaten crystal; none without one. */
-function particlesOf(effect: string[] | null): Particle[] {
-  if (!effect?.length) return [];
-  const start = Math.random() * Math.PI * 2;
-  return Array.from({ length: 4 }, (_, i) => {
-    const angle = start + ((i + (Math.random() - 0.5) * 0.3) / 4) * Math.PI * 2;
-    const dist = 36 + Math.random() * 16;
-    return {
-      emoji: effect[Math.floor(Math.random() * effect.length)],
-      dx: Math.cos(angle) * dist,
-      dy: Math.sin(angle) * dist,
-      rot: (Math.random() - 0.5) * 360,
-      size: 12 + Math.random() * 6,
-    };
-  });
-}
 /** How long a popup floats, ms: the float-up animation in globals.css. */
 const POPUP_MS = 900;
 
@@ -99,14 +80,9 @@ const readPad = () => storage.get(PAD_KEY) === "1";
 const readBest = () => Number(storage.get(BEST_KEY)) || 0;
 
 
-/** Icons of the snake bonuses. */
-const PERK_ICONS: Record<string, typeof Sparkles> = { golden: Sparkles, life: Heart, slow: Turtle };
-/** A bonus's effect for its description: lives as they are, the rest in percent. */
-const perkEffect = (p: GamePerk) => Math.round(Math.max(1, p.level) * p.perLevel * (p.id === "life" ? 1 : 100));
-
 export function SnakeSite({ code, name, signIn, rules }: { code: string; name: string; signIn: boolean; rules: SnakeRules }) {
   const t = useTranslations();
-  const { num, fixed } = useFormat();
+  const { num } = useFormat();
   const account = useSession();
   // False while hydrating, so values kept in the browser do not differ from the server's markup.
   const hydrated = useHydrated();
@@ -122,7 +98,6 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
   /** Crystals eaten since the last chunk was sent, their Qzr, and when that chunk began. */
   const chunkRef = useRef({ score: 0, golden: 0, qzr: 0, since: 0 });
   const [lives, setLives] = useState(0);
-  const [buying, setBuying] = useState<string | null>(null);
   const [unsent, setUnsent] = useState({ crystals: 0, qzr: 0 });
   /**
    * Crystals collected so far, the ones not sent yet included: the number of the next one, which sets its
@@ -309,18 +284,8 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
     return () => clearTimeout(timer);
   }, [phase]);
 
-  /** Buys the next level of a bonus with the country's Qzr keys; it applies from the next run. */
-  const buyPerk = async (id: string) => {
-    setBuying(id);
-    try {
-      const res = await snakeApi<Status>(code, { id }, "snake/perks");
-      if (res) setStatus(res);
-    } catch {
-      toast.error(t("snake.buyFailed"));
-    } finally {
-      setBuying(null);
-    }
-  };
+  /** Bonuses bought with the country's Qzr keys apply from the next run. */
+  const shop = usePerkShop<Status>("snake", code, setStatus);
 
   const start = () => {
     // Bonuses need an account: they are bought and kept in RemnaWeb.
@@ -419,17 +384,9 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
             <canvas ref={canvasRef} className="size-full rounded-xl bg-muted/40 ring-1 ring-foreground/5" />
             {/* What each crystal brought, the turbo's share in green, floating up from where it lay. */}
             <div aria-hidden className="pointer-events-none absolute inset-3 motion-reduce:hidden">
-              {popups.map((p) =>
-                p.particles.map((f, i) => (
-                  <span
-                    key={`${p.id}-${i}`}
-                    className="absolute leading-none animate-flag-burst"
-                    style={{ left: `${p.x}%`, top: `${p.y}%`, fontSize: f.size, "--dx": `${f.dx}px`, "--dy": `${f.dy}px`, "--rot": `${f.rot}deg` } as React.CSSProperties}
-                  >
-                    {f.emoji}
-                  </span>
-                )),
-              )}
+              {popups.map((p) => (
+                <Particles key={`burst-${p.id}`} particles={p.particles} x={p.x} y={p.y} className="animate-flag-burst" />
+              ))}
               {popups.map((p) => (
                 <span
                   key={p.id}
@@ -439,12 +396,7 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
                   )}
                   style={{ left: `${p.x}%`, top: `${p.y}%` }}
                 >
-                  +{num(p.qzr)}
-                  {p.bonus > 0 && (
-                    <span className="inline-flex items-center text-xs text-primary">
-                      <Gauge className="size-3" />+{num(p.bonus)}
-                    </span>
-                  )}
+                  <Gain qzr={p.qzr} bonus={p.bonus} />
                 </span>
               ))}
             </div>
@@ -470,18 +422,7 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
             <div className="grid min-w-0 flex-1 grid-cols-3 gap-1.5">
               <StatTile label={t("snake.score")} value={num(score)} />
               <StatTile label={t("snake.best")} value={num(shownBest)} />
-              <StatTile
-                label="Qzr"
-                value={
-                  balance !== null ? (
-                    <span className="inline-flex items-center gap-1">
-                      <QzrIcon className="size-3.5" /> {num(balance)}
-                    </span>
-                  ) : (
-                    "—"
-                  )
-                }
-              />
+              <BalanceTile balance={balance} />
             </div>
             <Button
               variant="ghost"
@@ -518,26 +459,13 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
                 <Heart className="size-3 fill-current" /> {lives}
               </span>
             )}
-            {turbo > 1 && (
-              <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/12 px-1.5 font-medium text-primary">
-                <Gauge className="size-3" /> {t("snake.turbo", { boost: fixed(status?.boost ?? 0, 1), percent: num(Math.round((turbo - 1) * 100)) })}
-              </span>
-            )}
+            <TurboBadge boost={status?.boost ?? 0} multiplier={turbo} />
             {!account.token && signIn && <span>· {t("snake.signIn")}</span>}
           </p>
 
           {/* Bonuses bought with the country's Qzr keys, shared with the other games; kept in RemnaWeb, so signed in only. */}
           {account.token && status && (
-            <PerkShop
-              keys={status.keys}
-              progress={{ count: status.crystals, nextKey: status.nextKey, keyFrom: status.keyFrom }}
-              perks={status.perks}
-              icons={PERK_ICONS}
-              effect={perkEffect}
-              locked={phase === "playing"}
-              buying={buying}
-              onBuy={(id) => void buyPerk(id)}
-            />
+            <PerkShop status={status} count={status.crystals} shop={shop} locked={phase === "playing"} />
           )}
         </div>
       </main>

@@ -77,13 +77,18 @@ src/core/           what every game uses; knows no game
                     (REMNAWEB_URL, remoteValue()), remote-config.ts (a game's rules from GET /api/sni/config),
                     page.ts (nodePage(), gameMetadata()), game-route.tsx (a game's layout and page)
   player/           the player in the browser: session.ts (Telegram sign-in, the Mini App frame), api.ts
-                    (RemnaWeb's /api/sni/* as the player), use-game-status.ts (a game's status from RemnaWeb)
+                    (RemnaWeb's /api/sni/* as the player), use-game-status.ts (a game's status from RemnaWeb),
+                    stream.ts (useServerStream(): a game's server-sent events with RemnaWeb's clock; useFrameLoop,
+                    useFrameNow, useSecondsLeft on that clock)
   storage.ts        localStorage/sessionStorage that never throws, under the `remnasni:` prefix
-  cosmetics/        profile cosmetics as CSS, particle bursts
+  cosmetics/        profile cosmetics as CSS, bursts over a game, emoji particles around a spot of a board
   format.ts         numbers, bytes, durations
   i18n/             next-intl: locales, the core catalog, pageMessages(), provider, useFormat, LanguageSwitch, tr()
-  ui/               SiteHeader, AccountMenu (+ SignInButton, MenuButton), PerkShop (bonuses for keys, key bar),
-                    StatTile, GameIcon, ProfileAvatar, Unavailable, Qzr and key icons
+  use-hold-surface.ts  a long press that selects and zooms nothing on phones
+  ui/               SiteHeader, AccountMenu (+ SignInButton, MenuButton), PerkShop and usePerkShop (bonuses for
+                    keys: the shop, the key bar, buying), StatTile, BalanceTile, TurboBadge, Gain (stat-tile.tsx),
+                    the provably fair kit (fairness.tsx: useProofCheck, ProofSeeds, ProofVerdict, ProofFormula,
+                    ProofIcon), GameIcon, ProfileAvatar, Unavailable, Qzr and key icons
 src/games/<id>/     one game: manifest.ts, its rules, state, components and messages/{en,ru}.json
 src/games/index.ts  the registry: the one list of the games' manifests; proxy, API proxy, hub and catalogs read it
 src/games/site.ts   the node's games RemnaWeb picked that this image runs
@@ -95,8 +100,9 @@ ESLint enforces the boundaries: `src/core` imports no game and not the registry,
 the registry.
 
 A new game: its code in `src/games/<id>` (rules loaded with `remoteConfig`, the page built from `nodePage`,
-`SiteHeader` and `AccountMenu`, the status through `useGameStatus`, bonuses through `PerkShop`, calls through `api`,
-storage through `storage`), its texts in `src/games/<id>/messages/{en,ru}.json`, its `manifest.ts` (id, hub icon,
+`SiteHeader` and `AccountMenu`, the status through `useGameStatus`, bonuses through `usePerkShop` and `PerkShop`,
+the balance and the turbo through `BalanceTile` and `TurboBadge`, a stream through `useServerStream`, provable
+fairness through `core/ui/fairness.tsx`, calls through `api`, storage through `storage`), its texts in `src/games/<id>/messages/{en,ru}.json`, its `manifest.ts` (id, hub icon,
 routes, the RemnaWeb calls it makes, the texts) listed in `src/games/index.ts`, its pages in `src/app/games/<id>` (two
 lines each, from `core/server/game-route.tsx`), and the game itself in RemnaWeb (its `lib/game/games.ts`).
 

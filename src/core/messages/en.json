@@ -31,7 +31,8 @@
   "perks": {
     "title": "Bonuses",
     "nextKey": "Next Qzr key",
-    "max": "Max"
+    "max": "Max",
+    "buyFailed": "Could not buy the bonus"
   },
   "hub": {
     "subtitle": "Games",
@@ -39,5 +40,15 @@
       "title": "Games: {country}",
       "description": "{country}: play and earn Qzr — pick a game."
     }
+  },
+  "game": {
+    "turbo": "turbo ×{boost} · +{percent}%"
+  },
+  "fair": {
+    "hash": "Hash",
+    "seed": "Seed",
+    "mismatch": "Does not match!",
+    "unchecked": "The browser cannot check it",
+    "copied": "Copied"
   }
 }
