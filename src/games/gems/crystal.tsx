@@ -3,7 +3,7 @@ import { memo } from "react";
 // The gems of Gems, drawn like the Qzr crystal (core/ui/qzr-icon.tsx): faces in three tones of the gem's color, lit from
 // the top left, with white glints and a dark rim. Every color has a cut of its own, so the gems tell apart by shape as
 // well: the Qzr shard itself, a hexagon, a round brilliant, a rhombus, a trillion, a cluster of shards, an emerald cut
-// and a pear. Drawn in a 100 × 100 box. A copy of this file is RemnaWeb's components/cosmetics/gems-crystal.tsx (the
+// and a pear. Drawn in a 100 × 100 box. A copy of this file is RemnaWeb's components/cosmetics/glyphs/gems/crystal.tsx (the
 // shop's preview): change both.
 
 type Pt = [number, number];
