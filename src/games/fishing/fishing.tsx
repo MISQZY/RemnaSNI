@@ -331,7 +331,7 @@ export function FishingSite({ code, name, signIn, rules }: { code: string; name:
           {/* The lake: the whole of it takes taps, so a thumb anywhere hooks and reels; held, it selects nothing. */}
           <div
             ref={lakeRef}
-            className="relative aspect-square w-full touch-none overflow-hidden rounded-3xl select-none [-webkit-touch-callout:none] bg-gradient-to-b from-sky-300/70 via-sky-600/80 to-blue-950 ring-1 ring-foreground/10"
+            className="relative aspect-square w-full touch-none overflow-hidden rounded-2xl select-none [-webkit-touch-callout:none] bg-gradient-to-b from-sky-300/70 via-sky-600/80 to-blue-950 ring-1 ring-foreground/10"
             {...holdHandlers}
           >
             {/* The shore line and some light on the water. */}

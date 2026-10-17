@@ -389,7 +389,7 @@ export function GemsSite({ code, name, signIn, rules }: { code: string; name: st
           style={{ "--ratio": cols / rows } as React.CSSProperties}
         >
           {/* A frame around the board, so its rounding never cuts the corner gems. */}
-          <div className="relative w-full rounded-3xl bg-card p-2 ring-1 ring-foreground/10 sm:p-3">
+          <div className="relative w-full rounded-2xl bg-card p-2 ring-1 ring-foreground/10 sm:p-3">
             <div
               ref={areaRef}
               className="relative w-full touch-none overflow-hidden rounded-xl bg-muted/40 ring-1 ring-foreground/5"

@@ -146,7 +146,7 @@ const CatalogCard = memo(function CatalogCard({
     return (
       <div className="flex flex-col items-center gap-1" title={t("notOwned")}>
         <CardFace card={id} lazy className="opacity-40 grayscale" />
-        <span className="h-5 text-[0.6875rem] leading-5 text-muted-foreground">{t("notOwnedShort")}</span>
+        <span className="h-5 text-2xs leading-5 text-muted-foreground">{t("notOwnedShort")}</span>
       </div>
     );
   // The cards the deck holds in a gold frame. Under the card: copies in the deck of the limit in a hollow yellow ring, how many are owned in the middle and,
@@ -270,7 +270,7 @@ export function PackShop({
               <li
                 key={i}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-[0.6875rem] tabular-nums ring-1",
+                  "flex flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-2xs tabular-nums ring-1",
                   i < bought ? "bg-muted/40 text-muted-foreground ring-foreground/5" : i === bought ? "bg-primary/10 font-semibold text-foreground ring-primary/50" : "text-muted-foreground ring-foreground/10",
                 )}
               >

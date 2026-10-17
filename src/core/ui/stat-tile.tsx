@@ -9,9 +9,9 @@ import { cn } from "@/lib/utils";
 /** A small tile of a game's stats row: the score, the record, the balance. */
 export function StatTile({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="min-w-0 rounded-lg bg-muted/60 px-2 py-1.5">
-      <p className="truncate text-[0.6875rem] text-muted-foreground">{label}</p>
-      <p className="truncate font-heading text-sm font-semibold tabular-nums">{value}</p>
+    <div className="min-w-0 rounded-lg bg-muted/60 px-2.5 py-2">
+      <p className="truncate text-xs text-muted-foreground">{label}</p>
+      <p className="mt-0.5 truncate font-heading text-base font-semibold tabular-nums">{value}</p>
     </div>
   );
 }

@@ -60,7 +60,7 @@ export function ProofField({ label, value, pending = "" }: { label: string; valu
               () => {},
             )
           }
-          className="flex w-full items-start gap-1.5 rounded-lg bg-muted px-2 py-1.5 text-left font-mono text-[0.6875rem] leading-snug break-all hover:bg-muted/70"
+          className="flex w-full items-start gap-1.5 rounded-lg bg-muted px-2 py-1.5 text-left font-mono text-2xs leading-snug break-all hover:bg-muted/70"
         >
           <span className="min-w-0 flex-1">{value}</span>
           <Copy className="mt-0.5 size-3 shrink-0 text-muted-foreground" />
@@ -100,7 +100,7 @@ export function ProofFormula({ how, code, notes }: { how: string; code: string; 
     <div className="space-y-1.5 text-xs leading-relaxed text-muted-foreground">
       <p>{how}</p>
       <ScrollArea scrollbars="horizontal" className="rounded-lg bg-muted">
-        <pre className="px-2 py-1.5 font-mono text-[0.6875rem] leading-relaxed text-foreground">
+        <pre className="px-2 py-1.5 font-mono text-2xs leading-relaxed text-foreground">
           <code>{code}</code>
         </pre>
       </ScrollArea>

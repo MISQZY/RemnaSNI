@@ -26,8 +26,6 @@ export function ChipIcon({ mono = false, ...props }: SVGProps<SVGSVGElement> & {
       fill={mono ? "currentColor" : "none"}
       aria-hidden="true"
       {...props}
-      // The same faint halo as the Qzr crystal; the mono one stays flat.
-      style={mono ? props.style : { filter: "drop-shadow(0 0 3px oklch(0.74 0.22 149 / 0.5))", ...props.style }}
     >
       {!mono && (
         <defs>

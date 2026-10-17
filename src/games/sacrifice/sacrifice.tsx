@@ -491,11 +491,11 @@ function QueuePanel({
       </div>
       <div className="grid grid-cols-4 gap-1.5">
         {presets.map(([a, b]) => (
-          <Button key={a} variant="secondary" size="sm" className="px-1 text-[0.6875rem] tabular-nums" onClick={() => set([a, b])}>
+          <Button key={a} variant="secondary" size="sm" className="px-1 text-2xs tabular-nums" onClick={() => set([a, b])}>
             {num(a)}–{num(b)}
           </Button>
         ))}
-        <Button variant="secondary" size="sm" className="px-1 text-[0.6875rem]" onClick={() => set([lo, all])}>
+        <Button variant="secondary" size="sm" className="px-1 text-2xs" onClick={() => set([lo, all])}>
           {t("upToAll")}
         </Button>
       </div>

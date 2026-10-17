@@ -386,7 +386,7 @@ export function CrashChart({ rules, snapshot, serverNow, online, full, look = nu
 
   const left = round ? Math.max(0, round.startAt - now) : 0;
   return (
-    <div ref={boxRef} className="relative aspect-[4/3] w-full overflow-hidden rounded-3xl bg-gradient-to-b from-zinc-900 to-zinc-950 ring-1 ring-foreground/10">
+    <div ref={boxRef} className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-gradient-to-b from-zinc-900 to-zinc-950 ring-1 ring-foreground/10">
       <canvas ref={canvasRef} aria-hidden className="absolute inset-0 size-full" />
 
       <div className="pointer-events-none absolute inset-y-0 right-0 left-10 flex flex-col items-center justify-center gap-1 p-4 text-center">

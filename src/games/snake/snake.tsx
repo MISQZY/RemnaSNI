@@ -375,7 +375,7 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
         {/* On wide screens the board shrinks with the window height, so it fits without scrolling. */}
         <div className={cn(gameLayout.play, "lg:max-w-[max(20rem,calc(100dvh-10rem))]")}>
           {/* A frame around the board, so its rounding never cuts the corner cells. */}
-          <div className="relative aspect-square w-full rounded-3xl bg-card p-3 ring-1 ring-foreground/10">
+          <div className="relative aspect-square w-full rounded-2xl bg-card p-3 ring-1 ring-foreground/10">
             <canvas ref={canvasRef} className="size-full rounded-xl bg-muted/40 ring-1 ring-foreground/5" />
             {/* What each crystal brought, the turbo's share in green, floating up from where it lay. */}
             <div aria-hidden className="pointer-events-none absolute inset-3 motion-reduce:hidden">
@@ -396,7 +396,7 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
               ))}
             </div>
             {phase !== "playing" && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-3xl bg-background/60 backdrop-blur-[2px]">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-2xl bg-background/60 backdrop-blur-[2px]">
                 {phase !== "ready" && <p className="font-heading text-2xl font-bold">{phase === "paused" ? t("snake.paused") : t("snake.over")}</p>}
                 {phase === "over" && <p className="text-sm text-muted-foreground tabular-nums">{t("snake.score")}: {num(score)}</p>}
                 <Button size="lg" onClick={phase === "paused" ? togglePause : start}>

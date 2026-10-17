@@ -16,9 +16,10 @@ export function SiteHeader({ code, name, subtitle, account, className }: { code:
   return (
     <header className={cn("mx-auto flex w-full items-center gap-3 px-4 pt-6 lg:pt-10", className)}>
       <Link href="/" aria-label={t("allGames")} title={t("allGames")} className="flex min-w-0 flex-1 items-center gap-3">
-        <span className={cn("fi shrink-0 rounded-[3px] text-2xl shadow-xs", `fi-${code}`)} />
+        {/* The flag is what tells one node from another: large, framed like a print. */}
+        <span className={cn("fi shrink-0 rounded-[4px] text-[2.5rem] ring-1 ring-foreground/10", `fi-${code}`)} />
         <div className="min-w-0">
-          <p className="truncate font-heading text-xl font-semibold">{name}</p>
+          <p className="truncate font-heading text-xl leading-tight font-semibold">{name}</p>
           <p className="text-sm text-muted-foreground">{subtitle}</p>
         </div>
       </Link>

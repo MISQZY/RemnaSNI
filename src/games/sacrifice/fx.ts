@@ -172,14 +172,14 @@ export function playFx(root: HTMLElement, fx: Fx, labels: FxLabels, strikes: Par
       if (fx.kind === "direct" || fx.kind === "fly") {
         const scale = root.querySelector<HTMLElement>("[data-scale]");
         if (scale) out.push(scale.animate([{ transform: "scale(1)" }, { transform: "scale(1.08)", filter: "brightness(1.6)" }, { transform: "scale(1)" }], { duration: 380 }));
-        if (fx.kind === "fly") float(root, target, labels.airborne, "text-[0.6875rem] text-sky-300", out, 0.4);
+        if (fx.kind === "fly") float(root, target, labels.airborne, "text-2xs text-sky-300", out, 0.4);
         float(root, target, `+${fx.damage}`, fx.who === "me" ? "text-2xl text-primary" : "text-2xl text-rose-400", out);
         break;
       }
       const hit = unit(foe(fx.who), fx.target);
       if (fx.kind === "intercepted") {
         ring(root, target, "border-violet-400 bg-violet-500/20 shadow-[0_0_18px] shadow-violet-500/70", out);
-        float(root, target, labels.intercept, "text-[0.6875rem] text-violet-300", out, 0.4);
+        float(root, target, labels.intercept, "text-2xs text-violet-300", out, 0.4);
       }
       if (hit) {
         const filter = fx.rift ? "brightness(1.3) sepia(1) saturate(6) hue-rotate(240deg)" : RED;
@@ -225,7 +225,7 @@ export function playFx(root: HTMLElement, fx: Fx, labels: FxLabels, strikes: Par
         );
       if (at && fx.back) {
         ring(root, at, "border-cyan-400 shadow-[0_0_14px] shadow-cyan-500/70", out);
-        float(root, at, labels.rebuild, "text-[0.6875rem] text-cyan-300", out, 0.4);
+        float(root, at, labels.rebuild, "text-2xs text-cyan-300", out, 0.4);
       }
       break;
     }
@@ -238,7 +238,7 @@ export function playFx(root: HTMLElement, fx: Fx, labels: FxLabels, strikes: Par
       }
       if (at) {
         ring(root, at, fx.survived ? "border-yellow-300 shadow-[0_0_14px] shadow-yellow-400/70" : "border-emerald-400 shadow-[0_0_14px] shadow-emerald-500/70", out);
-        float(root, at, fx.survived ? labels.resilient : labels.sacrifice, fx.survived ? "text-[0.6875rem] text-yellow-200" : "text-[0.6875rem] text-emerald-300", out, 0.4);
+        float(root, at, fx.survived ? labels.resilient : labels.sacrifice, fx.survived ? "text-2xs text-yellow-200" : "text-2xs text-emerald-300", out, 0.4);
       }
       break;
     }
@@ -251,7 +251,7 @@ export function playFx(root: HTMLElement, fx: Fx, labels: FxLabels, strikes: Par
       }
       if (at) {
         ring(root, at, "border-lime-400 shadow-[0_0_14px] shadow-lime-500/70", out);
-        float(root, at, labels.growth, "text-[0.6875rem] text-lime-300", out, 0.4);
+        float(root, at, labels.growth, "text-2xs text-lime-300", out, 0.4);
       }
       break;
     }

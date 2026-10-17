@@ -275,14 +275,14 @@ export function CardInfo({ card }: { card: string }) {
     <div className="flex flex-col gap-1 rounded-xl bg-neutral-900/80 p-2.5 text-xs ring-1 ring-white/10">
       <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="font-heading text-sm font-semibold uppercase">{nameOf(card)}</span>
-        <span className={cn("text-[0.6875rem]", RARITY_TEXT[d.rarity] ?? RARITY_TEXT.common)}>{t(`rarity.${d.rarity}`)}</span>
+        <span className={cn("text-2xs", RARITY_TEXT[d.rarity] ?? RARITY_TEXT.common)}>{t(`rarity.${d.rarity}`)}</span>
         <span className="ml-auto text-neutral-400">
           {d.blood ? t("costBlood", { n: d.blood }) : d.bones ? t("costBones", { n: d.bones }) : t("costFree")} · {t("stats", { power: d.power, health: d.health })}
         </span>
       </p>
       {d.sigils.map((s) => (
         <p key={s} className="flex items-center gap-2 text-neutral-300">
-          <SigilBadge sigil={s} className="text-[0.6875rem]" />
+          <SigilBadge sigil={s} className="text-2xs" />
           <span>
             <span className="font-semibold text-neutral-100">{t(`sigils.${s}.name`)}</span> — {t(`sigils.${s}.text`)}
           </span>
