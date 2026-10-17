@@ -376,128 +376,132 @@ export function GemsSite({ code, name, signIn, rules }: { code: string; name: st
 
   return (
     <>
-      <SiteHeader code={code} name={name} subtitle={t("gems.subtitle")} account={<AccountMenu signIn={signIn} />} className={gameLayout.header} />
+      {/* Clipped together with the header, not at the game: what it pays floats up over the header and past the board's
+          edges, while particles still cannot stretch the page and make it scroll. */}
+      <div className={gameLayout.page}>
+        <SiteHeader code={code} name={name} subtitle={t("gems.subtitle")} account={<AccountMenu signIn={signIn} />} className={gameLayout.header} />
 
-      <main className={cn(gameLayout.main, "overflow-clip select-none")}>
-        {/* The board shrinks with the window's height (the frame's, in RemnaWeb), so it fits without scrolling: on
-            phones under the header and the stats, on wide screens beside the blocks. */}
-        <div
-          className={cn(
-            gameLayout.play,
-            "max-lg:mx-auto max-lg:w-full max-lg:max-w-[max(16rem,calc((100dvh-13rem)*var(--ratio)))] lg:max-w-[max(24rem,calc((100dvh-10rem)*var(--ratio)))]",
-          )}
-          style={{ "--ratio": cols / rows } as React.CSSProperties}
-        >
-          {/* A frame around the board, so its rounding never cuts the corner gems. */}
-          <div className="relative w-full rounded-2xl bg-card p-2 ring-1 ring-foreground/10 sm:p-3">
-            <div
-              ref={areaRef}
-              className="relative w-full touch-none overflow-hidden rounded-xl bg-muted/40 ring-1 ring-foreground/5"
-              style={{ aspectRatio: `${cols} / ${rows}` }}
-              onPointerDown={(e) => {
-                const cell = cellAt(e.clientX, e.clientY);
-                if (cell === null) return;
-                e.currentTarget.setPointerCapture(e.pointerId);
-                swipeRef.current = { cell, x: e.clientX, y: e.clientY };
-              }}
-              onPointerMove={(e) => {
-                const from = swipeRef.current;
-                if (!from) return;
-                const dx = e.clientX - from.x;
-                const dy = e.clientY - from.y;
-                if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_PX) return;
-                swipeRef.current = null;
-                const x = from.cell % cols;
-                const y = Math.floor(from.cell / cols);
-                const [tx, ty] = Math.abs(dx) > Math.abs(dy) ? [x + Math.sign(dx), y] : [x, y + Math.sign(dy)];
-                if (tx >= 0 && tx < cols && ty >= 0 && ty < rows) void swapGems(from.cell, ty * cols + tx);
-              }}
-              onPointerUp={() => {
-                const from = swipeRef.current;
-                swipeRef.current = null;
-                if (from) tap(from.cell);
-              }}
-              onPointerCancel={() => {
-                swipeRef.current = null;
-              }}
-            >
-              {tiles?.map((tile, cell) => (
-                <GemTile
-                  key={tile.id}
-                  tile={tile}
-                  x={cell % cols}
-                  y={Math.floor(cell / cols)}
-                  cols={cols}
-                  rows={rows}
-                  skin={skin}
-                  selected={selected === cell}
-                  hinted={!!hint && (hint[0] === cell || hint[1] === cell)}
-                  popping={popping.has(tile.id)}
-                  shuffling={shuffling}
-                />
-              ))}
-              {!tiles && hydrated && <p className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">{t("gems.loading")}</p>}
-            </div>
-
-            {/* Over the board, which clips the gems dropping in but not these. */}
-            <div className="pointer-events-none absolute inset-2 sm:inset-3">
-              {/* What each wave brought, the turbo's share in green, floating up from where it was cleared. */}
-              <div aria-hidden className="absolute inset-0 motion-reduce:hidden">
-                {popups.map((p) => (
-                  <Particles key={`burst-${p.id}`} particles={p.particles} x={p.x} y={p.y} className="animate-gem-burst" />
-                ))}
-                {popups.map((p) => (
-                  <span
-                    key={p.id}
-                    className={cn(
-                      "absolute flex animate-gem-float flex-col items-center font-heading text-base font-bold whitespace-nowrap tabular-nums text-white [text-shadow:0_2px_8px_rgb(0_0_0/0.6)]",
-                      p.golden && "text-lg text-amber-300",
-                    )}
-                    style={{ left: `${p.x}%`, top: `${p.y}%` }}
-                  >
-                    {p.qzr !== null && (
-                      <span className="flex items-baseline gap-1">
-                        <Gain qzr={p.qzr} bonus={p.bonus} />
-                      </span>
-                    )}
-                    {p.cascade > 0 && <span className="text-sm text-sky-300">{t("gems.cascade", { n: p.cascade + 1 })}</span>}
-                  </span>
-                ))}
-              </div>
-              {shuffling && (
-                <p className="absolute inset-0 flex items-center justify-center font-heading text-lg font-bold text-white [text-shadow:0_2px_8px_rgb(0_0_0/0.6)]">
-                  {t("gems.shuffled")}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <p className="text-center text-xs text-muted-foreground">{t("gems.hint")}</p>
-        </div>
-
-        <div className={gameLayout.side}>
-          <div className={cn("grid grid-cols-3 gap-1.5", gameLayout.above)}>
-            <StatTile label={t("gems.cleared")} value={num(score)} />
-            <StatTile label={t("gems.best")} value={hydrated ? `×${num(Math.max(bestWaves, status?.best ?? 0))}` : "—"} />
-            <BalanceTile balance={balance} />
-          </div>
-
-          <p className={cn("flex flex-wrap items-center justify-center gap-1 text-center text-xs text-muted-foreground lg:justify-start lg:rounded-lg lg:bg-muted/60 lg:px-3 lg:py-2", gameLayout.above)}>
-            {hydrated && signedIn && (
-              <>
-                <QzrIcon className="size-3.5" /> {t("gems.price", { qzr: num(nextPrice) })}
-              </>
+        <main className={cn(gameLayout.main, "select-none")}>
+          {/* The board shrinks with the window's height (the frame's, in RemnaWeb), so it fits without scrolling: on
+              phones under the header and the stats, on wide screens beside the blocks. */}
+          <div
+            className={cn(
+              gameLayout.play,
+              "max-lg:mx-auto max-lg:w-full max-lg:max-w-[max(16rem,calc((100dvh-13rem)*var(--ratio)))] lg:max-w-[max(24rem,calc((100dvh-10rem)*var(--ratio)))]",
             )}
-            <TurboBadge boost={status?.boost ?? 0} multiplier={turbo} />
-            {hydrated && !signedIn && signIn && <span>{t("gems.demo")}</span>}
-          </p>
+            style={{ "--ratio": cols / rows } as React.CSSProperties}
+          >
+            {/* A frame around the board, so its rounding never cuts the corner gems. */}
+            <div className="relative w-full rounded-2xl bg-card p-2 ring-1 ring-foreground/10 sm:p-3">
+              <div
+                ref={areaRef}
+                className="relative w-full touch-none overflow-hidden rounded-xl bg-muted/40 ring-1 ring-foreground/5"
+                style={{ aspectRatio: `${cols} / ${rows}` }}
+                onPointerDown={(e) => {
+                  const cell = cellAt(e.clientX, e.clientY);
+                  if (cell === null) return;
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                  swipeRef.current = { cell, x: e.clientX, y: e.clientY };
+                }}
+                onPointerMove={(e) => {
+                  const from = swipeRef.current;
+                  if (!from) return;
+                  const dx = e.clientX - from.x;
+                  const dy = e.clientY - from.y;
+                  if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_PX) return;
+                  swipeRef.current = null;
+                  const x = from.cell % cols;
+                  const y = Math.floor(from.cell / cols);
+                  const [tx, ty] = Math.abs(dx) > Math.abs(dy) ? [x + Math.sign(dx), y] : [x, y + Math.sign(dy)];
+                  if (tx >= 0 && tx < cols && ty >= 0 && ty < rows) void swapGems(from.cell, ty * cols + tx);
+                }}
+                onPointerUp={() => {
+                  const from = swipeRef.current;
+                  swipeRef.current = null;
+                  if (from) tap(from.cell);
+                }}
+                onPointerCancel={() => {
+                  swipeRef.current = null;
+                }}
+              >
+                {tiles?.map((tile, cell) => (
+                  <GemTile
+                    key={tile.id}
+                    tile={tile}
+                    x={cell % cols}
+                    y={Math.floor(cell / cols)}
+                    cols={cols}
+                    rows={rows}
+                    skin={skin}
+                    selected={selected === cell}
+                    hinted={!!hint && (hint[0] === cell || hint[1] === cell)}
+                    popping={popping.has(tile.id)}
+                    shuffling={shuffling}
+                  />
+                ))}
+                {!tiles && hydrated && <p className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">{t("gems.loading")}</p>}
+              </div>
 
-          {/* Bonuses bought with the country's Qzr keys, shared with the other games; kept in RemnaWeb, so signed in only. */}
-          {signedIn && status && (
-            <PerkShop status={status} count={status.cleared} shop={shop} locked={busy} />
-          )}
-        </div>
-      </main>
+              {/* Over the board, which clips the gems dropping in but not these. */}
+              <div className="pointer-events-none absolute inset-2 sm:inset-3">
+                {/* What each wave brought, the turbo's share in green, floating up from where it was cleared. */}
+                <div aria-hidden className="absolute inset-0 motion-reduce:hidden">
+                  {popups.map((p) => (
+                    <Particles key={`burst-${p.id}`} particles={p.particles} x={p.x} y={p.y} className="animate-gem-burst" />
+                  ))}
+                  {popups.map((p) => (
+                    <span
+                      key={p.id}
+                      className={cn(
+                        "absolute flex animate-gem-float flex-col items-center font-heading text-base font-bold whitespace-nowrap tabular-nums text-white [text-shadow:0_2px_8px_rgb(0_0_0/0.6)]",
+                        p.golden && "text-lg text-amber-300",
+                      )}
+                      style={{ left: `${p.x}%`, top: `${p.y}%` }}
+                    >
+                      {p.qzr !== null && (
+                        <span className="flex items-baseline gap-1">
+                          <Gain qzr={p.qzr} bonus={p.bonus} />
+                        </span>
+                      )}
+                      {p.cascade > 0 && <span className="text-sm text-sky-300">{t("gems.cascade", { n: p.cascade + 1 })}</span>}
+                    </span>
+                  ))}
+                </div>
+                {shuffling && (
+                  <p className="absolute inset-0 flex items-center justify-center font-heading text-lg font-bold text-white [text-shadow:0_2px_8px_rgb(0_0_0/0.6)]">
+                    {t("gems.shuffled")}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <p className="text-center text-xs text-muted-foreground">{t("gems.hint")}</p>
+          </div>
+
+          <div className={gameLayout.side}>
+            <div className={cn("grid grid-cols-3 gap-1.5", gameLayout.above)}>
+              <StatTile label={t("gems.cleared")} value={num(score)} />
+              <StatTile label={t("gems.best")} value={hydrated ? `×${num(Math.max(bestWaves, status?.best ?? 0))}` : "—"} />
+              <BalanceTile balance={balance} />
+            </div>
+
+            <p className={cn("flex flex-wrap items-center justify-center gap-1 text-center text-xs text-muted-foreground lg:justify-start lg:rounded-lg lg:bg-muted/60 lg:px-3 lg:py-2", gameLayout.above)}>
+              {hydrated && signedIn && (
+                <>
+                  <QzrIcon className="size-3.5" /> {t("gems.price", { qzr: num(nextPrice) })}
+                </>
+              )}
+              <TurboBadge boost={status?.boost ?? 0} multiplier={turbo} />
+              {hydrated && !signedIn && signIn && <span>{t("gems.demo")}</span>}
+            </p>
+
+            {/* Bonuses bought with the country's Qzr keys, shared with the other games; kept in RemnaWeb, so signed in only. */}
+            {signedIn && status && (
+              <PerkShop status={status} count={status.cleared} shop={shop} locked={busy} />
+            )}
+          </div>
+        </main>
+      </div>
     </>
   );
 }

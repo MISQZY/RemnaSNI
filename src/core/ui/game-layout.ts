@@ -4,6 +4,8 @@
  * The clicker has a layout of its own.
  */
 export const gameLayout = {
+  /** The header and the game together, clipped as one: what a game pays floats out of its board, over the header. */
+  page: "flex flex-1 flex-col overflow-clip",
   /** The header's width, the same as the page's. */
   header: "max-w-md lg:max-w-5xl",
   main: "mx-auto flex w-full max-w-md flex-1 flex-col gap-3 px-4 pt-4 pb-6 lg:grid lg:max-w-5xl lg:grid-cols-[minmax(0,1fr)_22.5rem] lg:items-start lg:gap-6",

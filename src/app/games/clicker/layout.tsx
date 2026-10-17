@@ -24,9 +24,12 @@ export default async function ClickerLayout({ children }: { children: React.Reac
   return (
     <I18nProvider locale={locale} messages={pageMessages(locale, clickerGame.messages)}>
       <ConfigProvider config={config}>
-        <SiteHeader code={code} name={name} subtitle={t("subtitle")} account={<ClickerAccount signIn={signIn} />} className="max-w-5xl" />
-        {/* Clipped, so tap particles flying off the flag do not stretch the page and make it scroll. */}
-        <main className="flex flex-1 flex-col overflow-clip lg:min-h-0">{children}</main>
+        {/* Clipped together with the header, not at the game: the numbers of a tap float up over the header, while
+            particles flying off the flag still cannot stretch the page and make it scroll. */}
+        <div className="flex flex-1 flex-col overflow-clip lg:min-h-0">
+          <SiteHeader code={code} name={name} subtitle={t("subtitle")} account={<ClickerAccount signIn={signIn} />} className="max-w-5xl" />
+          <main className="flex flex-1 flex-col lg:min-h-0">{children}</main>
+        </div>
         <GameRuntime syncEnabled={signIn} country={code} />
       </ConfigProvider>
     </I18nProvider>

@@ -345,125 +345,129 @@ export function SnakeSite({ code, name, signIn, rules }: { code: string; name: s
 
   return (
     <>
-      <SiteHeader code={code} name={name} subtitle={t("snake.subtitle")} account={<AccountMenu signIn={signIn} />} className={gameLayout.header} />
+      {/* Clipped together with the header, not at the game: what it pays floats up over the header and past the board's
+          edges, while particles still cannot stretch the page and make it scroll. */}
+      <div className={gameLayout.page}>
+        <SiteHeader code={code} name={name} subtitle={t("snake.subtitle")} account={<AccountMenu signIn={signIn} />} className={gameLayout.header} />
 
-      {/* The whole play area takes swipes, so a thumb below the board steers too; it does not scroll while playing. */}
-      <main
-        className={cn(gameLayout.main, "overflow-clip select-none", phase === "playing" && "touch-none", showPad && "pb-44 sm:pb-6")}
-        onPointerDown={(e) => {
-          if (phase !== "playing" || e.pointerType === "mouse") return;
-          e.currentTarget.setPointerCapture(e.pointerId);
-          swipeRef.current = { x: e.clientX, y: e.clientY };
-        }}
-        onPointerMove={(e) => {
-          const from = swipeRef.current;
-          if (!from) return;
-          const dx = e.clientX - from.x;
-          const dy = e.clientY - from.y;
-          if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_PX) return;
-          steer(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : dy > 0 ? "down" : "up");
-          // The next turn is measured from here, so one gesture can make several.
-          swipeRef.current = { x: e.clientX, y: e.clientY };
-        }}
-        onPointerUp={() => {
-          swipeRef.current = null;
-        }}
-        onPointerCancel={() => {
-          swipeRef.current = null;
-        }}
-      >
-        {/* On wide screens the board shrinks with the window height, so it fits without scrolling. */}
-        <div className={cn(gameLayout.play, "lg:max-w-[max(20rem,calc(100dvh-10rem))]")}>
-          {/* A frame around the board, so its rounding never cuts the corner cells. */}
-          <div className="relative aspect-square w-full rounded-2xl bg-card p-3 ring-1 ring-foreground/10">
-            <canvas ref={canvasRef} className="size-full rounded-xl bg-muted/40 ring-1 ring-foreground/5" />
-            {/* What each crystal brought, the turbo's share in green, floating up from where it lay. */}
-            <div aria-hidden className="pointer-events-none absolute inset-3 motion-reduce:hidden">
-              {popups.map((p) => (
-                <Particles key={`burst-${p.id}`} particles={p.particles} x={p.x} y={p.y} className="animate-flag-burst" />
-              ))}
-              {popups.map((p) => (
-                <span
-                  key={p.id}
-                  className={cn(
-                    "absolute flex animate-float-up items-baseline gap-1 font-heading text-sm font-bold whitespace-nowrap tabular-nums [text-shadow:0_2px_8px_rgb(0_0_0/0.45)]",
-                    p.golden && "text-base text-amber-400",
-                  )}
-                  style={{ left: `${p.x}%`, top: `${p.y}%` }}
-                >
-                  <Gain qzr={p.qzr} bonus={p.bonus} />
-                </span>
-              ))}
-            </div>
-            {phase !== "playing" && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-2xl bg-background/60 backdrop-blur-[2px]">
-                {phase !== "ready" && <p className="font-heading text-2xl font-bold">{phase === "paused" ? t("snake.paused") : t("snake.over")}</p>}
-                {phase === "over" && <p className="text-sm text-muted-foreground tabular-nums">{t("snake.score")}: {num(score)}</p>}
-                <Button size="lg" onClick={phase === "paused" ? togglePause : start}>
-                  {phase === "over" ? <RotateCcw /> : <Play />}
-                  {phase === "ready" ? t("snake.play") : phase === "paused" ? t("snake.resume") : t("snake.again")}
-                </Button>
-                {phase === "ready" && <p className="text-xs text-muted-foreground sm:hidden">{t("snake.swipe")}</p>}
+        {/* The whole play area takes swipes, so a thumb below the board steers too; it does not scroll while playing. */}
+        <main
+          className={cn(gameLayout.main, "select-none", phase === "playing" && "touch-none", showPad && "pb-44 sm:pb-6")}
+          onPointerDown={(e) => {
+            if (phase !== "playing" || e.pointerType === "mouse") return;
+            e.currentTarget.setPointerCapture(e.pointerId);
+            swipeRef.current = { x: e.clientX, y: e.clientY };
+          }}
+          onPointerMove={(e) => {
+            const from = swipeRef.current;
+            if (!from) return;
+            const dx = e.clientX - from.x;
+            const dy = e.clientY - from.y;
+            if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_PX) return;
+            steer(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : dy > 0 ? "down" : "up");
+            // The next turn is measured from here, so one gesture can make several.
+            swipeRef.current = { x: e.clientX, y: e.clientY };
+          }}
+          onPointerUp={() => {
+            swipeRef.current = null;
+          }}
+          onPointerCancel={() => {
+            swipeRef.current = null;
+          }}
+        >
+          {/* On wide screens the board shrinks with the window height, so it fits without scrolling. */}
+          <div className={cn(gameLayout.play, "lg:max-w-[max(20rem,calc(100dvh-10rem))]")}>
+            {/* A frame around the board, so its rounding never cuts the corner cells. */}
+            <div className="relative aspect-square w-full rounded-2xl bg-card p-3 ring-1 ring-foreground/10">
+              <canvas ref={canvasRef} className="size-full rounded-xl bg-muted/40 ring-1 ring-foreground/5" />
+              {/* What each crystal brought, the turbo's share in green, floating up from where it lay. */}
+              <div aria-hidden className="pointer-events-none absolute inset-3 motion-reduce:hidden">
+                {popups.map((p) => (
+                  <Particles key={`burst-${p.id}`} particles={p.particles} x={p.x} y={p.y} className="animate-flag-burst" />
+                ))}
+                {popups.map((p) => (
+                  <span
+                    key={p.id}
+                    className={cn(
+                      "absolute flex animate-float-up items-baseline gap-1 font-heading text-sm font-bold whitespace-nowrap tabular-nums [text-shadow:0_2px_8px_rgb(0_0_0/0.45)]",
+                      p.golden && "text-base text-amber-400",
+                    )}
+                    style={{ left: `${p.x}%`, top: `${p.y}%` }}
+                  >
+                    <Gain qzr={p.qzr} bonus={p.bonus} />
+                  </span>
+                ))}
               </div>
-            )}
-          </div>
-
-          <p className="hidden text-center text-xs text-muted-foreground sm:block">{t("snake.hint")}</p>
-        </div>
-
-        <div className={gameLayout.side}>
-          {/* Score, record and balance in one compact row, with pause and the pad toggle at its end. */}
-          <div className={cn("flex items-center gap-2", gameLayout.above)}>
-            <div className="grid min-w-0 flex-1 grid-cols-3 gap-1.5">
-              <StatTile label={t("snake.score")} value={num(score)} />
-              <StatTile label={t("snake.best")} value={num(shownBest)} />
-              <BalanceTile balance={balance} />
+              {phase !== "playing" && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-2xl bg-background/60 backdrop-blur-[2px]">
+                  {phase !== "ready" && <p className="font-heading text-2xl font-bold">{phase === "paused" ? t("snake.paused") : t("snake.over")}</p>}
+                  {phase === "over" && <p className="text-sm text-muted-foreground tabular-nums">{t("snake.score")}: {num(score)}</p>}
+                  <Button size="lg" onClick={phase === "paused" ? togglePause : start}>
+                    {phase === "over" ? <RotateCcw /> : <Play />}
+                    {phase === "ready" ? t("snake.play") : phase === "paused" ? t("snake.resume") : t("snake.again")}
+                  </Button>
+                  {phase === "ready" && <p className="text-xs text-muted-foreground sm:hidden">{t("snake.swipe")}</p>}
+                </div>
+              )}
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={phase === "paused" ? t("snake.resume") : t("snake.paused")}
-              disabled={phase !== "playing" && phase !== "paused"}
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={togglePause}
-            >
-              {phase === "paused" ? <Play /> : <Pause />}
-            </Button>
-            {/* Phones only: wide screens have a keyboard. */}
-            <Button
-              variant={showPad ? "secondary" : "ghost"}
-              size="icon"
-              className="sm:hidden"
-              aria-label={t("snake.pad")}
-              aria-pressed={showPad}
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={togglePad}
-            >
-              <Gamepad2 />
-            </Button>
+
+            <p className="hidden text-center text-xs text-muted-foreground sm:block">{t("snake.hint")}</p>
           </div>
 
-          <p className={cn("flex items-center justify-center gap-1 text-center text-xs text-muted-foreground lg:justify-start lg:rounded-lg lg:bg-muted/60 lg:px-3 lg:py-2", gameLayout.above)}>
-            {hydrated && (
-              <>
-                <QzrIcon className="size-3.5" /> {t("snake.price", { qzr: num(nextPrice) })}
-              </>
-            )}
-            {phase !== "ready" && lives > 0 && (
-              <span className="inline-flex items-center gap-0.5 font-medium text-rose-500">
-                <Heart className="size-3 fill-current" /> {lives}
-              </span>
-            )}
-            <TurboBadge boost={status?.boost ?? 0} multiplier={turbo} />
-            {!account.token && signIn && <span>· {t("snake.signIn")}</span>}
-          </p>
+          <div className={gameLayout.side}>
+            {/* Score, record and balance in one compact row, with pause and the pad toggle at its end. */}
+            <div className={cn("flex items-center gap-2", gameLayout.above)}>
+              <div className="grid min-w-0 flex-1 grid-cols-3 gap-1.5">
+                <StatTile label={t("snake.score")} value={num(score)} />
+                <StatTile label={t("snake.best")} value={num(shownBest)} />
+                <BalanceTile balance={balance} />
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={phase === "paused" ? t("snake.resume") : t("snake.paused")}
+                disabled={phase !== "playing" && phase !== "paused"}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={togglePause}
+              >
+                {phase === "paused" ? <Play /> : <Pause />}
+              </Button>
+              {/* Phones only: wide screens have a keyboard. */}
+              <Button
+                variant={showPad ? "secondary" : "ghost"}
+                size="icon"
+                className="sm:hidden"
+                aria-label={t("snake.pad")}
+                aria-pressed={showPad}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={togglePad}
+              >
+                <Gamepad2 />
+              </Button>
+            </div>
 
-          {/* Bonuses bought with the country's Qzr keys, shared with the other games; kept in RemnaWeb, so signed in only. */}
-          {account.token && status && (
-            <PerkShop status={status} count={status.crystals} shop={shop} locked={phase === "playing"} />
-          )}
-        </div>
-      </main>
+            <p className={cn("flex items-center justify-center gap-1 text-center text-xs text-muted-foreground lg:justify-start lg:rounded-lg lg:bg-muted/60 lg:px-3 lg:py-2", gameLayout.above)}>
+              {hydrated && (
+                <>
+                  <QzrIcon className="size-3.5" /> {t("snake.price", { qzr: num(nextPrice) })}
+                </>
+              )}
+              {phase !== "ready" && lives > 0 && (
+                <span className="inline-flex items-center gap-0.5 font-medium text-rose-500">
+                  <Heart className="size-3 fill-current" /> {lives}
+                </span>
+              )}
+              <TurboBadge boost={status?.boost ?? 0} multiplier={turbo} />
+              {!account.token && signIn && <span>· {t("snake.signIn")}</span>}
+            </p>
+
+            {/* Bonuses bought with the country's Qzr keys, shared with the other games; kept in RemnaWeb, so signed in only. */}
+            {account.token && status && (
+              <PerkShop status={status} count={status.crystals} shop={shop} locked={phase === "playing"} />
+            )}
+          </div>
+        </main>
+      </div>
 
       {/* The pad sits under the thumbs at the bottom of a phone screen, inverted-T like arrow keys. */}
       {showPad && (
