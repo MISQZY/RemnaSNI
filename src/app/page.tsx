@@ -38,8 +38,9 @@ export default async function Hub() {
               className="group overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10 transition-shadow outline-none hover:ring-primary/50 focus-visible:ring-2 focus-visible:ring-primary"
             >
               {/* The game's drawn scene; a game without one shows its icon in its place. */}
-              <div className="h-36 border-b bg-muted/40 text-muted-foreground">
-                <GamePreview id={id} className="size-full" />
+              {/* Hover brightens the scene and brings it a little closer, as on the games of RemnaWeb's home page. */}
+              <div className="h-36 overflow-hidden border-b bg-muted/40 text-muted-foreground transition-[color,background-color] duration-300 group-hover:bg-muted/70 group-hover:text-foreground/75">
+                <GamePreview id={id} className="size-full transition-[scale] duration-300 motion-safe:group-hover:scale-[1.03]" />
                 <span className="hidden size-full items-center justify-center text-primary only:flex">
                   <GameIcon name={GAMES[id].icon} className="size-8" />
                 </span>
