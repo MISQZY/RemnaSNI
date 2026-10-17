@@ -1,8 +1,9 @@
 {
   "sacrifice": {
+    "tagline": "Card duels in the Qzyrium mines: sometimes tipping the scale means giving up your own. Against the robot or a live opponent.",
     "meta": {
       "title": "Sacrifice: {country}",
-      "description": "{country}: card duels in the Qzyrium mines — sacrifice units, gather debris and tip the scale. Against the robot or live players."
+      "description": "{country}: card duels in the Qzyrium mines: sometimes tipping the scale means giving up your own. Against the robot or a live opponent."
     },
     "subtitle": "Sacrifice",
     "modes": {

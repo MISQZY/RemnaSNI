@@ -1,8 +1,9 @@
 {
   "fishing": {
+    "tagline": "Quiet water bites with everything from roach to a goldfish. Feel the strike and don't let it get away.",
     "meta": {
       "title": "{country} Fishing",
-      "description": "Cast a line in {country}, hook fish of every rarity and sell them for Qzr."
+      "description": "{country}: quiet water bites with everything from roach to a goldfish. Feel the strike and don't let it get away."
     },
     "subtitle": "Fishing",
     "caught": "Caught",

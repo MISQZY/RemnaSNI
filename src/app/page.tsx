@@ -21,7 +21,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function Hub() {
   const [{ code, name, signIn }, games, t] = await Promise.all([nodePage(), siteGames(), getTranslations()]);
-  // Every game's messages are on the server; only the name and description of each are read here.
+  // Every game's messages are on the server; only the name and the line of each are read here (its tagline: the
+  // header already names the country, which the page's meta description adds for search).
   const tm = t as unknown as (key: string, values?: Record<string, string>) => string;
 
   return (
@@ -50,7 +51,7 @@ export default async function Hub() {
                   {tm(`${id}.subtitle`)}
                   <ArrowRight className="ml-auto size-4 shrink-0 text-muted-foreground transition-[color,translate] group-hover:translate-x-0.5 group-hover:text-primary" />
                 </span>
-                <span className="mt-1 block text-sm text-pretty text-muted-foreground">{tm(`${id}.meta.description`, { country: name })}</span>
+                <span className="mt-1 block text-sm text-pretty text-muted-foreground">{tm(`${id}.tagline`)}</span>
               </div>
             </Link>
           ))}

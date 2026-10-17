@@ -1,8 +1,9 @@
 {
   "snake": {
+    "tagline": "The longer the tail, the faster the snake and the richer every crystal. Just don't run into yourself.",
     "meta": {
       "title": "{country} Snake",
-      "description": "Snake on the {country} node: eat crystals, grow and earn Qzr."
+      "description": "{country}: the longer the tail, the faster the snake and the richer every crystal. Just don't run into yourself."
     },
     "subtitle": "Snake",
     "score": "Score",

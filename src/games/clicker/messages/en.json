@@ -1,9 +1,10 @@
 {
   "clicker": {
     "subtitle": "Clicker",
+    "tagline": "The country's flag is your pickaxe. Every tap chips out Qzr, upgrades keep digging without you, and prestige trades it all for more.",
     "meta": {
       "title": "{country} Clicker",
-      "description": "Tap the flag of {country}, earn Qzr, buy upgrades and climb through prestiges."
+      "description": "{country}: the country's flag is your pickaxe. Every tap chips out Qzr, upgrades keep digging without you, and prestige trades it all for more."
     },
     "points": "Qzyrium",
     "perTap": "/ tap",

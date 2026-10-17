@@ -1,8 +1,9 @@
 {
   "gems": {
+    "tagline": "Line up three and the board falls in cascades. Golden gems are worth waiting for.",
     "meta": {
       "title": "{country} Gems",
-      "description": "Gems on the {country} node: swap gems, line up three of a kind and earn Qzr."
+      "description": "{country}: line up three and the board falls in cascades. Golden gems are worth waiting for."
     },
     "subtitle": "Gems",
     "cleared": "Cleared",
