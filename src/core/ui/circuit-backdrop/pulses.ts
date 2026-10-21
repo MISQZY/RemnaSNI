@@ -10,13 +10,17 @@ import type { Line, Point } from "./types";
 export function animate(canvases: (HTMLCanvasElement | null)[], layouts: Line[][]) {
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-  // The canvases are sized in device pixels, so the pulses stay sharp; resizing a canvas clears it.
+  // The canvases are sized in device pixels up to MAX_PIXEL_RATIO: the pulses are soft, and four canvases at a
+  // phone's 3× would take tens of MB. Resizing a canvas clears it.
   const resize = new ResizeObserver((entries) => {
     for (const { target, contentRect, devicePixelContentBoxSize } of entries) {
       const canvas = target as HTMLCanvasElement;
       const box = devicePixelContentBoxSize?.[0];
-      canvas.width = box ? box.inlineSize : Math.round(contentRect.width * devicePixelRatio);
-      canvas.height = box ? box.blockSize : Math.round(contentRect.height * devicePixelRatio);
+      const width = box ? box.inlineSize : Math.round(contentRect.width * devicePixelRatio);
+      const height = box ? box.blockSize : Math.round(contentRect.height * devicePixelRatio);
+      const scale = Math.min(1, MAX_PIXEL_RATIO / devicePixelRatio);
+      canvas.width = Math.round(width * scale);
+      canvas.height = Math.round(height * scale);
     }
   });
   for (const canvas of canvases) {
@@ -53,6 +57,24 @@ export function animate(canvases: (HTMLCanvasElement | null)[], layouts: Line[][
   };
 }
 
+/** Device pixels per CSS pixel the canvases are drawn at, at most. */
+const MAX_PIXEL_RATIO = 1.5;
+
+/** The fade of each canvas: drawn in the drawing's own units, so the same on every frame. */
+const fades = new WeakMap<CanvasRenderingContext2D, CanvasGradient>();
+
+function fadeOf(ctx: CanvasRenderingContext2D): CanvasGradient {
+  let fade = fades.get(ctx);
+  if (!fade) {
+    // The same fade as the mask over the traces: a circle from the corner, as far as the farthest corner of the drawing.
+    fade = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.hypot(WIDTH, HEIGHT));
+    fade.addColorStop(0.15, "#000");
+    fade.addColorStop(0.7, "transparent");
+    fades.set(ctx, fade);
+  }
+  return fade;
+}
+
 /** The pulses and the lit pads of one corner at `time` s, faded out towards the middle of the page as the traces are. */
 function draw(canvas: HTMLCanvasElement, lines: Line[], time: number, color: string) {
   const ctx = canvas.getContext("2d");
@@ -84,13 +106,9 @@ function draw(canvas: HTMLCanvasElement, lines: Line[], time: number, color: str
     }
   }
 
-  // The same fade as the mask over the traces: a circle from the corner, as far as the farthest corner of the drawing.
-  const fade = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.hypot(WIDTH, HEIGHT));
-  fade.addColorStop(0.15, "#000");
-  fade.addColorStop(0.7, "transparent");
   ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = "destination-in";
-  ctx.fillStyle = fade;
+  ctx.fillStyle = fadeOf(ctx);
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 }
 
