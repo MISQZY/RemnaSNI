@@ -19,6 +19,7 @@ import { SiteHeader } from "@/core/ui/site-header";
 import { cn } from "@/lib/utils";
 import { COL, PLAIN, ROW, STAR, colorOf, findMove, isGolden, isMove, kindOf, neighbours, newBoard, play, replay, type Board, type Gem, type Move, type Wave } from "./board";
 import { Crystal } from "./crystal";
+import { restorePending, savePending, type Stored, type Unsent } from "./pending";
 import { DEFAULT_SKIN, gemValue, waveValue, type GemsLook, type GemsRules, type GemsSkin } from "./rules";
 
 // Gems (match three), the game of nodes RemnaWeb has picked it for. Signed in, the board is RemnaWeb's: it deals it
@@ -44,7 +45,6 @@ const POPUP_MS = 1_700;
  */
 type Status = PerkStatus & { cleared: number; best: number; price: number; cascadeBonus: number };
 /** The board RemnaWeb keeps, with its id: what a chunk is played on. */
-type Stored = { id: string; board: Board };
 /** RemnaWeb's answer to a chunk: what it paid, the board after it and the status. */
 type Played = Status & { earned: number; keysEarned: number; board: Stored };
 
@@ -54,7 +54,6 @@ type Played = Status & { earned: number; keysEarned: number; board: Stored };
  */
 type Tile = { id: number; gem: Gem; drop?: number; fall?: number };
 /** A move made but not credited yet, with the gems it cleared and the Qzr they are worth, shown already. */
-type Unsent = { move: Move; gems: number; qzr: number };
 /** A floating "+N Qzr" over a wave: `bonus` the part the turbo added; `cascade` its wave number from the swap's. */
 type Popup = { id: number; x: number; y: number; qzr: number | null; bonus: number; cascade: number; golden: boolean; particles: Particle[] };
 
@@ -135,9 +134,20 @@ export function GemsSite({ code, name, signIn, rules }: { code: string; name: st
   /** The size of the board on screen: RemnaWeb's board keeps its own while an admin changes the rules. */
   const [{ cols, rows }, setSize] = useState({ cols: rules.cols, rows: rules.rows });
   const signedIn = !!account.token;
+  const lifecycle = useRef(0);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; lifecycle.current++; }; // eslint-disable-line react-hooks/exhaustive-deps -- Invalidate this component instance.
+  }, []);
+
+  const persist = () => {
+    if (mounted.current && account.identity && storedRef.current) savePending(account.identity, code, storedRef.current, unsentRef.current);
+  };
 
   const showUnsent = () => {
     const list = unsentRef.current;
+    persist();
     setUnsent({ gems: list.reduce((n, u) => n + u.gems, 0), qzr: list.reduce((n, u) => n + u.qzr, 0) });
   };
 
@@ -154,14 +164,16 @@ export function GemsSite({ code, name, signIn, rules }: { code: string; name: st
    * Takes RemnaWeb's board (the one kept, or a new one); the moves not credited are gone with the old one. A board kept
    * for another screen (the computer's on a phone) gives way to a new one turned this screen's way.
    */
-  const resync = async () => {
+  const resync = async (recover = false) => {
+    const epoch = lifecycle.current;
     try {
       const res = await gemsApi<Stored>(code, "gems/start", { portrait: portraitScreen() });
-      if (!res) return;
+      if (!res || epoch !== lifecycle.current) return;
+      const restored = recover && account.identity ? restorePending(account.identity, code, res) : null;
       storedRef.current = res;
-      unsentRef.current = [];
+      unsentRef.current = restored ? restored.unsent : [];
       showUnsent();
-      show(copyBoard(res.board));
+      show(restored ? restored.board : copyBoard(res.board));
     } catch {
       toast.error(t("gems.failed"));
     }
@@ -176,14 +188,14 @@ export function GemsSite({ code, name, signIn, rules }: { code: string; name: st
     setSize(sizeFor(rules));
     if (session.getSnapshot().token) {
       show(null);
-      void resync();
+      void resync(true);
     } else show(localBoard(rules));
   });
 
   useEffect(() => {
     // After the effect: the board of an account arrives asynchronously anyway.
     if (hydrated) void Promise.resolve().then(deal);
-  }, [account.token, hydrated]);
+  }, [account.identity, hydrated]);
 
   /**
    * Sends the moves not credited yet (as of now: those made meanwhile wait for the next chunk). RemnaWeb replays them
@@ -195,10 +207,11 @@ export function GemsSite({ code, name, signIn, rules }: { code: string; name: st
     const stored = storedRef.current;
     const chunk = unsentRef.current.slice();
     if (!session.getSnapshot().token || !stored || !chunk.length) return Promise.resolve();
+    const epoch = lifecycle.current;
     const run = async () => {
       try {
         const res = await gemsApi<Played>(code, "gems", { id: stored.id, at: stored.board.moves, moves: chunk.map((u) => u.move) }, keepalive);
-        if (!res) return;
+        if (!res || epoch !== lifecycle.current) return;
         storedRef.current = res.board;
         unsentRef.current = unsentRef.current.slice(chunk.length);
         showUnsent();
@@ -211,6 +224,7 @@ export function GemsSite({ code, name, signIn, rules }: { code: string; name: st
         const again = replay(res.board.board, unsentRef.current.map((u) => u.move));
         if ("bad" in again || !boardRef.current || !sameBoard(again.board, boardRef.current)) await resync();
       } catch (err) {
+        if (epoch !== lifecycle.current) return;
         // Not reached, or RemnaWeb failing: the moves wait for the next chunk. Refused, or another board: RemnaWeb's.
         if (err instanceof ApiError && err.status > 0 && err.status < 500) {
           toast.error(t(err.status === 409 ? "gems.stale" : "gems.failed"));
@@ -276,6 +290,7 @@ export function GemsSite({ code, name, signIn, rules }: { code: string; name: st
     [swapped[a], swapped[c]] = [swapped[c], swapped[a]];
     setTiles(swapped);
     await wait(SWAP_MS);
+    if (!mounted.current || boardRef.current !== board) { setBusy(false); return; }
     if (!isMove(board, a, c)) {
       setTiles(tiles);
       await wait(SWAP_MS);
@@ -285,7 +300,7 @@ export function GemsSite({ code, name, signIn, rules }: { code: string; name: st
     const result = play(board, [a, c], true)!;
     // Signed in, the move waits for the next chunk at once; what it is worth is filled in as it plays out.
     const made: Unsent | null = storedRef.current ? { move: [a, c], gems: 0, qzr: 0 } : null;
-    if (made) unsentRef.current.push(made);
+    if (made) { unsentRef.current.push(made); persist(); }
     /** Another board came meanwhile (RemnaWeb's, or a sign-in): this move's show is over. */
     const gone = () => boardRef.current !== board;
 
