@@ -18,16 +18,36 @@ export type SessionState = {
   /** Whether sign-in is available at all: the site has REMNAWEB_URL and a game started the session. */
   enabled: boolean;
   token: string | null;
+  /** Local identity only; RemnaWeb still authenticates every request. Stable across token renewal. */
+  identity: string | null;
   /** The signed-in account, once a game has loaded it from RemnaWeb. */
   account: Account | null;
 };
 
-const SIGNED_OUT: SessionState = { enabled: false, token: null, account: null };
+const SIGNED_OUT: SessionState = { enabled: false, token: null, identity: null, account: null };
 
+/** Only an isolation key, never evidence of authentication. Tokens are validated by RemnaWeb. */
+export function tokenIdentity(token: string | null): string | null {
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split(".")[0].replace(/-/g, "+").replace(/_/g, "/")));
+    if (typeof payload.uid === "string") return `${payload.uid}:${payload.v ?? 0}`;
+  } catch { /* Unknown token formats remain isolated by their full token. */ }
+  return token;
+}
+
+let generation = 0;
 let state = SIGNED_OUT;
 const listeners = new Set<() => void>();
 
 function set(patch: Partial<SessionState>) {
+  if (patch.token !== undefined) {
+    patch.identity = tokenIdentity(patch.token);
+    if (patch.identity !== state.identity) {
+      generation++;
+      patch.account = null;
+    }
+  }
   state = { ...state, ...patch };
   listeners.forEach((l) => l());
 }
@@ -86,6 +106,7 @@ export const session = {
     };
   },
   getSnapshot: () => state,
+  getGeneration: () => generation,
   getServerSnapshot: () => SIGNED_OUT,
 
   /**
@@ -129,6 +150,7 @@ export const session = {
   /** Signs out on every device and site: the sessions issued so far stop working. Returns an error to show. */
   async signOutEverywhere(): Promise<{ error?: string }> {
     const token = state.token;
+    const started = generation;
     if (!token) return {};
     try {
       const res = await fetch("/api/sni/auth/logout", {
@@ -142,7 +164,7 @@ export const session = {
     } catch {
       return { error: tr()("session.offline") };
     }
-    session.signOut();
+    if (generation === started) session.signOut();
     return {};
   },
 };

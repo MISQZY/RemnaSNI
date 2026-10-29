@@ -31,6 +31,7 @@ const TIMEOUT_MS = 15_000;
 
 /** Calls `/api/sni/<path>`; null when signed out. Throws ApiError on any other failure. */
 export async function api<T>(path: string, { method = "GET", body, country, keepalive }: Options = {}): Promise<T | null> {
+  const generation = session.getGeneration();
   const token = session.getSnapshot().token;
   if (!token) return null;
   const query = country ? `?${new URLSearchParams({ country })}` : "";
@@ -45,8 +46,10 @@ export async function api<T>(path: string, { method = "GET", body, country, keep
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch {
+    if (session.getGeneration() !== generation) return null;
     throw new ApiError(0, tr()("session.offline"));
   }
+  if (session.getGeneration() !== generation) return null;
   // Only the session this call was made with is over: a newer one may have come meanwhile.
   if (res.status === 401) {
     if (session.getSnapshot().token === token) {
@@ -56,6 +59,7 @@ export async function api<T>(path: string, { method = "GET", body, country, keep
     return null;
   }
   const json = (await res.json().catch(() => null)) as (T & { error?: unknown }) | null;
+  if (session.getGeneration() !== generation) return null;
   if (!res.ok) throw new ApiError(res.status, typeof json?.error === "string" ? json.error : tr()("session.tryLater"));
   return json as T;
 }

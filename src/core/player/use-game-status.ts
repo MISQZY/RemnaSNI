@@ -51,6 +51,7 @@ export function useGameStatus<T extends object>(path: string, country: string) {
     // After the effect: the status arrives asynchronously anyway.
     void Promise.resolve().then(load);
     return () => {
+      ++latest.current; // eslint-disable-line react-hooks/exhaustive-deps -- Request generation, not a DOM ref.
       stop();
       if (retry.current) clearTimeout(retry.current);
     };
